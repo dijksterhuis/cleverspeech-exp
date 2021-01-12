@@ -1,4 +1,6 @@
 import tensorflow as tf
+
+from cleverspeech.Attacks.Procedures import IterativeHardConstraintUpdate
 from cleverspeech.Utils import lcomp
 
 
@@ -103,3 +105,37 @@ class CTCAlignmentOptimiser:
 
             if all([d == b.targets.phrases[0] for d in decodings]):
                 break
+
+
+class CTCAlignmentsUpdateHard(IterativeHardConstraintUpdate):
+    def __init__(self, attack, alignment_graph, *args, **kwargs):
+        """
+        Initialise the evaluation procedure.
+
+        :param attack_graph: The current attack graph perform optimisation with.
+        """
+
+        super().__init__(attack, *args, **kwargs)
+
+        self.alignment_graph = alignment_graph
+
+        # We must wait until now to initialise the optimiser so that we can
+        # initialise only the attack variables (i.e. not the deepspeech ones).
+        start_vars = set(x.name for x in tf.global_variables())
+
+        self.alignment_graph.optimiser.create_optimiser()
+
+        attack.optimiser.create_optimiser()
+
+        end_vars = tf.global_variables()
+        new_vars = [x for x in end_vars if x.name not in start_vars]
+
+        # TODO: New base class that holds vars to be *initialised* rather than opt_vars attributes.
+        attack.sess.run(tf.variables_initializer(new_vars + attack.graph.opt_vars + [alignment_graph.graph.raw_alignments]))
+
+    def run(self):
+
+        self.alignment_graph.optimise(self.attack.victim)
+
+        for results in super().run():
+            yield results
