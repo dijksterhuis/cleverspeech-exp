@@ -39,9 +39,10 @@ Doesn't work very well as the optimisation doesn't seem to converge
 
 Docker images are available [here](https://hub.docker.com/u/dijksterhuis/cleverspeech).
 
-The `build` tag is the basic image with _only_ this repo included.
 The `latest` or `experiment` tags include the experiments I've run for my PhD work as part of the
 [cleverSpeechExperiments](https://github.com/dijksterhuis/cleverSpeechExperiments) repo.
+The `build` tag is the basic image with _only_ the
+[cleverSpeech](https://github.com/dijksterhuis/cleverSpeech) repo included.
 
 My work is packaged with docker so that:
 1. You don't have to go through the same dependency hell I went through.
