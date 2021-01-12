@@ -1,6 +1,6 @@
 import tensorflow as tf
 
-from cleverspeech.Attacks.Procedures import IterativeHardConstraintUpdate
+from cleverspeech.Attacks.Procedures import Base
 from cleverspeech.Utils import lcomp
 
 
@@ -107,7 +107,7 @@ class CTCAlignmentOptimiser:
                 break
 
 
-class CTCAlignmentsUpdateHard(IterativeHardConstraintUpdate):
+class CTCAlignmentsUpdateHard(Base):
     def __init__(self, attack, alignment_graph, *args, **kwargs):
         """
         Initialise the evaluation procedure.

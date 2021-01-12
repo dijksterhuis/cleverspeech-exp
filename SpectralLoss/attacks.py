@@ -132,7 +132,7 @@ def spectral_run(master_settings):
         )
 
         attack.add_procedure(
-            Procedures.BasicUpdateHard,
+            Procedures.UpdateBound,
             steps=settings["nsteps"],
             decode_step=settings["decode_step"]
         )

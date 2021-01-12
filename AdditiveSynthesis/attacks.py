@@ -121,7 +121,7 @@ def create_attack_graph(sess, batch, synth, settings):
     )
 
     attack.add_procedure(
-        Procedures.BasicUpdateHard,
+        Procedures.UpdateBound,
         steps=settings["nsteps"],
         decode_step=settings["decode_step"]
     )

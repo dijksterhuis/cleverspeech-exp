@@ -37,7 +37,7 @@ def attack_graph(sess, batch, synth, settings):
         learning_rate=settings["learning_rate"]
     )
     attack.add_procedure(
-        Procedures.IterativeHardConstraintUpdate,
+        Procedures.Base,
         steps=settings["nsteps"],
         decode_step=settings["decode_step"]
     )
