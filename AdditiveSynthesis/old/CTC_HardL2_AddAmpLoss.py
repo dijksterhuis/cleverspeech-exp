@@ -11,7 +11,8 @@ from cleverspeech.Attacks import Losses
 from cleverspeech.Attacks import Optimisers
 from cleverspeech.Attacks import Procedures
 from cleverspeech.Models import DeepSpeech
-from cleverspeech.Synthesis import Plain, Additive, DeterministicPlusNoise
+from AdditiveSynthesis.Synthesis import Additive, DeterministicPlusNoise
+from AdditiveSynthesis.Synthesis import Plain
 from cleverspeech.Utils import log
 
 from cleverspeech.Experiments.AdversariesCanAdd import Boilerplate

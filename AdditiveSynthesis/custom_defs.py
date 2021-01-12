@@ -6,7 +6,7 @@ from cleverspeech.Utils import np_arr, np_zero, np_one, lcomp
 
 
 class SynthesisAttack:
-    def __init__(self, sess, batch, hard_constraint, synthesis):
+    def __init__(self, sess, batch, hard_constraint, synthesiser):
 
         """
         Attack graph from 2018 Carlini & Wager Targeted Audio Attack.
@@ -35,7 +35,7 @@ class SynthesisAttack:
         )
 
         # Generate the delta synth parameter objects which we will optimise
-        deltas = synthesis.synthesise()
+        deltas = synthesiser.synthesise()
 
         # Mask deltas first so we zero value *any part of the signal* that is
         # zero value padded in the original audio
@@ -69,7 +69,7 @@ class SynthesisAttack:
 
         sess.run(self.masks.assign(initial_masks))
 
-        self.opt_vars = synthesis.opt_vars
+        self.opt_vars = synthesiser.opt_vars
 
 
     @staticmethod
