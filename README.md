@@ -3,16 +3,74 @@
 A bunch of experiments devised with the [cleverSpeech](https://github.com/dijksterhuis/cleverSpeech) 
 repo as part of my PhD.
 
-### Installing
-Docker images are located here (TODO).
+### Run the code
 
-Otherwise, follow the installation instructions for [cleverSpeech](https://github.com/dijksterhuis/cleverSpeech).
+Docker images are available [here](https://hub.docker.com/u/dijksterhuis/cleverspeech).
+
+The `build` tag is the basic image with _only_ this repo included.
+The `latest` or `experiment` tags include the experiments I've run for my PhD work as part of the
+[cleverSpeechExperiments](https://github.com/dijksterhuis/cleverSpeechExperiments) repo.
+
+My work is packaged with docker so that:
+1. You don't have to go through the same dependency hell I went through.
+2. You don't have to worry about getting the right data, checkpoints, commits etc.
+3. You can validate my results with the exact set-up I had by running one/two commands.
+
+To start running some experiments with docker:
+
+1. Install the latest version of [docker][10] (at least version `19.03`).
+2. Install and configure the [NVIDIA container runtime][8].
+3. Run the container (the image itself will be pulled automatically):
+```bash
+docker run \
+    -it \
+    --rm \
+    --gpus all \
+    -e LOCAL_UID=$(id -u ${USER}) \
+    -e LOCAL_GID=$(id -g ${USER}) \
+    -v path/to/original/samples/dir:/home/cleverspeech/cleverSpeech/samples:ro \
+    -v path/to/output/dir:/home/cleverspeech/cleverSpeech/adv:rw \
+    dijksterhuis/cleverspeech:latest
+```
+4. Run one of the scripts from [cleverSpeechExperiments](https://github.com/dijksterhuis/cleverSpeechExperiments)
+```bash
+python3 ./experiments/Baselines/attacks.py baseline
+```
+
+The `LOCAL_UID` and `LOCAL_GID` environment variables must be set. They're used to map
+file permissions in `/home/cleverspeech` user to your current user, otherwise you have to mess
+around with root file permission problems on any generated data.
+
+Check out the `attacks.py` scripts for additional usage, especially pay attention to the `settings`
+dictionaries, any `GLOBAL_VARS` (top of the scripts) and the `boilerplate.py` files. Feel free to
+email me with any queries.
+
+### Notes / Gotchas
+
+**1**: Only 16 bit signed integer audio files are supported -- i.e. mozilla common voice v1.
+
+**2**: Integrity of the adversarial examples is an ongoing issue when using the DeepSpeech python
+library. The DeepSpeech model ingests `tf.float32` inputs `-2^15 <= x <= 2^15 -1`, but
+the `deepspeech` library (as installed with `pip`) _only_ ingests 16 bit integers.
+Use the [`classify.py` script](cleverspeech/Evaluation/classify.py)
+in `./cleverspeech/Evaluation/` to validate outputs.
+
+**3**: I run my experiments in sets (not batches!) of 10 examples. Adam struggles to optimise
+as it's built for batch-wise learning rate tuning, but each of our examples are independent members
+of a set (Lea Schoenherr's [recent paper][12] talks about this briefly).
+
+**4**: `.jenkins` contains all the build and execution pipeline steps for the docker images and
+experiments.
+
+### Non-Docker installation
+
+Follow the manual installation instructions for [cleverSpeech](https://github.com/dijksterhuis/cleverSpeech).
 
 ### Experiments
 
 All attacks are performed with a hard L2 norm constraint (no soft constraint in the adversarial loss).
-Currently working on a few things on the back of the [CTCHiScores](https://github.com/dijksterhuis/cleverSpeechExperiments#ctchiscores)
-experiment.
+Currently working on a few things on the back of the
+[CTCHiScores](https://github.com/dijksterhuis/cleverSpeechExperiments#ctchiscores) experiment.
 
 #### Baselines
 Simple CTC attack based largely on the work of Nicholas Carlini and David Wagner.
@@ -38,4 +96,3 @@ This could have implications for CTC as there are a lot of alignments CTC doesn'
 Similar to CTCHiScores, but directly optimising the output logits vs. high confidence target logits.
 Doesn't work very well as the optimisation doesn't seem to converge 
 (irrelevant classes per time-step are being modified more often than not, so the attack gets stuck).
-
