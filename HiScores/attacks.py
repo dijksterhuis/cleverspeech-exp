@@ -116,94 +116,6 @@ def get_batch_factory(settings):
     return batch_factory
 
 
-def ctc_repeats_run(master_settings):
-    """
-    Example to show that just ignoring repeats during CTC loss pre-processing
-    steps doesn't help us -- we get a lot of repeated characters in the final
-    transcription.
-
-    The below settings are an edge case for CTC Loss use and are enabled in the
-    RepeatsCTCLoss object:
-    ```
-        preprocess_collapse_repeated=False,
-        ctc_merge_repeated=True,
-    ```
-
-    :return: None
-    """
-    def create_attack_graph(sess, batch, settings):
-
-        attack = Constructor(sess, batch)
-
-        attack.add_hard_constraint(
-            Constraints.L2,
-            r_constant=settings["rescale"],
-            update_method=settings["constraint_update"],
-        )
-
-        attack.add_graph(
-            Graphs.SimpleAttack
-        )
-
-        attack.add_victim(
-            DeepSpeech.Model,
-            tokens=settings["tokens"],
-            beam_width=settings["beam_width"]
-        )
-
-        attack.add_adversarial_loss(Losses.RepeatsCTCLoss)
-
-        attack.create_loss_fn()
-
-        attack.add_optimiser(
-            Optimisers.AdamOptimiser,
-            learning_rate=settings["learning_rate"]
-        )
-
-        attack.add_procedure(
-            Procedures.BasicUpdateHard,
-            steps=settings["nsteps"],
-            decode_step=settings["decode_step"]
-        )
-
-        return attack
-
-    for run in range(0, N_RUNS):
-
-        outdir = os.path.join(OUTDIR, "ctc-repeats/")
-        outdir = os.path.join(outdir, "{}/".format(LOGITS_SEARCH))
-        outdir = os.path.join(outdir, "run_{}/".format(run))
-
-        settings = {
-            "indir": os.path.join(INDIR, "{}/".format(LOGITS_SEARCH)),
-            "outdir": outdir,
-            "batch_size": BATCH_SIZE,
-            "tokens": TOKENS,
-            "nsteps": NUMB_STEPS,
-            "decode_step": DECODING_STEP,
-            "beam_width": BEAM_WIDTH,
-            "constraint_update": CONSTRAINT_UPDATE,
-            "rescale": RESCALE,
-            "learning_rate": LEARNING_RATE,
-            "logits_search": LOGITS_SEARCH,
-            "gpu_device": GPU_DEVICE,
-            "max_spawns": MAX_PROCESSES,
-            "spawn_delay": SPAWN_DELAY,
-            "n_repeats": 3,
-        }
-
-        settings.update(master_settings)
-
-        batch_factory = get_batch_factory(settings)
-        batch_gen = batch_factory.generate(
-            ETL.AudioExamples, ETL.TargetLogits, Feeds.CTCRepeats
-        )
-
-        execute(settings, create_attack_graph, batch_gen)
-
-        log("Finished run {}.".format(run))
-
-
 def squared_diff_loss(master_settings):
     """
     Creates some target logits that fills as much of the resulting alignment
@@ -291,7 +203,6 @@ if __name__ == '__main__':
 
     experiments = {
         "squared_diff_loss": squared_diff_loss,
-        "ctcrepeats": ctc_repeats_run,
     }
 
     args(experiments)

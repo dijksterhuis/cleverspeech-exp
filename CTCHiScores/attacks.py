@@ -204,93 +204,9 @@ def ctc_repeats_run(master_settings):
         log("Finished run {}.".format(run))
 
 
-def squared_diff_loss(master_settings):
-    """
-    Creates some target logits that fills as much of the resulting alignment
-    with repeated tokens. These tokens are repeated in the merge step, but it
-    makes the decoded transcription score *way* higher.
-
-    Unfortunately we have to balance the decoder confidence score against the
-    ability to find a suitable solution as using n_repeats > 5 will probably
-    take a lot of steps to optimise.
-
-    :return: None
-    """
-    def create_attack_graph(sess, batch, settings):
-        attack = Constructor(sess, batch)
-
-        attack.add_hard_constraint(
-            Constraints.L2,
-            r_constant=settings["rescale"],
-            update_method=settings["constraint_update"]
-        )
-
-        attack.add_graph(
-            Graphs.HiScoresAttack
-        )
-
-        attack.add_victim(
-            DeepSpeech.Model,
-            tokens=settings["tokens"],
-            beam_width=settings["beam_width"]
-        )
-
-        attack.add_adversarial_loss(
-            Losses.HiScoresAbsLoss,
-        )
-        attack.create_loss_fn()
-
-        attack.add_optimiser(
-            Optimisers.AdamOptimiser,
-            learning_rate=settings["learning_rate"],
-        )
-
-        attack.add_procedure(
-            Procedures.BasicUpdateHard,
-            steps=settings["nsteps"],
-            decode_step=settings["decode_step"]
-        )
-
-        return attack
-
-    for run in range(0, N_RUNS):
-
-        outdir = os.path.join(OUTDIR, "squared_diff/")
-        outdir = os.path.join(outdir, "{}/".format(LOGITS_SEARCH))
-        outdir = os.path.join(outdir, "run_{}/".format(run))
-
-        settings = {
-            "indir": os.path.join(INDIR, "{}/".format(LOGITS_SEARCH)),
-            "outdir": outdir,
-            "batch_size": BATCH_SIZE,
-            "tokens": TOKENS,
-            "nsteps": NUMB_STEPS,
-            "decode_step": DECODING_STEP,
-            "beam_width": BEAM_WIDTH,
-            "rescale": RESCALE,
-            "constraint_update": "geom",
-            "learning_rate": LEARNING_RATE,
-            "logits_search": LOGITS_SEARCH,
-            "gpu_device": GPU_DEVICE,
-            "max_spawns": MAX_PROCESSES,
-            "spawn_delay": SPAWN_DELAY,
-        }
-        settings.update(master_settings)
-
-        batch_factory = get_batch_factory(settings)
-        batch_gen = batch_factory.generate(
-            ETL.AudioExamples, ETL.TargetLogits, Feeds.HiScores
-        )
-
-        execute(settings, create_attack_graph, batch_gen)
-
-        log("Finished run {}.".format(run))
-
-
 if __name__ == '__main__':
 
     experiments = {
-        "squared_diff_loss": squared_diff_loss,
         "ctcrepeats": ctc_repeats_run,
     }
 
