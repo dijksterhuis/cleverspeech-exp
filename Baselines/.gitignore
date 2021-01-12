@@ -1,0 +1,17 @@
+__pycache__
+venv
+.idea
+*.pyc
+data
+sample-*
+samples-*/
+samples/*
+*example.wav
+*delta.wav
+*adv*
+*.wav
+notes/
+*.log
+*-logits/
+/experiments/*/data/
+/tmp/
