@@ -1,7 +1,7 @@
 import tensorflow as tf
 import numpy as np
 
-from cleverspeech.Attacks.Base import BasePlaceholders
+from cleverspeech.Attacks.Base import Placeholders
 from cleverspeech.Utils import np_arr, np_zero, np_one, lcomp
 
 
@@ -24,7 +24,7 @@ class HiScoresAttack:
         max_len = batch.audios.max_length
         act_lengths = batch.audios.actual_lengths
 
-        self.placeholders = BasePlaceholders(batch_size, max_len)
+        self.placeholders = Placeholders(batch_size, max_len)
         self.placeholders.target_logits = tf.placeholder(
             tf.float32,
             [
