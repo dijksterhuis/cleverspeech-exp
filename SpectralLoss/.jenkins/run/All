@@ -1,0 +1,96 @@
+#!/usr/bin/env groovy
+
+pipeline {
+    agent { label "kalluto" }
+    environment {
+        IMAGE_NAME = "dijksterhuis/cleverspeech"
+        TAG = "latest"
+    }
+
+    stages {
+
+        stage('Prep work.') {
+            steps {
+                script {
+                    sh "docker container prune -f"
+                    sh "docker pull ${IMAGE_NAME}:${TAG}"
+                }
+            }
+        }
+
+        stage("Run CTC baseline experiment."){
+            steps {
+                script {
+
+                    sh """
+                    docker run \
+                        --gpus device=${GPU_N} \
+                        -t \
+                        --rm \
+                        --name ctcbaseline \
+                        -v \$(pwd)/results/:/data/adv \
+                        -e LOCAL_UID=\$(id -u ${USER}) \
+                        -e LOCAL_GID=\$(id -g ${USER}) \
+                        ${IMAGE_NAME}:${TAG} \
+                        python3 \
+                        ./experiments/CTCBaselines/CTCBaseline.py \
+                        baseline \
+                        --max_spawns 3
+                    """
+                }
+            }
+        }
+
+        stage("Run CTC repeats experiment."){
+            steps {
+                script {
+
+                    sh """
+                    docker run \
+                        --gpus device=${GPU_N} \
+                        -t \
+                        --rm \
+                        --name ctcrepeats \
+                        -v \$(pwd)/results/:/data/adv \
+                        -e LOCAL_UID=\$(id -u ${USER}) \
+                        -e LOCAL_GID=\$(id -g ${USER}) \
+                        ${IMAGE_NAME}:${TAG} \
+                        python3 \
+                        ./experiments/CTCBaselines/CTCBaseline.py \
+                        ctcrepeats \
+                        --max_spawns 3
+                    """
+                }
+            }
+        }
+        stage("Run CTC CW Max Diff experiment."){
+            steps {
+                script {
+
+                    sh """
+                    docker run \
+                        --gpus device=${GPU_N} \
+                        -t \
+                        --rm \
+                        --name ctcmaxdiff \
+                        -v \$(pwd)/results/:/data/adv \
+                        -e LOCAL_UID=\$(id -u ${USER}) \
+                        -e LOCAL_GID=\$(id -g ${USER}) \
+                        ${IMAGE_NAME}:${TAG} \
+                        python3 \
+                        ./experiments/CTCBaselines/CTCBaseline.py \
+                        ctcmaxdiff \
+                        --max_spawns 3
+                    """
+                }
+            }
+        }
+    }
+    post  {
+        always {
+            sh "docker image rm ${IMAGE_NAME}:${TAG}"
+            sh "docker image prune -f"
+            sh "docker container prune -f"
+        }
+    }
+}

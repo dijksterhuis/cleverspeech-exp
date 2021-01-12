@@ -4,8 +4,8 @@ import os
 # attack def imports
 from cleverspeech.Attacks.Base import Constructor
 from cleverspeech.Attacks import Constraints
-from cleverspeech.Attacks import Graphs
-from cleverspeech.Attacks import Losses
+#from cleverspeech.Attacks import Graphs
+from cleverspeech.Attacks.Losses import CTCLoss
 from cleverspeech.Attacks import Optimisers
 from cleverspeech.Attacks import Procedures
 from cleverspeech.Models import DeepSpeech
@@ -18,6 +18,8 @@ from cleverspeech.Data import Generators
 from cleverspeech.Utils import log, l_map, args
 
 from boilerplate import execute
+
+import custom_defs
 
 GPU_DEVICE = 0
 MAX_PROCESSES = 4
@@ -100,7 +102,7 @@ def create_attack_graph(sess, batch, synth, settings):
     )
 
     attack.add_graph(
-        Graphs.SynthesisAttack,
+        custom_defs.SynthesisAttack,
         synthesis=synth
     )
 
@@ -110,7 +112,7 @@ def create_attack_graph(sess, batch, synth, settings):
         beam_width=settings["beam_width"]
     )
 
-    attack.add_adversarial_loss(Losses.CTCLoss)
+    attack.add_adversarial_loss(CTCLoss)
     attack.create_loss_fn()
 
     attack.add_optimiser(

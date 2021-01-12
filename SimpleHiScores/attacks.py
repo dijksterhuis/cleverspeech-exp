@@ -3,8 +3,8 @@ import os
 
 from cleverspeech.Attacks.Base import Constructor
 from cleverspeech.Attacks import Constraints
-from cleverspeech.Attacks import Graphs
-from cleverspeech.Attacks import Losses
+#from cleverspeech.Attacks import Graphs
+#from cleverspeech.Attacks import Losses
 from cleverspeech.Attacks import Optimisers
 from cleverspeech.Attacks import Procedures
 
@@ -16,6 +16,10 @@ from cleverspeech.Data import Generators
 from cleverspeech.Utils import log, args
 
 from boilerplate import execute
+
+# custom attack classes
+import custom_defs
+
 
 GPU_DEVICE = 0
 MAX_PROCESSES = 3
@@ -138,7 +142,7 @@ def squared_diff_loss(master_settings):
         )
 
         attack.add_graph(
-            Graphs.HiScoresAttack
+            custom_defs.HiScoresAttack
         )
 
         attack.add_victim(
@@ -148,7 +152,7 @@ def squared_diff_loss(master_settings):
         )
 
         attack.add_adversarial_loss(
-            Losses.HiScoresAbsLoss,
+            custom_defs.HiScoresAbsLoss,
         )
         attack.create_loss_fn()
 

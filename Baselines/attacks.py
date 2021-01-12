@@ -2,7 +2,7 @@
 import os
 
 # attack def imports
-from cleverspeech.Attacks import Alignments
+#from cleverspeech.Attacks import Alignments
 from cleverspeech.Attacks.Base import Constructor
 from cleverspeech.Attacks import Constraints
 from cleverspeech.Attacks import Graphs
@@ -19,6 +19,8 @@ from cleverspeech.Data import Generators
 from cleverspeech.Utils import log, l_map, args
 
 from boilerplate import execute
+
+import custom_defs
 
 GPU_DEVICE = 0
 MAX_PROCESSES = 4
@@ -167,89 +169,6 @@ def baseline_ctc_run(master_settings):
     log("Finished run.")  # {}.".format(run))
 
 
-def ctc_repeats_run(master_settings):
-    """
-    Example to show that just ignoring repeats during CTC loss pre-processing
-    steps doesn't help us -- we get a lot of repeated characters in the final
-    transcription.
-
-    The below settings are an edge case for CTC Loss use and are enabled in the
-    RepeatsCTCLoss object:
-    ```
-        preprocess_collapse_repeated=False,
-        ctc_merge_repeated=True,
-    ```
-
-    :return: None
-    """
-    def create_attack_graph(sess, batch, settings):
-
-        attack = Constructor(sess, batch)
-
-        attack.add_hard_constraint(
-            Constraints.L2,
-            r_constant=settings["rescale"],
-            update_method=settings["constraint_update"],
-        )
-
-        attack.add_graph(
-            Graphs.SimpleAttack
-        )
-
-        attack.add_victim(
-            DeepSpeech.Model,
-            tokens=settings["tokens"],
-            beam_width=settings["beam_width"]
-        )
-
-        attack.add_adversarial_loss(Losses.RepeatsCTCLoss)
-
-        attack.create_loss_fn()
-
-        attack.add_optimiser(
-            Optimisers.AdamOptimiser,
-            learning_rate=settings["learning_rate"]
-        )
-
-        attack.add_procedure(
-            Procedures.BasicUpdateHard,
-            steps=settings["nsteps"],
-            decode_step=settings["decode_step"]
-        )
-
-        return attack
-
-    #for run in range(1, N_RUNS):
-
-    outdir = os.path.join(OUTDIR, "ctc-repeats/")
-    #outdir = os.path.join(outdir, "run_{}/".format(run))
-
-    settings = {
-        "audio_indir": AUDIOS_INDIR,
-        "targets_path": TARGETS_PATH,
-        "outdir": outdir,
-        "batch_size": BATCH_SIZE,
-        "tokens": TOKENS,
-        "nsteps": NUMB_STEPS,
-        "decode_step": DECODING_STEP,
-        "beam_width": BEAM_WIDTH,
-        "constraint_update": CONSTRAINT_UPDATE,
-        "rescale": RESCALE,
-        "learning_rate": LEARNING_RATE,
-        "gpu_device": GPU_DEVICE,
-        "max_spawns": MAX_PROCESSES,
-        "spawn_delay": SPAWN_DELAY,
-        "n_repeats": 3,
-    }
-
-    settings.update(master_settings)
-    batch_gen = get_batch_generator(settings)
-
-    execute(settings, create_attack_graph, batch_gen)
-
-    log("Finished run/")  # {}.".format(run))
-
-
 def f6_ctc_beam_search_decoder_run(master_settings):
     """
     Use CTC Loss to optimise some target logits for us. This is quick and simple
@@ -279,10 +198,10 @@ def f6_ctc_beam_search_decoder_run(master_settings):
         )
 
         alignment = Constructor(attack.sess, batch)
-        alignment.add_graph(Alignments.CTCSearchGraph, attack)
-        alignment.add_adversarial_loss(Losses.AlignmentLoss)
+        alignment.add_graph(custom_defs.CTCSearchGraph, attack)
+        alignment.add_adversarial_loss(custom_defs.AlignmentLoss)
         alignment.create_loss_fn()
-        alignment.add_optimiser(Alignments.CTCAlignmentOptimiser)
+        alignment.add_optimiser(custom_defs.CTCAlignmentOptimiser)
 
         attack.add_adversarial_loss(
             Losses.CWMaxDiff,
@@ -364,10 +283,10 @@ def f6_ctc_greedy_search_decoder_run(master_settings):
         )
 
         alignment = Constructor(attack.sess, batch)
-        alignment.add_graph(Alignments.CTCSearchGraph, attack)
-        alignment.add_adversarial_loss(Losses.AlignmentLoss)
+        alignment.add_graph(custom_defs.CTCSearchGraph, attack)
+        alignment.add_adversarial_loss(custom_defs.AlignmentLoss)
         alignment.create_loss_fn()
-        alignment.add_optimiser(Alignments.CTCAlignmentOptimiser)
+        alignment.add_optimiser(custom_defs.CTCAlignmentOptimiser)
 
         attack.add_adversarial_loss(
             Losses.CWMaxDiff,
@@ -426,7 +345,6 @@ if __name__ == '__main__':
 
     experiments = {
         "baseline": baseline_ctc_run,
-        "ctcrepeats": ctc_repeats_run,
         "ctcmaxdiff_beam": f6_ctc_beam_search_decoder_run,
         "ctcmaxdiff_greedy": f6_ctc_greedy_search_decoder_run,
     }
