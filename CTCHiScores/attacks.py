@@ -4,21 +4,17 @@ import os
 from cleverspeech.Attacks.Base import Constructor
 from cleverspeech.Attacks import Constraints
 from cleverspeech.Attacks import Graphs
-#from cleverspeech.Attacks import Losses
 from cleverspeech.Attacks import Optimisers
 from cleverspeech.Attacks import Procedures
-
 from cleverspeech.Models import DeepSpeech
 from cleverspeech.Data import ETL
-from cleverspeech.Data import Feeds
-from cleverspeech.Data import Generators
-
 from cleverspeech.Utils import log, args
 
 from boilerplate import execute
 
 # local attack classes
 import custom_defs
+import custom_etl
 
 GPU_DEVICE = 0
 MAX_PROCESSES = 3
@@ -68,38 +64,10 @@ thank me in the long run.
 """
 
 
-def get_logits_batch_generator(settings):
-    # get a N samples of all the data
-
-    target_logits_etl = ETL.AllTargetLogitsAndAudioFilePaths(
-        settings["indir"], MAX_EXAMPLES,
-    )
-    all_data = target_logits_etl.extract().transform().load()
-
-    # Generate the batches in turn, rather than all in one go ...
-
-    batch_factory = Generators.LogitsBatchGenerator(
-        all_data, settings["batch_size"]
-    )
-
-    # ... To save resources by only running the final ETLs on a batch of data
-
-    batch_gen = batch_factory.generate(
-        ETL.AudioExamples, ETL.TargetLogits, Feeds.HiScores
-    )
-
-    log(
-        "New Run",
-        "Number of test examples: {}".format(batch_factory.numb_examples),
-        ''.join(["{k}: {v}\n".format(k=k, v=v) for k, v in settings.items()]),
-    )
-    return batch_gen
-
-
 def get_batch_factory(settings):
     # get a N samples of all the data
 
-    target_logits_etl = ETL.AllTargetLogitsAndAudioFilePaths(
+    target_logits_etl = custom_etl.AllTargetLogitsAndAudioFilePaths(
         settings["indir"], MAX_EXAMPLES, filter_term="latest"
     )
     all_data = target_logits_etl.extract().transform().load()
@@ -107,7 +75,7 @@ def get_batch_factory(settings):
     # Generate the batches in turn, rather than all in one go ...
     # ... To save resources by only running the final ETLs on a batch of data
 
-    batch_factory = Generators.LogitsBatchGenerator(
+    batch_factory = custom_etl.LogitsBatchGenerator(
         all_data, settings["batch_size"]
     )
 
@@ -199,7 +167,7 @@ def ctc_repeats_run(master_settings):
 
         batch_factory = get_batch_factory(settings)
         batch_gen = batch_factory.generate(
-            ETL.AudioExamples, ETL.TargetLogits, Feeds.CTCRepeats
+            ETL.AudioExamples, custom_etl.TargetLogits, custom_defs.CTCRepeatsFeed
         )
 
         execute(settings, create_attack_graph, batch_gen)

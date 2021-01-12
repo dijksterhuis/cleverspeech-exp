@@ -5,6 +5,48 @@ from cleverspeech.Attacks.Base import Placeholders
 from cleverspeech.Utils import np_arr, np_zero, np_one, lcomp
 
 
+class HiScoresFeed:
+    def __init__(self, audio_batch, target_batch):
+        """
+        Holds the feeds which will be passed into DeepSpeech for normal or
+        attack evaluation.
+
+        :param audio_batch: a batch of audio examples (`Audios` class)
+        :param target_batch: a batch of target phrases (`Targets` class)
+        """
+
+        self.audio = audio_batch
+        self.targets = target_batch
+        self.examples = None
+        self.attack = None
+        self.alignments = None
+
+    def create_feeds(self, graph):
+        """
+        Create the actual feeds
+
+        :param graph: the attack graph which holds the input placeholders
+        :return: feed_dict for both plain examples and attack optimisation
+        """
+        # TODO - this is nasty!
+
+        self.examples = {
+            graph.placeholders.audios: self.audio.padded_audio,
+            graph.placeholders.audio_lengths: self.audio.feature_lengths
+        }
+
+        # TODO new logits placeholder.
+        self.attack = {
+            graph.placeholders.audios: self.audio.padded_audio,
+            graph.placeholders.audio_lengths: self.audio.feature_lengths,
+            graph.placeholders.target_logits: self.targets.logits,
+            graph.placeholders.logit_indices: self.targets.alignment_indices,
+            graph.placeholders.kappas: self.targets.kappa
+        }
+
+        return self.examples, self.attack
+
+
 class HiScoresAttack:
     def __init__(self, sess, batch, hard_constraint):
 
