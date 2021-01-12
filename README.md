@@ -11,11 +11,12 @@ Otherwise, follow the installation instructions for [cleverSpeech](https://githu
 ### Experiments
 
 All attacks are performed with a hard L2 norm constraint (no soft constraint in the adversarial loss).
-Currently working on a few things on the back of the CTCHiScores experiment.
+Currently working on a few things on the back of the [CTCHiScores](https://github.com/dijksterhuis/cleverSpeechExperiments#ctchiscores)
+experiment.
 
 #### Baselines
 Simple CTC attack based largely on the work of Nicholas Carlini and David Wagner.
-Used as a basleine comparison for all other work (attack success rates, perturbation size etc.).
+Used as a baseline comparison for all other work (attack success rates, perturbation size etc.).
 
 #### AdditiveSynthesis
 Explores the effects of using additive synthesis to generate pertubations.
@@ -36,5 +37,5 @@ This could have implications for CTC as there are a lot of alignments CTC doesn'
 #### SimpleHiScores
 Similar to CTCHiScores, but directly optimising the output logits vs. high confidence target logits.
 Doesn't work very well as the optimisation doesn't seem to converge 
-(irrelevant classes per time-step are being modified more often than not, we want optimisation to focus on).
+(irrelevant classes per time-step are being modified more often than not, so the attack gets stuck).
 
