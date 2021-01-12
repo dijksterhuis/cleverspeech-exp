@@ -9,6 +9,9 @@ All attacks are performed with a hard L2 norm constraint (no soft constraint in 
 Currently working on a few things on the back of the
 [CTCHiScores](https://github.com/dijksterhuis/cleverSpeechExperiments#ctchiscores) experiment.
 
+### AlignmentTargeting
+Various search methods to find high confidence alignments (i.e. high decoder log prob. scores).
+
 ### Baselines
 Simple CTC attack based largely on the work of Nicholas Carlini and David Wagner.
 Used as a baseline comparison for all other work (attack success rates, perturbation size etc.).
