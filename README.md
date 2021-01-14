@@ -115,3 +115,24 @@ Make sure you've set the `DEEPSPEECH_CHECKPOINT_DIR` and `DEEPSPEECH_MODEL_DIR` 
 After that, everything should _just work_.
 
 
+### Citations / Licenses / Sourced Works
+
+TODO: Update licenses.
+
+I've modified the following works, many thanks to the authors:
+- [Carlini & Wagner][0]
+- [magneta/ddsp][4]
+
+
+[0]: https://arxiv.org/abs/1801.01944
+[2]: https://arxiv.org/abs/1608.04644
+[3]: https://arxiv.org/abs/1712.03141
+[4]: https://github.com/magenta/ddsp
+[5]: https://arxiv.org/abs/1902.06705
+[6]: https://hub.docker.com/r/dijksterhuis/cleverspeech
+[7]: https://github.com/dijksterhuis/cleverSpeech/packages
+[8]: https://github.com/NVIDIA/nvidia-container-runtime
+[9]: https://whoami.dijksterhuis.co.uk
+[10]: https://docker.com
+[11]: https://github.com/dijksterhuis/cleverSpeech/packages/336838
+[12]: https://arxiv.org/abs/2005.14611
