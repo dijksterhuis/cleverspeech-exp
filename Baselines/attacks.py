@@ -9,7 +9,9 @@ from cleverspeech.Attacks import Graphs
 from cleverspeech.Attacks import Losses
 from cleverspeech.Attacks import Optimisers
 from cleverspeech.Attacks import Procedures
-from cleverspeech.Models import DeepSpeech
+from cleverspeech.Attacks import Outputs
+
+from DeepSpeechSecEval import VictimAPI as Victim
 
 
 # boilerplate imports
@@ -29,9 +31,9 @@ SPAWN_DELAY = 60 * 5
 TOKENS = " abcdefghijklmnopqrstuvwxyz'-"
 BEAM_WIDTH = 500
 
-AUDIOS_INDIR = "/data/samples/all/"
-TARGETS_PATH = "/data/samples/cv-valid-test.csv"
-OUTDIR = "/data/adv/baseline/"
+AUDIOS_INDIR = "./samples/all/"
+TARGETS_PATH = "./samples/cv-valid-test.csv"
+OUTDIR = "./adv/baseline/"
 MAX_EXAMPLES = 1000
 MAX_TARGETS = 1000
 MAX_AUDIO_LENGTH = 120000
@@ -53,15 +55,15 @@ def get_batch_generator(settings):
 
     audio_etl = ETL.AllAudioFilePaths(
         settings["audio_indir"],
-        MAX_EXAMPLES,
+        settings["max_examples"],
         filter_term=".wav",
-        max_samples=MAX_AUDIO_LENGTH
+        max_samples=settings["max_audio_length"]
     )
 
     all_audio_file_paths = audio_etl.extract().transform().load()
 
     targets_etl = ETL.AllTargetPhrases(
-        settings["targets_path"], MAX_TARGETS,
+        settings["targets_path"], settings["max_targets"],
     )
     all_targets = targets_etl.extract().transform().load()
 
@@ -118,7 +120,7 @@ def baseline_ctc_run(master_settings):
         )
 
         attack.add_victim(
-            DeepSpeech.Model,
+            Victim.Model,
             tokens=settings["tokens"],
             beam_width=settings["beam_width"]
         )
@@ -137,12 +139,14 @@ def baseline_ctc_run(master_settings):
             decode_step=settings["decode_step"]
         )
 
+        attack.add_outputs(
+            Outputs.Base,
+            settings["outdir"],
+        )
+
         return attack
 
-    #for run in range(1, N_RUNS):
-
     outdir = os.path.join(OUTDIR, "baseline/")
-    #outdir = os.path.join(outdir, "run_{}/".format(run))
 
     settings = {
         "audio_indir": AUDIOS_INDIR,
@@ -159,6 +163,9 @@ def baseline_ctc_run(master_settings):
         "gpu_device": GPU_DEVICE,
         "max_spawns": MAX_PROCESSES,
         "spawn_delay": SPAWN_DELAY,
+        "max_examples": MAX_EXAMPLES,
+        "max_targets": MAX_TARGETS,
+        "max_audio_length": MAX_AUDIO_LENGTH,
     }
 
     settings.update(master_settings)
@@ -191,7 +198,7 @@ def f6_ctc_beam_search_decoder_run(master_settings):
         )
 
         attack.add_victim(
-            DeepSpeech.Model,
+            Victim.Model,
             tokens=settings["tokens"],
             decoder=settings["decoder_type"],
             beam_width=settings["beam_width"]
@@ -219,6 +226,10 @@ def f6_ctc_beam_search_decoder_run(master_settings):
             steps=settings["nsteps"],
             decode_step=settings["decode_step"]
         )
+        attack.add_outputs(
+            Outputs.Base,
+            settings["outdir"],
+        )
 
         return attack
 
@@ -244,6 +255,9 @@ def f6_ctc_beam_search_decoder_run(master_settings):
             "spawn_delay": SPAWN_DELAY,
             "kappa": float(run),
             "decoder_type": "batch",
+            "max_examples": MAX_EXAMPLES,
+            "max_targets": MAX_TARGETS,
+            "max_audio_length": MAX_AUDIO_LENGTH,
         }
 
         settings.update(master_settings)
@@ -276,7 +290,7 @@ def f6_ctc_greedy_search_decoder_run(master_settings):
         )
 
         attack.add_victim(
-            DeepSpeech.Model,
+            Victim.Model,
             tokens=settings["tokens"],
             decoder=settings["decoder_type"],
             beam_width=settings["beam_width"]
@@ -299,10 +313,15 @@ def f6_ctc_greedy_search_decoder_run(master_settings):
             learning_rate=settings["learning_rate"]
         )
         attack.add_procedure(
-            Procedures.CTCAlignmentsUpdateHard,
+            custom_defs.CTCAlignmentsUpdateHard,
             alignment_graph=alignment,
             steps=settings["nsteps"],
             decode_step=settings["decode_step"]
+        )
+
+        attack.add_outputs(
+            Outputs.Base,
+            settings["outdir"],
         )
 
         return attack
@@ -329,6 +348,9 @@ def f6_ctc_greedy_search_decoder_run(master_settings):
             "spawn_delay": SPAWN_DELAY,
             "kappa": float(run),
             "decoder_type": "greedy",
+            "max_examples": MAX_EXAMPLES,
+            "max_targets": MAX_TARGETS,
+            "max_audio_length": MAX_AUDIO_LENGTH,
         }
 
         settings.update(master_settings)
