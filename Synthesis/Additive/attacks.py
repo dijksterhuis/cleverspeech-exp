@@ -8,10 +8,11 @@ from cleverspeech.Attacks import Constraints
 from cleverspeech.Attacks.Losses import CTCLoss
 from cleverspeech.Attacks import Optimisers
 from cleverspeech.Attacks import Procedures
+from cleverspeech.Attacks import Outputs
 
 from DeepSpeechSecEval import VictimAPI as DeepSpeech
 
-from AdditiveSynthesis.Synthesis import Additive, DeterministicPlusNoise
+from Synthesis.Synthesisers import Additive, DeterministicPlusNoise
 
 # boilerplate imports
 from cleverspeech.Data import ETL
@@ -126,6 +127,11 @@ def create_attack_graph(sess, batch, synth, settings):
         Procedures.UpdateBound,
         steps=settings["nsteps"],
         decode_step=settings["decode_step"]
+    )
+
+    attack.add_outputs(
+        Outputs.Base,
+        settings["outdir"],
     )
 
     return attack

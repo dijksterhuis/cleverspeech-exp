@@ -1,7 +1,7 @@
 import tensorflow as tf
 import numpy as np
 
-from AdditiveSynthesis.Synthesis.Base import Synth
+from Synthesis.Synthesisers.Base import Synth
 
 
 class STFT(Synth):
