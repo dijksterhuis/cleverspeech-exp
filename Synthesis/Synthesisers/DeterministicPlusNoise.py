@@ -1,6 +1,6 @@
-from AdditiveSynthesis.Synthesis.Base import Synth
-from AdditiveSynthesis.Synthesis.Plain import Plain
-from AdditiveSynthesis.Synthesis import Additive
+from Synthesis.Synthesisers.Base import Synth
+from Synthesis.Synthesisers.Plain import Plain
+from Synthesis.Synthesisers import Additive
 
 
 class FreqHarmonicPlusPlain(Synth):

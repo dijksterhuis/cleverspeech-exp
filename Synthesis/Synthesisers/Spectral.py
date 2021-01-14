@@ -5,7 +5,7 @@ from Synthesis.Synthesisers.Base import Synth
 
 
 class STFT(Synth):
-    def __init__(self, batch, frame_step: int = 512, frame_length: int = 1024):
+    def __init__(self, batch, frame_step: int = 512, frame_length: int = 1024, fft_length: int = 1024):
 
         # Tensorflow cannot optimise through the inverse stft if the windows are
         # not overlapping.
@@ -16,6 +16,7 @@ class STFT(Synth):
 
         self.frame_length = int(frame_length)
         self.frame_step = int(frame_step)
+        self.fft_length = int(fft_length)
 
         self.stft_deltas = None
         self.inverse_delta = None
@@ -34,20 +35,23 @@ class STFT(Synth):
         )
         self.window_fn = tf.signal.inverse_stft_window_fn(self.frame_step)
 
-        super().__init__()
-        super().add_opt_vars(self.real_deltas, self.im_deltas)
-
-    def synthesise(self):
         self.stft_deltas = tf.complex(
             self.real_deltas,
             self.im_deltas
         )
 
+        super().__init__()
+        super().add_opt_vars(self.real_deltas, self.im_deltas)
+
+    def synthesise(self):
+
         self.inverse_delta = tf.signal.inverse_stft(
             self.stft_deltas,
             frame_length=self.frame_length,
             frame_step=self.frame_step,
-            window_fn=self.window_fn
+            window_fn=self.window_fn,
+            fft_length=self.fft_length,
+
         )
 
         if (self.maxlen - self.inverse_delta.shape[1]) >= 0:
@@ -66,12 +70,3 @@ class STFT(Synth):
             )
 
         return padded
-
-
-class FramedDFT(Synth):
-    def __init__(self, batch, frame_step, frame_length):
-
-        # TODO: This will be used to perform spectral synthesis with
-        #       non-overlapping frames
-        super().__init__()
-        raise NotImplementedError()

@@ -34,6 +34,8 @@ class SynthesisAttack:
             name='qq_masks'
         )
 
+        self.synthesiser = synthesiser
+
         # Generate the delta synth parameter objects which we will optimise
         deltas = synthesiser.synthesise()
 
@@ -130,3 +132,14 @@ class DetNoiseRMSRatioLoss(object):
         self.loss_fn = tf.abs(rms(g.synthesis.det.deltas) - rms(g.synthesis.noise.deltas))
         self.loss_fn = self.loss_fn * loss_weight
 
+
+class SpectralLoss(object):
+    def __init__(self, attack, norm: int = 2, loss_weight: float = 1e-3):
+
+        self.magnitude_diff = tf.cast(
+            tf.abs(attack.graph.synthesiser.stft_deltas), tf.float32
+        )
+
+        self.mag_loss_fn = tf.reduce_mean(self.magnitude_diff ** norm, axis=[1, 2])
+
+        self.loss_fn = loss_weight * self.mag_loss_fn

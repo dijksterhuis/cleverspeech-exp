@@ -4,7 +4,6 @@ import os
 # attack def imports
 from cleverspeech.Attacks.Base import Constructor
 from cleverspeech.Attacks import Constraints
-#from cleverspeech.Attacks import Graphs
 from cleverspeech.Attacks.Losses import CTCLoss
 from cleverspeech.Attacks import Optimisers
 from cleverspeech.Attacks import Procedures
@@ -12,7 +11,7 @@ from cleverspeech.Attacks import Outputs
 
 from DeepSpeechSecEval import VictimAPI as DeepSpeech
 
-from Synthesis.Synthesisers import Additive, DeterministicPlusNoise
+from Synthesis.Synthesisers import Additive, DeterministicPlusNoise, Spectral
 
 # boilerplate imports
 from cleverspeech.Data import ETL
@@ -26,13 +25,14 @@ import custom_defs
 
 GPU_DEVICE = 0
 MAX_PROCESSES = 4
+SPAWN_DELAY = 60 * 5
 
 TOKENS = " abcdefghijklmnopqrstuvwxyz'-"
 BEAM_WIDTH = 500
 
-AUDIOS_INDIR = "/data/samples/all/"
-TARGETS_PATH = "/data/samples/cv-valid-test.csv"
-OUTDIR = "/data/adv/additive/"
+AUDIOS_INDIR = "./samples/all/"
+TARGETS_PATH = "./samples/cv-valid-test.csv"
+OUTDIR = "./adv/synthesis/"
 MAX_EXAMPLES = 1000
 MAX_TARGETS = 500
 MAX_AUDIO_LENGTH = 120000
@@ -106,7 +106,7 @@ def create_attack_graph(sess, batch, synth, settings):
 
     attack.add_graph(
         custom_defs.SynthesisAttack,
-        synthesis=synth
+        synth
     )
 
     attack.add_victim(
@@ -158,8 +158,6 @@ def inharmonic_run(master_settings):
             "constraint_update": CONSTRAINT_UPDATE,
             "rescale": RESCALE,
             "learning_rate": LEARNING_RATE,
-            "gpu_device": GPU_DEVICE,
-            "max_spawns": MAX_PROCESSES,
             "synth": {
                 "n_osc": N_OSC,
                 "initial_hz": 1e-8,
@@ -167,6 +165,12 @@ def inharmonic_run(master_settings):
                 "frame_step": 512,
                 "normalise": False,
             },
+            "gpu_device": GPU_DEVICE,
+            "max_spawns": MAX_PROCESSES,
+            "spawn_delay": SPAWN_DELAY,
+            "max_examples": MAX_EXAMPLES,
+            "max_targets": MAX_TARGETS,
+            "max_audio_length": MAX_AUDIO_LENGTH,
         }
 
         settings.update(master_settings)
@@ -198,8 +202,6 @@ def freq_harmonic_run(master_settings):
             "constraint_update": CONSTRAINT_UPDATE,
             "rescale": RESCALE,
             "learning_rate": LEARNING_RATE,
-            "gpu_device": GPU_DEVICE,
-            "max_spawns": MAX_PROCESSES,
             "synth": {
                 "n_osc": N_OSC,
                 "initial_hz": 1e-8,
@@ -207,6 +209,12 @@ def freq_harmonic_run(master_settings):
                 "frame_step": 512,
                 "normalise": False,
             },
+            "gpu_device": GPU_DEVICE,
+            "max_spawns": MAX_PROCESSES,
+            "spawn_delay": SPAWN_DELAY,
+            "max_examples": MAX_EXAMPLES,
+            "max_targets": MAX_TARGETS,
+            "max_audio_length": MAX_AUDIO_LENGTH,
         }
 
         settings.update(master_settings)
@@ -238,8 +246,6 @@ def full_harmonic_run(master_settings):
             "constraint_update": CONSTRAINT_UPDATE,
             "rescale": RESCALE,
             "learning_rate": LEARNING_RATE,
-            "gpu_device": GPU_DEVICE,
-            "max_spawns": MAX_PROCESSES,
             "synth": {
                 "n_osc": N_OSC,
                 "initial_hz": 1e-8,
@@ -247,6 +253,12 @@ def full_harmonic_run(master_settings):
                 "frame_step": 512,
                 "normalise": False,
             },
+            "gpu_device": GPU_DEVICE,
+            "max_spawns": MAX_PROCESSES,
+            "spawn_delay": SPAWN_DELAY,
+            "max_examples": MAX_EXAMPLES,
+            "max_targets": MAX_TARGETS,
+            "max_audio_length": MAX_AUDIO_LENGTH,
         }
 
         settings.update(master_settings)
@@ -278,8 +290,6 @@ def detnoise_inharmonic_run(master_settings):
             "constraint_update": CONSTRAINT_UPDATE,
             "rescale": RESCALE,
             "learning_rate": LEARNING_RATE,
-            "gpu_device": GPU_DEVICE,
-            "max_spawns": MAX_PROCESSES,
             "synth": {
                 "n_osc": N_OSC,
                 "initial_hz": 1e-8,
@@ -287,6 +297,12 @@ def detnoise_inharmonic_run(master_settings):
                 "frame_step": 512,
                 "normalise": False,
             },
+            "gpu_device": GPU_DEVICE,
+            "max_spawns": MAX_PROCESSES,
+            "spawn_delay": SPAWN_DELAY,
+            "max_examples": MAX_EXAMPLES,
+            "max_targets": MAX_TARGETS,
+            "max_audio_length": MAX_AUDIO_LENGTH,
         }
 
         settings.update(master_settings)
@@ -318,8 +334,6 @@ def detnoise_freq_harmonic_run(master_settings):
             "constraint_update": CONSTRAINT_UPDATE,
             "rescale": RESCALE,
             "learning_rate": LEARNING_RATE,
-            "gpu_device": GPU_DEVICE,
-            "max_spawns": MAX_PROCESSES,
             "synth": {
                 "n_osc": N_OSC,
                 "initial_hz": 1e-8,
@@ -327,6 +341,12 @@ def detnoise_freq_harmonic_run(master_settings):
                 "frame_step": 512,
                 "normalise": False,
             },
+            "gpu_device": GPU_DEVICE,
+            "max_spawns": MAX_PROCESSES,
+            "spawn_delay": SPAWN_DELAY,
+            "max_examples": MAX_EXAMPLES,
+            "max_targets": MAX_TARGETS,
+            "max_audio_length": MAX_AUDIO_LENGTH,
         }
 
         settings.update(master_settings)
@@ -358,8 +378,6 @@ def detnoise_full_harmonic_run(master_settings):
             "constraint_update": CONSTRAINT_UPDATE,
             "rescale": RESCALE,
             "learning_rate": LEARNING_RATE,
-            "gpu_device": GPU_DEVICE,
-            "max_spawns": MAX_PROCESSES,
             "synth": {
                 "n_osc": N_OSC,
                 "initial_hz": 1e-8,
@@ -367,6 +385,12 @@ def detnoise_full_harmonic_run(master_settings):
                 "frame_step": 512,
                 "normalise": False,
             },
+            "gpu_device": GPU_DEVICE,
+            "max_spawns": MAX_PROCESSES,
+            "spawn_delay": SPAWN_DELAY,
+            "max_examples": MAX_EXAMPLES,
+            "max_targets": MAX_TARGETS,
+            "max_audio_length": MAX_AUDIO_LENGTH,
         }
 
         settings.update(master_settings)
@@ -377,11 +401,152 @@ def detnoise_full_harmonic_run(master_settings):
         log("Finished run {}.".format(run))
 
 
+def spectral_run(master_settings):
+    """
+    CTC Loss attack modified from the original Carlini & Wagner work.
+
+    Using a hard constraint is better for security evaluations, so we ignore the
+    L2 distance regularisation term in the optimisation goal.
+
+    TODO: I could probably remove `Base.add_distance_loss()` method...?
+
+    :return: None
+    """
+    
+    outdir = os.path.join(OUTDIR, "spectral/")
+
+    synth_fn = Spectral.STFT
+
+    settings = {
+        "audio_indir": AUDIOS_INDIR,
+        "targets_path": TARGETS_PATH,
+        "outdir": outdir,
+        "batch_size": BATCH_SIZE,
+        "tokens": TOKENS,
+        "nsteps": NUMB_STEPS,
+        "decode_step": DECODING_STEP,
+        "beam_width": BEAM_WIDTH,
+        "constraint_update": CONSTRAINT_UPDATE,
+        "rescale": RESCALE,
+        "learning_rate": LEARNING_RATE,
+        "synth": {
+            "frame_step": 256,
+            "frame_length": 512,
+            "fft_length": 512,
+        },
+        "gpu_device": GPU_DEVICE,
+        "max_spawns": MAX_PROCESSES,
+        "spawn_delay": SPAWN_DELAY,
+        "max_examples": MAX_EXAMPLES,
+        "max_targets": MAX_TARGETS,
+        "max_audio_length": MAX_AUDIO_LENGTH,
+    }
+
+    settings.update(master_settings)
+    batch_gen = get_batch_generator(settings)
+
+    execute(settings, create_attack_graph, synth_fn, batch_gen)
+
+    log("Finished run.")  # {}.".format(run))
+
+
+def spectral_regularised_run(master_settings):
+    """
+    CTC Loss attack modified from the original Carlini & Wagner work.
+
+    Using a hard constraint is better for security evaluations, so we ignore the
+    L2 distance regularisation term in the optimisation goal.
+
+    TODO: I could probably remove `Base.add_distance_loss()` method...?
+
+    :return: None
+    """
+    def create_attack_graph(sess, batch, synth, settings):
+        attack = Constructor(sess, batch)
+
+        attack.add_hard_constraint(
+            Constraints.L2,
+            r_constant=settings["rescale"],
+            update_method=settings["constraint_update"],
+        )
+
+        attack.add_graph(
+            custom_defs.SynthesisAttack,
+            synth
+        )
+
+        attack.add_victim(
+            DeepSpeech.Model,
+            tokens=settings["tokens"],
+            beam_width=settings["beam_width"]
+        )
+
+        attack.add_adversarial_loss(CTCLoss)
+        attack.add_distance_loss(custom_defs.SpectralLoss)
+        attack.create_loss_fn()
+
+        attack.add_optimiser(
+            Optimisers.AdamOptimiser,
+            learning_rate=settings["learning_rate"]
+        )
+
+        attack.add_procedure(
+            Procedures.UpdateBound,
+            steps=settings["nsteps"],
+            decode_step=settings["decode_step"]
+        )
+
+        attack.add_outputs(
+            Outputs.Base,
+            settings["outdir"],
+        )
+
+        return attack
+
+    outdir = os.path.join(OUTDIR, "spectral/")
+
+    synth_fn = Spectral.STFT
+
+    settings = {
+        "audio_indir": AUDIOS_INDIR,
+        "targets_path": TARGETS_PATH,
+        "outdir": outdir,
+        "batch_size": BATCH_SIZE,
+        "tokens": TOKENS,
+        "nsteps": NUMB_STEPS,
+        "decode_step": DECODING_STEP,
+        "beam_width": BEAM_WIDTH,
+        "constraint_update": CONSTRAINT_UPDATE,
+        "rescale": RESCALE,
+        "learning_rate": LEARNING_RATE,
+        "synth": {
+            "frame_step": 256,
+            "frame_length": 512,
+            "fft_length": 512,
+        },
+        "gpu_device": GPU_DEVICE,
+        "max_spawns": MAX_PROCESSES,
+        "spawn_delay": SPAWN_DELAY,
+        "max_examples": MAX_EXAMPLES,
+        "max_targets": MAX_TARGETS,
+        "max_audio_length": MAX_AUDIO_LENGTH,
+    }
+
+    settings.update(master_settings)
+    batch_gen = get_batch_generator(settings)
+
+    execute(settings, create_attack_graph, synth_fn, batch_gen)
+
+    log("Finished run.")  # {}.".format(run))
+
+
 if __name__ == '__main__':
 
     log("", wrap=True)
 
     experiments = {
+        "stft": spectral_run,
+        "stft-reg": spectral_regularised_run,
         "inharmonic": inharmonic_run,
         "freq_harmonic": freq_harmonic_run,
         "full_harmonic": full_harmonic_run,

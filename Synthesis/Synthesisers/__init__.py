@@ -1,1 +1,1 @@
-from AdditiveSynthesis.Synthesis import Plain
+from Synthesis.Synthesisers import Plain
