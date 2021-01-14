@@ -10,7 +10,7 @@ from cleverspeech.Attacks import Graphs
 from cleverspeech.Attacks import Losses
 from cleverspeech.Attacks import Optimisers
 from cleverspeech.Attacks import Procedures
-from cleverspeech.Models import DeepSpeech
+from DeepSpeechSecEval import VictimAPI as DeepSpeech
 from AdditiveSynthesis.Synthesis import Additive, DeterministicPlusNoise
 from AdditiveSynthesis.Synthesis import Plain
 from cleverspeech.Utils import log

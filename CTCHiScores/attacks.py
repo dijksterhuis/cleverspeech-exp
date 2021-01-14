@@ -6,7 +6,7 @@ from cleverspeech.Attacks import Constraints
 from cleverspeech.Attacks import Graphs
 from cleverspeech.Attacks import Optimisers
 from cleverspeech.Attacks import Procedures
-from cleverspeech.Models import DeepSpeech
+from DeepSpeechSecEval import VictimAPI as DeepSpeech
 from cleverspeech.Data import ETL
 from cleverspeech.Utils import log, args
 

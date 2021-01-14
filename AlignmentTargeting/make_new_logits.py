@@ -3,12 +3,10 @@ import numpy as np
 import sys
 import os
 
-from enum import Enum
-
 from cleverspeech.Data import Batches
 from cleverspeech.Data import Generators
 from cleverspeech.Data.Results import SingleJsonDB
-from cleverspeech.Models import DeepSpeech
+from DeepSpeechSecEval import VictimAPI as DeepSpeech
 from cleverspeech.Utils import log, l_map
 from cleverspeech.RuntimeUtils import create_tf_runtime, AttackSpawner
 

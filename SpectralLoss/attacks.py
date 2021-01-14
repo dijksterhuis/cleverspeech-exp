@@ -8,7 +8,7 @@ from cleverspeech.Attacks import Graphs
 from cleverspeech.Attacks.Losses import CTCLoss
 from cleverspeech.Attacks import Optimisers
 from cleverspeech.Attacks import Procedures
-from cleverspeech.Models import DeepSpeech
+from DeepSpeechSecEval import VictimAPI as DeepSpeech
 
 
 # boilerplate imports
