@@ -8,6 +8,8 @@ from cleverspeech.Attacks import Graphs
 from cleverspeech.Attacks.Losses import CTCLoss
 from cleverspeech.Attacks import Optimisers
 from cleverspeech.Attacks import Procedures
+from cleverspeech.Attacks import Outputs
+
 from DeepSpeechSecEval import VictimAPI as DeepSpeech
 
 
@@ -137,12 +139,14 @@ def spectral_run(master_settings):
             decode_step=settings["decode_step"]
         )
 
+        attack.add_outputs(
+            Outputs.Base,
+            settings["outdir"],
+        )
+
         return attack
 
-    #for run in range(1, N_RUNS):
-
     outdir = os.path.join(OUTDIR, "spectral/")
-    #outdir = os.path.join(outdir, "run_{}/".format(run))
 
     settings = {
         "audio_indir": AUDIOS_INDIR,
@@ -174,7 +178,7 @@ if __name__ == '__main__':
     log("", wrap=True)
 
     experiments = {
-        "baseline": baseline_ctc_run,
+        "baseline": spectral_run,
     }
 
     args(experiments)
