@@ -5,6 +5,8 @@ from cleverspeech.Attacks.Base import Constructor
 from cleverspeech.Attacks import Constraints
 from cleverspeech.Attacks import Optimisers
 from cleverspeech.Attacks import Procedures
+from cleverspeech.Attacks import Outputs
+
 from DeepSpeechSecEval import VictimAPI as DeepSpeech
 from cleverspeech.Data import ETL
 from cleverspeech.Utils import log, args
@@ -132,6 +134,11 @@ def squared_diff_loss(master_settings):
             Procedures.UpdateBound,
             steps=settings["nsteps"],
             decode_step=settings["decode_step"]
+        )
+
+        attack.add_outputs(
+            Outputs.Base,
+            settings["outdir"],
         )
 
         return attack
