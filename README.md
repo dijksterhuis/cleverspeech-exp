@@ -41,20 +41,3 @@ time-step are being modified more often than not, so the attack gets stuck).
 
 
 
-### Notes / Gotchas
-
-**1**: Only 16 bit signed integer audio files are supported -- i.e. mozilla common voice v1.
-
-**2**: Integrity of the adversarial examples is an ongoing issue when using the
-`deepspeech`/`deepspeech-gpu` python library (the one installed with `pip`). The DeepSpeech source
-ingests `tf.float32` inputs `-2^15 <= x <= 2^15 -1`, but the `deepspeech` library _only_ ingests 16
-bit integers. Use the [`classify.py` script](cleverspeech/Evaluation/classify.py) in
-`./cleverspeech/Evaluation/` to validate outputs.
-
-**3**: I run my experiments in sets (not batches!) of 10 examples. Adam struggles to optimise
-as it's built for batch-wise learning rate tuning, but each of our examples are independent members
-of a set (Lea Schoenherr's [recent paper][12] talks about this briefly).
-
-**4**: `.jenkins` contains all the build and execution pipeline steps for the docker images and
-experiments.
-
