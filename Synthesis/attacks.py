@@ -2,22 +2,24 @@
 import os
 
 # attack def imports
-from cleverspeech.Attacks.Base import Constructor
-from cleverspeech.Attacks import Constraints
-from cleverspeech.Attacks.Losses import CTCLoss
-from cleverspeech.Attacks import Optimisers
-from cleverspeech.Attacks import Procedures
-from cleverspeech.Attacks import Outputs
+from cleverspeech.graph.GraphConstructor import Constructor
+from cleverspeech.graph import Constraints
+from cleverspeech.graph.Losses import CTCLoss
+from cleverspeech.graph import Optimisers
+from cleverspeech.graph import Procedures
+from cleverspeech.graph import Outputs
 
 from DeepSpeechSecEval import VictimAPI as DeepSpeech
 
-from Synthesis.Synthesisers import Additive, DeterministicPlusNoise, Spectral
+from cleverspeech.experiments.Synthesis.Synthesisers import Additive
+from cleverspeech.experiments.Synthesis.Synthesisers import DeterministicPlusNoise
+from cleverspeech.experiments.Synthesis.Synthesisers import Spectral
 
 # boilerplate imports
-from cleverspeech.Data import ETL
-from cleverspeech.Data import Feeds
-from cleverspeech.Data import Generators
-from cleverspeech.Utils import log, l_map, args
+from cleverspeech.data import ETL
+from cleverspeech.data import Feeds
+from cleverspeech.data import Generators
+from cleverspeech.utils.Utils import log, l_map, args
 
 from boilerplate import execute
 

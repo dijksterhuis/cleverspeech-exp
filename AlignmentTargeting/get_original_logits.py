@@ -2,12 +2,12 @@ import tensorflow as tf
 import sys
 import os
 
-from cleverspeech.Data import Batches
-from cleverspeech.Data import Generators
-from cleverspeech.Data.Results import SingleJsonDB
+from cleverspeech.data import Batches
+from cleverspeech.data import Generators
+from cleverspeech.data.Results import SingleJsonDB
 from DeepSpeechSecEval import VictimAPI as DeepSpeech
-from cleverspeech.Utils import log
-from cleverspeech.RuntimeUtils import create_tf_runtime
+from cleverspeech.utils.Utils import log
+from cleverspeech.utils.RuntimeUtils import create_tf_runtime
 
 
 class OriginalLogitsLoader(object):

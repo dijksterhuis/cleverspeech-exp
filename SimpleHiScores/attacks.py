@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 import os
 
-from cleverspeech.Attacks.Base import Constructor
-from cleverspeech.Attacks import Constraints
-from cleverspeech.Attacks import Optimisers
-from cleverspeech.Attacks import Procedures
-from cleverspeech.Attacks import Outputs
+from cleverspeech.graph.GraphConstructor import Constructor
+from cleverspeech.graph import Constraints
+from cleverspeech.graph import Optimisers
+from cleverspeech.graph import Procedures
+from cleverspeech.graph import Outputs
 
 from DeepSpeechSecEval import VictimAPI as DeepSpeech
-from cleverspeech.Data import ETL
-from cleverspeech.Utils import log, args
+from cleverspeech.data import ETL
+from cleverspeech.utils.Utils import log, args
 
 from boilerplate import execute
 

@@ -1,9 +1,9 @@
 import os
 
-from cleverspeech.Data.Results import SingleJsonDB
-from cleverspeech.Evaluation import BatchProcessing as BasicProcessing
-from cleverspeech.RuntimeUtils import create_tf_runtime, log_attack_tensors, AttackSpawner
-from cleverspeech.Utils import log, run_decoding_check
+from cleverspeech.data.Results import SingleJsonDB
+from cleverspeech.eval import BatchProcessing as BasicProcessing
+from cleverspeech.utils.RuntimeUtils import create_tf_runtime, log_attack_tensors, AttackSpawner
+from cleverspeech.utils.Utils import log, run_decoding_check
 
 
 def execute(settings, attack_fn, batch_gen):

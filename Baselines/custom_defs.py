@@ -1,7 +1,7 @@
 import tensorflow as tf
 
-from cleverspeech.Attacks.Procedures import Base
-from cleverspeech.Utils import lcomp
+from cleverspeech.graph.Procedures import Base
+from cleverspeech.utils.Utils import lcomp
 
 
 class AlignmentLoss(object):

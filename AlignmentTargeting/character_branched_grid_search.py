@@ -4,13 +4,13 @@ import os
 
 from copy import deepcopy
 
-from cleverspeech.Data import ETL
-from cleverspeech.Data import Feeds
-from cleverspeech.Data import Generators
-from cleverspeech.Data.Results import SingleJsonDB
+from cleverspeech.data import ETL
+from cleverspeech.data import Feeds
+from cleverspeech.data import Generators
+from cleverspeech.data.Results import SingleJsonDB
 from DeepSpeechSecEval import VictimAPI as DeepSpeech
-from cleverspeech.Utils import log, l_map
-from cleverspeech.RuntimeUtils import create_tf_runtime, AttackSpawner
+from cleverspeech.utils.Utils import log, l_map
+from cleverspeech.utils.RuntimeUtils import create_tf_runtime, AttackSpawner
 
 GPU_DEVICE = 0
 MAX_PROCESSES = 1

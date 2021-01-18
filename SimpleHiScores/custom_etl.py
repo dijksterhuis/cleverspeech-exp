@@ -2,9 +2,9 @@ import os
 import json
 import numpy as np
 
-from cleverspeech.Data.Batches import Batch
-from cleverspeech.Data.ETL import ETL
-from cleverspeech.Utils import np_arr, np_zero, lcomp, load_wavs, l_map
+from cleverspeech.data.Batches import Batch
+from cleverspeech.data.ETL import ETL
+from cleverspeech.utils.Utils import np_arr, np_zero, lcomp, load_wavs, l_map
 
 
 class TargetLogitsBatch(object):

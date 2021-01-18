@@ -1,8 +1,8 @@
 import tensorflow as tf
 import numpy as np
 
-from cleverspeech.Attacks.Base import Placeholders
-from cleverspeech.Utils import np_arr, np_zero, np_one, lcomp
+from cleverspeech.graph.Placeholders import Placeholders
+from cleverspeech.utils.Utils import np_arr, np_zero, np_one, lcomp
 
 
 class HiScoresFeed:
