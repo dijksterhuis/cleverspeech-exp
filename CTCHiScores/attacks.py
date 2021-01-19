@@ -7,10 +7,12 @@ from cleverspeech.graph import Graphs
 from cleverspeech.graph import Optimisers
 from cleverspeech.graph import Procedures
 from cleverspeech.graph import Outputs
+from cleverspeech.data import Feeds
+from cleverspeech.data import ETL
+from cleverspeech.utils.Utils import log, args, l_map
 
 from SecEval import VictimAPI as DeepSpeech
-from cleverspeech.data import ETL
-from cleverspeech.utils.Utils import log, args
+
 
 from boilerplate import execute
 
@@ -25,11 +27,14 @@ SPAWN_DELAY = 60 * 5
 TOKENS = " abcdefghijklmnopqrstuvwxyz'-"
 BEAM_WIDTH = 500
 
-INDIR = "/data/target-logits/"
-OUTDIR = "/data/adv/hi-scores/"
+AUDIOS_INDIR = "./samples/all/"
+TARGETS_PATH = "./samples/cv-valid-test.csv"
+OUTDIR = "./adv/hi-scores/"
 
 # targets search parameters
 MAX_EXAMPLES = 1000
+MAX_TARGETS = 1000
+MAX_AUDIO_LENGTH = 120000
 
 RESCALE = 0.95
 CONSTRAINT_UPDATE = "geom"
@@ -67,18 +72,42 @@ thank me in the long run.
 
 
 def get_batch_factory(settings):
-    # get a N samples of all the data
 
-    target_logits_etl = custom_etl.AllTargetLogitsAndAudioFilePaths(
-        settings["indir"], MAX_EXAMPLES, filter_term="latest"
+    # get N samples of all the data. alsp make sure to limit example length,
+    # otherwise we'd have to do adaptive batch sizes.
+
+    audio_etl = ETL.AllAudioFilePaths(
+        settings["audio_indir"],
+        settings["max_examples"],
+        filter_term=".wav",
+        max_samples=settings["max_audio_length"]
     )
-    all_data = target_logits_etl.extract().transform().load()
+
+    all_audio_file_paths = audio_etl.extract().transform().load()
+
+    targets_etl = ETL.AllTargetPhrases(
+        settings["targets_path"], settings["max_targets"],
+    )
+    all_targets = targets_etl.extract().transform().load()
+
+    # hack the targets data for the naive non-merging CTC experiment
+
+    if "n_repeats" in settings.keys():
+        all_targets = l_map(
+            lambda x: "".join([i * settings["n_repeats"] for i in x]),
+            all_targets
+        )
 
     # Generate the batches in turn, rather than all in one go ...
+
+    batch_factory = custom_etl.CTCHiScoresBatchGenerator(
+        all_audio_file_paths, all_targets, settings["batch_size"]
+    )
+
     # ... To save resources by only running the final ETLs on a batch of data
 
-    batch_factory = custom_etl.LogitsBatchGenerator(
-        all_data, settings["batch_size"]
+    batch_gen = batch_factory.generate(
+        ETL.AudioExamples, custom_etl.RepeatsTargetPhrases, Feeds.Attack
     )
 
     log(
@@ -86,7 +115,7 @@ def get_batch_factory(settings):
         "Number of test examples: {}".format(batch_factory.numb_examples),
         ''.join(["{k}: {v}\n".format(k=k, v=v) for k, v in settings.items()]),
     )
-    return batch_factory
+    return batch_gen
 
 
 def ctc_repeats_run(master_settings):
@@ -153,7 +182,8 @@ def ctc_repeats_run(master_settings):
         outdir = os.path.join(outdir, "run_{}/".format(run))
 
         settings = {
-            "indir": os.path.join(INDIR, "{}/".format(LOGITS_SEARCH)),
+            "audio_indir": AUDIOS_INDIR,
+            "targets_path": TARGETS_PATH,
             "outdir": outdir,
             "batch_size": BATCH_SIZE,
             "tokens": TOKENS,
@@ -163,21 +193,19 @@ def ctc_repeats_run(master_settings):
             "constraint_update": CONSTRAINT_UPDATE,
             "rescale": RESCALE,
             "learning_rate": LEARNING_RATE,
-            "logits_search": LOGITS_SEARCH,
             "gpu_device": GPU_DEVICE,
             "max_spawns": MAX_PROCESSES,
             "spawn_delay": SPAWN_DELAY,
-            "n_repeats": 3,
+            "max_examples": MAX_EXAMPLES,
+            "max_targets": MAX_TARGETS,
+            "max_audio_length": MAX_AUDIO_LENGTH,
         }
 
         settings.update(master_settings)
 
         batch_factory = get_batch_factory(settings)
-        batch_gen = batch_factory.generate(
-            ETL.AudioExamples, custom_etl.TargetLogits, custom_defs.CTCRepeatsFeed
-        )
 
-        execute(settings, create_attack_graph, batch_gen)
+        execute(settings, create_attack_graph, batch_factory)
 
         log("Finished run {}.".format(run))
 
