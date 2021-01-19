@@ -6,6 +6,7 @@ pipeline {
         IMAGE_NAME = "dijksterhuis/cleverspeech"
         TAG = "latest"
         EXP_ARG = "baseline"
+        CLEVERSPEECH_HOME=/home/cleverspeech/cleverSpeech
     }
 
     stages {
@@ -30,7 +31,7 @@ pipeline {
                         -t \
                         --rm \
                         --name ${EXP_ARG} \
-                        -v \$(pwd)/results/:/data/adv \
+                        -v \$(pwd)/results/:${CLEVERSPEECH_HOME}/adv \
                         -e LOCAL_UID=\$(id -u ${USER}) \
                         -e LOCAL_GID=\$(id -g ${USER}) \
                         ${IMAGE_NAME}:${TAG} \

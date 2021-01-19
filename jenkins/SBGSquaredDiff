@@ -7,6 +7,7 @@ pipeline {
         TAG = "latest"
         EXP_ARG = "squared_diff_loss"
         SEARCH_CMD = "./experiments/StrongAlignments/targeting/simple_branched_grid_search.py"
+        CLEVERSPEECH_HOME=/home/cleverspeech/cleverSpeech
     }
 
     stages {
@@ -32,7 +33,7 @@ pipeline {
                         -t \
                         --rm \
                         --name ${EXP_ARG} \
-                        -v \$(pwd)/target-logits/:/data/adv \
+                        -v \$(pwd)/target-logits/:${CLEVERSPEECH_HOME}/adv \
                         -e LOCAL_UID=\$(id -u ${USER}) \
                         -e LOCAL_GID=\$(id -g ${USER}) \
                         ${IMAGE_NAME}:${TAG} \
@@ -53,8 +54,8 @@ pipeline {
                         -t \
                         --rm \
                         --name ${EXP_ARG} \
-                        -v \$(pwd)/target-logits/:/data/target-logits/ \
-                        -v \$(pwd)/results/:/data/adv/ \
+                        -v \$(pwd)/target-logits/:${CLEVERSPEECH_HOME}/target-logits/ \
+                        -v \$(pwd)/results/:${CLEVERSPEECH_HOME}/adv/ \
                         -e LOCAL_UID=\$(id -u ${USER}) \
                         -e LOCAL_GID=\$(id -g ${USER}) \
                         ${IMAGE_NAME}:${TAG} \

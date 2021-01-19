@@ -6,6 +6,7 @@ pipeline {
         IMAGE_NAME = "dijksterhuis/cleverspeech"
         TAG = "latest"
         EXP_ARG = "freq_harmonic"
+        CLEVERSPEECH_HOME=/home/cleverspeech/cleverSpeech
     }
 
     stages {
@@ -29,12 +30,12 @@ pipeline {
                         -t \
                         --rm \
                         --name ${EXP_ARG} \
-                        -v \$(pwd)/results/:/data/adv \
+                        -v \$(pwd)/results/:${CLEVERSPEECH_HOME}/adv \
                         -e LOCAL_UID=\$(id -u ${USER}) \
                         -e LOCAL_GID=\$(id -g ${USER}) \
                         ${IMAGE_NAME}:${TAG} \
                         python3 \
-                        ./experiments/AdditiveSynthesis/attacks.py \
+                        ./experiments/Synthesis/attacks.py \
                         ${EXP_ARG} \
                         --max_spawns 5
                     """

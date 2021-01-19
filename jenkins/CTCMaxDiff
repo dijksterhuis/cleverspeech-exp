@@ -7,6 +7,7 @@ pipeline {
         TAG = "latest"
         BEAM_EXP_ARG = "ctcmaxdiff_beam"
         GREEDY_EXP_ARG = "ctcmaxdiff_greedy"
+        CLEVERSPEECH_HOME=/home/cleverspeech/cleverSpeech
     }
 
     stages {
@@ -29,12 +30,12 @@ pipeline {
                         -t \
                         --rm \
                         --name ${GREEDY_EXP_ARG} \
-                        -v \$(pwd)/results/greedy/:/data/adv \
+                        -v \$(pwd)/results/greedy/:${CLEVERSPEECH_HOME}/adv \
                         -e LOCAL_UID=\$(id -u ${USER}) \
                         -e LOCAL_GID=\$(id -g ${USER}) \
                         ${IMAGE_NAME}:${TAG} \
                         python3 \
-                        ./experiments/CTCBaselines/attacks.py \
+                        ./experiments/Baselines/attacks.py \
                         ${GREEDY_EXP_ARG} \
                         --max_spawns 5
                     """
@@ -51,12 +52,12 @@ pipeline {
                         -t \
                         --rm \
                         --name ${BEAM_EXP_ARG} \
-                        -v \$(pwd)/results/beam/:/data/adv \
+                        -v \$(pwd)/results/beam/:${CLEVERSPEECH_HOME}/adv \
                         -e LOCAL_UID=\$(id -u ${USER}) \
                         -e LOCAL_GID=\$(id -g ${USER}) \
                         ${IMAGE_NAME}:${TAG} \
                         python3 \
-                        ./experiments/CTCBaselines/attacks.py \
+                        ./experiments/Baselines/attacks.py \
                         ${BEAM_EXP_ARG} \
                         --max_spawns 5
                     """
