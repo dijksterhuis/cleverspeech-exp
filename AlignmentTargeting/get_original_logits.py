@@ -5,7 +5,7 @@ import os
 from cleverspeech.data import Batches
 from cleverspeech.data import Generators
 from cleverspeech.data.Results import SingleJsonDB
-from DeepSpeechSecEval import VictimAPI as DeepSpeech
+from SecEval import VictimAPI as DeepSpeech
 from cleverspeech.utils.Utils import log
 from cleverspeech.utils.RuntimeUtils import create_tf_runtime
 

@@ -8,7 +8,7 @@ from cleverspeech.graph import Optimisers
 from cleverspeech.graph import Procedures
 from cleverspeech.graph import Outputs
 
-from DeepSpeechSecEval import VictimAPI as DeepSpeech
+from SecEval import VictimAPI as DeepSpeech
 from cleverspeech.data import ETL
 from cleverspeech.utils.Utils import log, args
 

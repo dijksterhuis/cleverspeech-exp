@@ -6,7 +6,7 @@ from cleverspeech.data import ETL
 from cleverspeech.data import Feeds
 from cleverspeech.data import Generators
 from cleverspeech.data.Results import SingleJsonDB
-from DeepSpeechSecEval import VictimAPI as DeepSpeech
+from SecEval import VictimAPI as DeepSpeech
 from cleverspeech.utils.Utils import log, l_map
 from cleverspeech.utils.RuntimeUtils import create_tf_runtime, AttackSpawner
 

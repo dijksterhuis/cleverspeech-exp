@@ -11,7 +11,7 @@ from cleverspeech.graph import Optimisers
 from cleverspeech.graph import Procedures
 from cleverspeech.graph import Outputs
 
-from DeepSpeechSecEval import VictimAPI as Victim
+from SecEval import VictimAPI as Victim
 
 # boilerplate imports
 from cleverspeech.data import ETL
