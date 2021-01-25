@@ -13,14 +13,14 @@ from cleverspeech.utils.Utils import log, l_map
 from cleverspeech.utils.RuntimeUtils import create_tf_runtime, AttackSpawner
 
 GPU_DEVICE = 0
-MAX_PROCESSES = 4
+MAX_PROCESSES = 5
 SPAWN_DELAY = 15
 
 SEARCH_METHOD = "sbgs"
 
-INDIR = "/data/samples/all/"
-TARGETS_PATH = "/data/samples/cv-valid-test.csv"
-OUTDIR = os.path.join("/data/adv/", SEARCH_METHOD + "/")
+INDIR = "./samples/all/"
+TARGETS_PATH = "./samples/cv-valid-test.csv"
+OUTDIR = os.path.join("./adv/", SEARCH_METHOD + "/")
 
 TOKENS = " abcdefghijklmnopqrstuvwxyz'-"
 
@@ -30,12 +30,18 @@ MAX_AUDIO_LENGTH = 140000
 TARGETS_POOL = 500
 AUDIO_EXAMPLES_POOL = 2000
 
-MAX_KAPPA = 9.0
+MIN_KAPPA = -5.0
 MAX_DEPTH = 3
 
 
-def entropy(x):
-    return np.max(- np.sum(x * np.log(x), axis=1))
+def entropy(batch_softmaxes):
+    return np.max(- np.sum(batch_softmaxes * np.log(batch_softmaxes), axis=1), axis=1)
+
+
+def update_kappa(kappa, current_depth, max_depth):
+    kappa = kappa + 1 / current_depth
+    kappa = np.round(kappa, int(np.log10(max_depth)))
+    return kappa
 
 
 def insert_target_blanks(target_indices):
@@ -168,15 +174,15 @@ def branched_grid_search(sess, model, batch, original_probs, real_logits, refere
             # )
             # log(s, wrap=False)
 
-            kappa = MAX_KAPPA
+            kappa = MIN_KAPPA
             current_depth = 1
             max_depth = 10 ** MAX_DEPTH
 
             result = {
                 "kappa": kappa,
                 "decoding": None,
-                "score": 0.0,
-                "spc": 0.0,
+                "score": float('inf'),
+                "spc": float('inf'),
                 "new_logits": None,
                 "new_softmax": None,
                 "argmax": None,
@@ -247,18 +253,14 @@ def branched_grid_search(sess, model, batch, original_probs, real_logits, refere
                 # closer. this seems counter intuitive, but it works
 
                 current_decoding_correct = decodings == target_phrase
-                current_score_better = result["spc"] < score_per_char
-                best_score_non_zero = result["score"] != 0.0
+                current_score_better = result["spc"] > score_per_char
+                best_score_non_zero = result["score"] != float('inf')
 
                 if current_decoding_correct and current_score_better:
 
                     # great success!
                     best_kappa = kappa
-                    kappa = kappa - 1 / current_depth
-                    kappa = np.round(
-                        kappa,
-                        int(np.log10(max_depth))
-                    )
+                    kappa = update_kappa(kappa, current_depth, max_depth)
 
                     result["kappa"] = best_kappa
                     result["decoding"] = decodings
@@ -293,25 +295,17 @@ def branched_grid_search(sess, model, batch, original_probs, real_logits, refere
                         # change the depth and update kappa
                         current_depth = d
                         kappa = result["kappa"]
-                        kappa = kappa - 1 / current_depth
-                        kappa = np.round(
-                            kappa,
-                            int(np.log10(max_depth))
-                        )
+                        kappa = update_kappa(kappa, current_depth, max_depth)
 
-                elif kappa <= -MAX_KAPPA:
-                    # we've hit a boundary condition
-                    break
+                # elif kappa >= MIN_KAPPA:
+                #     # we've hit a boundary condition
+                #     break
                 else:
                     # we haven't found anything yet
-                    kappa = kappa - 1 / current_depth
-                    kappa = np.round(
-                        kappa,
-                        int(np.log10(max_depth))
-                    )
+                    kappa = update_kappa(kappa, current_depth, max_depth)
 
             best_decoding_check = result["decoding"] != target_phrase
-            best_spc_check = result["spc"] <= result["original_spc"]
+            best_spc_check = result["spc"] >= result["original_spc"]
 
             if best_decoding_check:
                 # we've not been successful, increase the number of repeats
@@ -380,12 +374,17 @@ def write_results(result):
         o=result["original_spc"],
         n=result["spc"],
     )
+    s += " orig score : {o:.1f} new score: {n:.1f}".format(
+        o=result["original_score"],
+        n=result["score"],
+    )
     s += " logits diff: {:.0f}".format(
         np.abs(np.sum(result["original_logits"] - result["new_logits"]))
     )
     s += " entropy: {}".format(
         entropy(result["new_softmax"])
     )
+
     s += " Wrote targeting data."
     log(s, wrap=False)
 
@@ -418,8 +417,21 @@ def run(batch):
         real_logits, real_softmax = get_original_network_db_outputs(
             model, batch
         )
-        s = "Current Entropy => " + "".join(["\t{:.6f}".format(entropy(x)) for x in real_softmax])
+
+        print(real_softmax.shape)
+
+        s = "Current Entropy => " + "".join(["\t{:.6f}".format(x) for x in entropy(real_softmax)])
         log(s)
+
+        # reset the batch's targets to the original decodings
+        # ==> we want to see how much more confident they can be made.
+        # TODO: New Generator to pair targets with audios.
+        batch.targets.phrases = original_decodings
+
+        batch.targets.indices = [
+            np.asarray([TOKENS.index(x) for x in decoding])
+            for decoding in original_decodings
+        ]
 
         check_logits_variation(
             model, batch, real_logits
