@@ -5,22 +5,24 @@ pipeline {
     environment {
         IMAGE_NAME = "dijksterhuis/cleverspeech"
         TAG = "latest"
-        EXP_ARG = "inharmonic"
-        CLEVERSPEECH_HOME=/home/cleverspeech/cleverSpeech
+        GITHUB_BRANCH = "master"
+        EXP_ARG = "baseline"
+        EXP_DIR = "./experiments/Baselines"
+        CLEVERSPEECH_HOME = "/home/cleverspeech/cleverSpeech"
     }
-
     stages {
-
-        stage('Prep work.') {
+        stage("Prep work.") {
             steps {
                 script {
-                    sh "docker container prune -f"
-                    sh "docker pull ${IMAGE_NAME}:${TAG}"
+                    withDockerRegistry([ credentialsId: "dhub-mr", url: "" ]) {
+                        sh "docker container prune -f"
+                        sh "docker pull ${IMAGE_NAME}:${TAG}"
+                    }
                 }
             }
         }
 
-        stage("Run Experiment."){
+        stage("Run experiment."){
             steps {
                 script {
 
@@ -30,12 +32,12 @@ pipeline {
                         -t \
                         --rm \
                         --name ${EXP_ARG} \
-                        -v \$(pwd)/results/:${CLEVERSPEECH_HOME}/adv \
+                        -v \$(pwd)/results/:${CLEVERSPEECH_HOME}/adv/ \
                         -e LOCAL_UID=\$(id -u ${USER}) \
                         -e LOCAL_GID=\$(id -g ${USER}) \
                         ${IMAGE_NAME}:${TAG} \
                         python3 \
-                        ./experiments/Synthesis/attacks.py \
+                        ${EXP_DIR}/attacks.py \
                         ${EXP_ARG} \
                         --max_spawns 5
                     """
@@ -45,9 +47,10 @@ pipeline {
     }
     post  {
         always {
-            sh "docker image rm ${IMAGE_NAME}:${TAG}"
             sh "docker image prune -f"
             sh "docker container prune -f"
+            sh "docker image rm ${IMAGE_NAME}:${TAG}"
         }
     }
+}
 }
