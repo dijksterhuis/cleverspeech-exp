@@ -2,45 +2,45 @@ import tensorflow as tf
 import sys
 import os
 
-from cleverspeech.data import Batches
+from cleverspeech.data import ETL
 from cleverspeech.data import Generators
+from cleverspeech.data import Feeds
 from cleverspeech.data.Results import SingleJsonDB
 from SecEval import VictimAPI as DeepSpeech
 from cleverspeech.utils.Utils import log
 from cleverspeech.utils.RuntimeUtils import create_tf_runtime
 
 
-class OriginalLogitsLoader(object):
-    def __init__(self, file_paths, targets, tokens):
-        """
-        batch singleton.
-
-        :param file_paths: the file paths of the examples in the batch [batch_size]
-        :param targets: the target transcriptions [batch size]
-        :param tokens: the tokens used in CTC (used in `Targets` class) [1]
-        """
-        self.size = len(file_paths)
-        self.audios = Batches.Audios(file_paths, dtype="int16", quantization=False)
-        self.targets = Batches.Targets(targets, tokens)
-        self.feeds = Batches.ValidationFeeds(self.audios, self.targets)
-
-
-def main(indir, batch_size, tokens=" abcdefghijklmnopqrstuvwxyz'-"):
+def main(batch_size=1, tokens=" abcdefghijklmnopqrstuvwxyz'-"):
 
     # Create the factory we'll use to iterate over N examples at a time.
 
-    batch_factory = Generators.BatchGenerator(
-        indir,
-        None,
-        target_phrase="",
-        tokens=tokens,
-        sort_by_file_size="desc",
+    audio_etl = ETL.AllAudioFilePaths(
+        "./tmp-analysis/",
+        4000,
+        filter_term=".wav",
+        max_samples=120000
     )
 
-    batch_gen = batch_factory.generate(
-        OriginalLogitsLoader,
-        batch_size=batch_size
+    all_audio_file_paths = audio_etl.extract().transform().load()
+
+    targets_etl = ETL.AllTargetPhrases(
+        "./samples/cv-valid-test.csv", 1000,
     )
+    all_targets = targets_etl.extract().transform().load()
+
+    # Generate the batches in turn, rather than all in one go ...
+
+    batch_factory = Generators.BatchGenerator(
+        all_audio_file_paths, all_targets, batch_size
+    )
+
+    # ... To save resources by only running the final ETLs on a batch of data
+
+    batch_gen = batch_factory.generate(
+        ETL.AudioExamples, ETL.TargetPhrases, Feeds.Validation
+    )
+
     for b_id, batch in batch_gen:
 
         tf_session, tf_device = create_tf_runtime()
@@ -92,7 +92,7 @@ def main(indir, batch_size, tokens=" abcdefghijklmnopqrstuvwxyz'-"):
 
 
 if __name__ == '__main__':
-    indir, batch_size = sys.argv[1:]
+    #indir, batch_size = sys.argv[1:]
 
-    main(indir, int(batch_size))
+    main()
 
