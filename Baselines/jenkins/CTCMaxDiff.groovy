@@ -7,7 +7,8 @@ pipeline {
         TAG = "latest"
         BEAM_EXP_ARG = "ctcmaxdiff_beam"
         GREEDY_EXP_ARG = "ctcmaxdiff_greedy"
-        CLEVERSPEECH_HOME=/home/cleverspeech/cleverSpeech
+        EXP_DIR = "./experiments/Baselines"
+        CLEVERSPEECH_HOME = "/home/cleverspeech/cleverSpeech"
     }
 
     stages {
@@ -35,7 +36,7 @@ pipeline {
                         -e LOCAL_GID=\$(id -g ${USER}) \
                         ${IMAGE_NAME}:${TAG} \
                         python3 \
-                        ./experiments/Baselines/attacks.py \
+                        ${EXP_DIR}/attacks.py \
                         ${GREEDY_EXP_ARG} \
                         --max_spawns 5
                     """
@@ -57,7 +58,7 @@ pipeline {
                         -e LOCAL_GID=\$(id -g ${USER}) \
                         ${IMAGE_NAME}:${TAG} \
                         python3 \
-                        ./experiments/Baselines/attacks.py \
+                        ${EXP_DIR}/attacks.py \
                         ${BEAM_EXP_ARG} \
                         --max_spawns 5
                     """
