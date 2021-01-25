@@ -23,7 +23,7 @@ def main(indir):
             data = json.load(f)[0]
 
         raw_logits = np.asarray(data["raw_logits"])
-        softmax = np.asarray(data["softmax"])
+        softmax = np.asarray(data["smax_logits"])
 
         for idx, (raw_feats, smax_feats) in enumerate(zip(raw_logits, softmax)):
 
@@ -36,13 +36,15 @@ def main(indir):
 
             results["max_smax"].append(np.max(smax_feats))
 
-        s += "Mean values over entire logits:\n"
+        #s += "Mean values over entire logits:\n"
 
         for k, v in results.items():
             mean = np.mean(v)
             s += "{k}: {v}\n".format(k=k, v=mean)
 
-        print(s)
+        s = s.replace("\n", ",")
+        with open("./adv/original_logits_stats.csv", "a+") as f:
+            f.write(s + "\n")
 
         for k in results.keys():
             results[k].clear()
