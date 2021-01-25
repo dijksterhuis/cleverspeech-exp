@@ -1,6 +1,6 @@
 import tensorflow as tf
 
-from Synthesis.Synthesisers.Base import Synth
+from experiments.Synthesis.Synthesisers.Base import Synth
 
 
 class Plain(Synth):

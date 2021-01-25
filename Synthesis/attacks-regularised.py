@@ -11,9 +11,9 @@ from cleverspeech.graph import Outputs
 
 from SecEval import VictimAPI as DeepSpeech
 
-from cleverspeech.experiments.Synthesis.Synthesisers import Additive
-from cleverspeech.experiments.Synthesis.Synthesisers import DeterministicPlusNoise
-from cleverspeech.experiments.Synthesis.Synthesisers import Spectral
+from experiments.Synthesis.Synthesisers import Additive
+from experiments.Synthesis.Synthesisers import DeterministicPlusNoise
+from experiments.Synthesis.Synthesisers import Spectral
 
 # boilerplate imports
 from cleverspeech.data import ETL
