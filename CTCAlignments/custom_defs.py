@@ -31,10 +31,12 @@ class RepeatsCTCLoss(object):
                 attack_graph.graph.placeholders.target_lengths,
             )
 
+        logits_shape = attack_graph.victim.raw_logits.get_shape().as_list()
+
         blank_token_pad = tf.zeros(
             [
-                attack_graph.batch.audios.feature_lengths[0],
-                attack_graph.batch.size,
+                logits_shape[0],
+                logits_shape[1],
                 1
             ],
             tf.float32
