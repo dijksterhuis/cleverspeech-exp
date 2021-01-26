@@ -32,6 +32,7 @@ def execute(settings, attack_fn, batch_gen):
     with attack_spawner as spawner:
         for b_id, batch in batch_gen:
             spawner.spawn(boilerplate, settings, attack_fn, batch)
+            log("Running for Batch Number: {}".format(b_id), wrap=True)
 
     # Run the standard stats script on all successful examples once all attacks
     # are completed.
