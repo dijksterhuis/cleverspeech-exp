@@ -19,7 +19,7 @@ from experiments.Synthesis.Synthesisers import Spectral
 from cleverspeech.data import ETL
 from cleverspeech.data import Feeds
 from cleverspeech.data import Generators
-from cleverspeech.utils.Utils import log, l_map, args
+from cleverspeech.utils.Utils import log, l_map, lcomp, args
 
 from boilerplate import execute
 
@@ -52,8 +52,9 @@ ADDITIVE_FRAME_STEP = 512
 ADDITIVE_INITIAL_HZ = 1e-8
 
 SPECTRAL_FRAME_STEP = 256
-SPECTRAL_FRAME_LENGTH = 512
-SPECTRAL_FFT_LENGTH = 512
+SPECTRAL_FRAME_LENGTH = 256
+SPECTRAL_FFT_LENGTH = 256
+SPECTRAL_CONSTANT = 256
 
 
 def get_batch_generator(settings):
@@ -651,7 +652,17 @@ def spectral_run(master_settings):
 
     synth_fn = Spectral.STFT
 
-    for run in range(1, 5, 4):
+    def run_generator(x, n):
+        for i in range(1, n+1):
+            if i == 0:
+                yield x
+            else:
+                yield x
+                x *= 2
+
+    runs = lcomp(run_generator(SPECTRAL_CONSTANT, 5))
+
+    for run in runs:
 
         outdir = os.path.join(OUTDIR, "spectral/")
         outdir = os.path.join(outdir, "run_{}/".format(run))
@@ -669,9 +680,9 @@ def spectral_run(master_settings):
             "rescale": RESCALE,
             "learning_rate": LEARNING_RATE,
             "synth": {
-                "frame_step": SPECTRAL_FRAME_STEP * run,
-                "frame_length": SPECTRAL_FRAME_LENGTH * run,
-                "fft_length": SPECTRAL_FFT_LENGTH * run,
+                "frame_step": run,
+                "frame_length": run,
+                "fft_length": run,
             },
             "gpu_device": GPU_DEVICE,
             "max_spawns": MAX_PROCESSES,
@@ -734,7 +745,17 @@ def spectral_regularised_run(master_settings):
 
     synth_fn = Spectral.STFT
 
-    for run in range(1, 5, 4):
+    def run_generator(x, n):
+        for i in range(1, n+1):
+            if i == 0:
+                yield x
+            else:
+                yield x
+                x *= 2
+
+    runs = lcomp(run_generator(SPECTRAL_CONSTANT, 5))
+
+    for run in runs:
 
         outdir = os.path.join(OUTDIR, "spectral_regularised/")
         outdir = os.path.join(outdir, "run_{}/".format(run))
@@ -752,9 +773,9 @@ def spectral_regularised_run(master_settings):
             "rescale": RESCALE,
             "learning_rate": LEARNING_RATE,
             "synth": {
-                "frame_step": SPECTRAL_FRAME_STEP * run,
-                "frame_length": SPECTRAL_FRAME_LENGTH * run,
-                "fft_length": SPECTRAL_FFT_LENGTH * run,
+                "frame_step": run,
+                "frame_length": run,
+                "fft_length": run,
             },
             "gpu_device": GPU_DEVICE,
             "max_spawns": MAX_PROCESSES,
