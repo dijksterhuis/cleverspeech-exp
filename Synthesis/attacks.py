@@ -660,7 +660,7 @@ def spectral_run(master_settings):
                 yield x
                 x *= 2
 
-    runs = lcomp(run_generator(SPECTRAL_CONSTANT, 5))
+    runs = reversed(lcomp(run_generator(SPECTRAL_CONSTANT, 5)))
 
     for run in runs:
 
@@ -753,7 +753,7 @@ def spectral_regularised_run(master_settings):
                 yield x
                 x *= 2
 
-    runs = lcomp(run_generator(SPECTRAL_CONSTANT, 5))
+    runs = reversed(lcomp(run_generator(SPECTRAL_CONSTANT, 5)))
 
     for run in runs:
 
