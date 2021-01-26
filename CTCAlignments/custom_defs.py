@@ -31,9 +31,9 @@ class RepeatsCTCLoss(object):
                 attack_graph.graph.placeholders.target_lengths,
             )
 
-        blank_pad = tf.zeros(
+        blank_token_pad = tf.zeros(
             [
-                attack_graph.batch.audios.feature_lengths[0] + 1,
+                attack_graph.batch.audios.feature_lengths[0],
                 attack_graph.batch.size,
                 1
             ],
@@ -41,7 +41,7 @@ class RepeatsCTCLoss(object):
         )
 
         logits_mod = tf.concat(
-            [attack_graph.victim.raw_logits, blank_pad],
+            [attack_graph.victim.raw_logits, blank_token_pad],
             axis=2
         )
 
