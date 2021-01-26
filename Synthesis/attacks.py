@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import os
+import numpy as np
 
 # attack def imports
 from cleverspeech.graph.GraphConstructor import Constructor
@@ -54,7 +55,7 @@ ADDITIVE_INITIAL_HZ = 1e-8
 SPECTRAL_FRAME_STEP = 256
 SPECTRAL_FRAME_LENGTH = 256
 SPECTRAL_FFT_LENGTH = 256
-SPECTRAL_CONSTANT = 256
+SPECTRAL_CONSTANT = 64
 
 
 def get_batch_generator(settings):
@@ -660,7 +661,7 @@ def spectral_run(master_settings):
                 yield x
                 x *= 2
 
-    runs = reversed(lcomp(run_generator(SPECTRAL_CONSTANT, 5)))
+    runs = lcomp(run_generator(SPECTRAL_CONSTANT, 8))
 
     for run in runs:
 
@@ -678,104 +679,11 @@ def spectral_run(master_settings):
             "beam_width": BEAM_WIDTH,
             "constraint_update": CONSTRAINT_UPDATE,
             "rescale": RESCALE,
-            "learning_rate": LEARNING_RATE,
+            "learning_rate": 100,
             "synth": {
                 "frame_step": run,
-                "frame_length": run * 2,
-                "fft_length": run,
-            },
-            "gpu_device": GPU_DEVICE,
-            "max_spawns": MAX_PROCESSES,
-            "spawn_delay": SPAWN_DELAY,
-            "max_examples": MAX_EXAMPLES,
-            "max_targets": MAX_TARGETS,
-            "max_audio_length": MAX_AUDIO_LENGTH,
-        }
-
-        settings.update(master_settings)
-        batch_gen = get_batch_generator(settings)
-
-        execute(settings, create_attack_graph, synth_fn, batch_gen)
-
-        log("Finished run {}.".format(run))
-
-
-def spectral_regularised_run(master_settings):
-    def create_attack_graph(sess, batch, synth, settings):
-        attack = Constructor(sess, batch)
-
-        attack.add_hard_constraint(
-            Constraints.L2,
-            r_constant=settings["rescale"],
-            update_method=settings["constraint_update"],
-        )
-
-        attack.add_graph(
-            custom_defs.SynthesisAttack,
-            synth
-        )
-
-        attack.add_victim(
-            DeepSpeech.Model,
-            tokens=settings["tokens"],
-            beam_width=settings["beam_width"]
-        )
-
-        attack.add_adversarial_loss(CTCLoss)
-        attack.add_distance_loss(custom_defs.SpectralLoss)
-        attack.create_loss_fn()
-
-        attack.add_optimiser(
-            Optimisers.AdamOptimiser,
-            learning_rate=settings["learning_rate"]
-        )
-
-        attack.add_procedure(
-            Procedures.UpdateBound,
-            steps=settings["nsteps"],
-            decode_step=settings["decode_step"]
-        )
-
-        attack.add_outputs(
-            Outputs.Base,
-            settings["outdir"],
-        )
-
-        return attack
-
-    synth_fn = Spectral.STFT
-
-    def run_generator(x, n):
-        for i in range(1, n+1):
-            if i == 0:
-                yield x
-            else:
-                yield x
-                x *= 2
-
-    runs = reversed(lcomp(run_generator(SPECTRAL_CONSTANT, 4)))
-
-    for run in runs:
-
-        outdir = os.path.join(OUTDIR, "spectral_regularised/")
-        outdir = os.path.join(outdir, "run_{}/".format(run))
-
-        settings = {
-            "audio_indir": AUDIOS_INDIR,
-            "targets_path": TARGETS_PATH,
-            "outdir": outdir,
-            "batch_size": BATCH_SIZE,
-            "tokens": TOKENS,
-            "nsteps": NUMB_STEPS,
-            "decode_step": DECODING_STEP,
-            "beam_width": BEAM_WIDTH,
-            "constraint_update": CONSTRAINT_UPDATE,
-            "rescale": RESCALE,
-            "learning_rate": LEARNING_RATE,
-            "synth": {
-                "frame_step": run,
-                "frame_length": run * 2,
-                "fft_length": run,
+                "frame_length": run,
+                "fft_length": run * 2,
             },
             "gpu_device": GPU_DEVICE,
             "max_spawns": MAX_PROCESSES,
@@ -799,7 +707,6 @@ if __name__ == '__main__':
 
     experiments = {
         "stft": spectral_run,
-        "stft-reg": spectral_regularised_run,
         "inharmonic": inharmonic_run,
         "freq_harmonic": freq_harmonic_run,
         "full_harmonic": full_harmonic_run,
