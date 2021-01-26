@@ -681,7 +681,7 @@ def spectral_run(master_settings):
             "learning_rate": LEARNING_RATE,
             "synth": {
                 "frame_step": run,
-                "frame_length": run,
+                "frame_length": run * 2,
                 "fft_length": run,
             },
             "gpu_device": GPU_DEVICE,
@@ -753,7 +753,7 @@ def spectral_regularised_run(master_settings):
                 yield x
                 x *= 2
 
-    runs = reversed(lcomp(run_generator(SPECTRAL_CONSTANT, 5)))
+    runs = reversed(lcomp(run_generator(SPECTRAL_CONSTANT, 4)))
 
     for run in runs:
 
@@ -774,7 +774,7 @@ def spectral_regularised_run(master_settings):
             "learning_rate": LEARNING_RATE,
             "synth": {
                 "frame_step": run,
-                "frame_length": run,
+                "frame_length": run * 2,
                 "fft_length": run,
             },
             "gpu_device": GPU_DEVICE,
