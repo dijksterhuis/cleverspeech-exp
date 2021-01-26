@@ -1,5 +1,7 @@
 import os
 
+from tensorflow import errors as tf_errors
+
 from cleverspeech.data.Results import SingleJsonDB
 from cleverspeech.eval import BatchProcessing as BasicProcessing
 from cleverspeech.utils.RuntimeUtils import create_tf_runtime, log_attack_tensors, AttackSpawner
@@ -46,30 +48,40 @@ def boilerplate(settings, attack_fn, batch):
     # tensorflow sessions can't be passed between processes either, so we have
     # to create it here.
 
-    tf_session, tf_device = create_tf_runtime(settings["gpu_device"])
-    with tf_session as sess, tf_device:
+    try:
+        tf_session, tf_device = create_tf_runtime(settings["gpu_device"])
+        with tf_session as sess, tf_device:
 
-        # Initialise curried attack graph constructor function
+            # Initialise curried attack graph constructor function
 
-        attack = attack_fn(sess, batch, settings)
+            attack = attack_fn(sess, batch, settings)
 
-        # create placeholder feeds
+            # create placeholder feeds
 
-        batch.feeds.create_feeds(attack.graph)
+            batch.feeds.create_feeds(attack.graph)
 
-        # log some useful things for debugging before the attack runs
+            # log some useful things for debugging before the attack runs
 
-        run_decoding_check(attack, batch)
-        log("Created Attack Graph and Feeds.")
+            run_decoding_check(attack, batch)
+            log("Created Attack Graph and Feeds.")
 
-        log("Loaded TF Operations:")
-        log(funcs=log_attack_tensors)
+            log("Loaded TF Operations:")
+            log(funcs=log_attack_tensors)
 
-        # Run the attack generator loop. See `Attacks/Procedures.py` for
-        # detailed info on returned results.
-        log("Beginning attack run...\nMonitor progress in: {}".format(
-            settings["outdir"] + "log.txt"
-        ))
+            # Run the attack generator loop. See `Attacks/Procedures.py` for
+            # detailed info on returned results.
+            log("Beginning attack run...\nMonitor progress in: {}".format(
+                settings["outdir"] + "log.txt"
+            ))
 
-        attack.run()
+            attack.run()
 
+    except tf_errors.ResourceExhaustedError as e:
+
+        # Fail gracefully for OOM GPU issues, at the very least.
+
+        s = "Out of GPU Memory! Attack failed to run for these examples:\n"
+        s += '\n'.join(batch.audios.basenames)
+        s += "\n\nError Traceback:\n{e}".format(e=e)
+
+        log(s, wrap=True)
