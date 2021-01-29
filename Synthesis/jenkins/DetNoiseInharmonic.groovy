@@ -1,7 +1,7 @@
 #!/usr/bin/env groovy
 
 pipeline {
-    agent { label "kalluto" }
+    agent { label "gpu" }
     environment {
         IMAGE_NAME = "dijksterhuis/cleverspeech"
         TAG = "latest"
