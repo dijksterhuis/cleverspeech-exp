@@ -126,7 +126,7 @@ def create_attack_graph(sess, batch, synth, settings):
     )
 
     attack.add_procedure(
-        Procedures.UpdateBound,
+        Procedures.UpdateOnDecoding,
         steps=settings["nsteps"],
         decode_step=settings["decode_step"]
     )
@@ -493,7 +493,7 @@ def spectral_regularised_run(master_settings):
         )
 
         attack.add_procedure(
-            Procedures.UpdateBound,
+            Procedures.UpdateOnDecoding,
             steps=settings["nsteps"],
             decode_step=settings["decode_step"]
         )

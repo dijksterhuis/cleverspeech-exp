@@ -135,7 +135,7 @@ def inharmonic_run(master_settings):
         )
 
         attack.add_procedure(
-            Procedures.UpdateBound,
+            Procedures.UpdateOnDecoding,
             steps=settings["nsteps"],
             decode_step=settings["decode_step"]
         )
@@ -219,7 +219,7 @@ def freq_harmonic_run(master_settings):
         )
 
         attack.add_procedure(
-            Procedures.UpdateBound,
+            Procedures.UpdateOnDecoding,
             steps=settings["nsteps"],
             decode_step=settings["decode_step"]
         )
@@ -303,7 +303,7 @@ def full_harmonic_run(master_settings):
         )
 
         attack.add_procedure(
-            Procedures.UpdateBound,
+            Procedures.UpdateOnDecoding,
             steps=settings["nsteps"],
             decode_step=settings["decode_step"]
         )
@@ -387,7 +387,7 @@ def detnoise_inharmonic_run(master_settings):
         )
 
         attack.add_procedure(
-            Procedures.UpdateBound,
+            Procedures.UpdateOnDecoding,
             steps=settings["nsteps"],
             decode_step=settings["decode_step"]
         )
@@ -471,7 +471,7 @@ def detnoise_freq_harmonic_run(master_settings):
         )
 
         attack.add_procedure(
-            Procedures.UpdateBound,
+            Procedures.UpdateOnDecoding,
             steps=settings["nsteps"],
             decode_step=settings["decode_step"]
         )
@@ -555,7 +555,7 @@ def detnoise_full_harmonic_run(master_settings):
         )
 
         attack.add_procedure(
-            Procedures.UpdateBound,
+            Procedures.UpdateOnDecoding,
             steps=settings["nsteps"],
             decode_step=settings["decode_step"]
         )
@@ -639,7 +639,7 @@ def spectral_run(master_settings):
         )
 
         attack.add_procedure(
-            Procedures.UpdateBound,
+            Procedures.UpdateOnDecoding,
             steps=settings["nsteps"],
             decode_step=settings["decode_step"]
         )
