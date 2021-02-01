@@ -1,6 +1,6 @@
 import tensorflow as tf
 
-from cleverspeech.graph.Procedures import Base
+from cleverspeech.graph.Procedures import UpdateOnDecoding
 from cleverspeech.utils.Utils import lcomp
 
 
@@ -31,16 +31,12 @@ class CTCSearchGraph:
             name='qq_alignment'
         )
 
-        print(alignment_shape)
-
         self.logits_alignments = tf.transpose(self.raw_alignments, [1, 0, 2])
         self.softmax_alignments = tf.nn.softmax(self.logits_alignments)
 
         # TODO - this should be loaded from feeds later on
         self.targets = attack_graph.graph.placeholders.targets
         self.target_lengths = attack_graph.graph.placeholders.target_lengths
-
-        #super().__init__(attack_graph.sess, batch)
 
 
 class CTCAlignmentOptimiser:
@@ -50,6 +46,7 @@ class CTCAlignmentOptimiser:
         self.loss = self.graph.adversarial_loss
 
         self.train_alignment = None
+        self.variables = None
 
     def create_optimiser(self):
 
@@ -62,6 +59,7 @@ class CTCAlignmentOptimiser:
         assert None not in lcomp(grad_var, i=0)
 
         self.train_alignment = optimizer.apply_gradients(grad_var)
+        self.variables = optimizer.variables()
 
     def optimise(self, batch, victim):
 
@@ -69,7 +67,6 @@ class CTCAlignmentOptimiser:
 
         logits = v.get_logits(v.raw_logits, b.feeds.examples)
         assert logits.shape == g.graph.raw_alignments.shape
-        #g.sess.run(g.raw_alignments.assign(logits))
 
         while True:
 
@@ -85,17 +82,6 @@ class CTCAlignmentOptimiser:
                 feed_dict=b.feeds.alignments
             )
 
-            # TODO: Need to test whether this gets the correct decoding output
-            #       as i finally got the batch decoder working!
-            # TODO: Could we look to MAXIMISE a target alignment? i.e. maximise
-            #       the negative log likelihood for an alignment
-            # TODO: Could we try to find an adversarial alignment? i.e. where
-            #       there are no repeat characters, only characters from the
-            #       target transcription
-            #       ooooooooopppppppeeeeeeennnnnn vs o------------p------e---n
-
-            #print(np.argmax(softmax, axis=2))
-
             decodings, probs = victim.inference(
                 b,
                 logits=softmax,
@@ -107,31 +93,31 @@ class CTCAlignmentOptimiser:
                 break
 
 
-class CTCAlignmentsUpdateHard(Base):
+class CTCAlignmentsUpdateHard(UpdateOnDecoding):
     def __init__(self, attack, alignment_graph, *args, **kwargs):
         """
         Initialise the evaluation procedure.
 
         :param attack_graph: The current attack graph perform optimisation with.
         """
-
         super().__init__(attack, *args, **kwargs)
 
         self.alignment_graph = alignment_graph
+        self.__init_optimiser_variables()
 
+    def __init_optimiser_variables(self):
         # We must wait until now to initialise the optimiser so that we can
         # initialise only the attack variables (i.e. not the deepspeech ones).
-        start_vars = set(x.name for x in tf.global_variables())
 
         self.alignment_graph.optimiser.create_optimiser()
+        self.attack.optimiser.create_optimiser()
 
-        attack.optimiser.create_optimiser()
+        opt_vars = self.attack.graph.opt_vars
+        opt_vars += [self.alignment_graph.graph.raw_alignments]
+        opt_vars += self.attack.optimiser.variables
+        opt_vars += self.alignment_graph.optimiser.variables
 
-        end_vars = tf.global_variables()
-        new_vars = [x for x in end_vars if x.name not in start_vars]
-
-        # TODO: New base class that holds vars to be *initialised* rather than opt_vars attributes.
-        attack.sess.run(tf.variables_initializer(new_vars + attack.graph.opt_vars + [alignment_graph.graph.raw_alignments]))
+        self.attack.sess.run(tf.variables_initializer(opt_vars))
 
     def run(self):
 
