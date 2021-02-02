@@ -30,9 +30,9 @@ SPAWN_DELAY = 60 * 5
 TOKENS = " abcdefghijklmnopqrstuvwxyz'-"
 BEAM_WIDTH = 500
 
-AUDIOS_INDIR = "/data/samples/all/"
-TARGETS_PATH = "/data/samples/cv-valid-test.csv"
-OUTDIR = "/data/adv/baseline/"
+AUDIOS_INDIR = "./samples/all/"
+TARGETS_PATH = "./samples/cv-valid-test.csv"
+OUTDIR = "./adv/baseline/"
 MAX_EXAMPLES = 1000
 MAX_TARGETS = 1000
 MAX_AUDIO_LENGTH = 120000
@@ -96,14 +96,6 @@ def get_batch_generator(settings):
 
 def spectral_run(master_settings):
     """
-    CTC Loss attack modified from the original Carlini & Wagner work.
-
-    Using a hard constraint is better for security evaluations, so we ignore the
-    L2 distance regularisation term in the optimisation goal.
-
-    TODO: I could probably remove `Base.add_distance_loss()` method...?
-
-    :return: None
     """
     def create_attack_graph(sess, batch, settings):
         attack = Constructor(sess, batch)
@@ -173,15 +165,163 @@ def spectral_run(master_settings):
     log("Finished run.")  # {}.".format(run))
 
 
+def multi_scale_l1_spectral_run(master_settings):
+    """
+    """
+    def create_attack_graph(sess, batch, settings):
+        attack = Constructor(sess, batch)
+
+        attack.add_hard_constraint(
+            Constraints.L2,
+            r_constant=settings["rescale"],
+            update_method=settings["constraint_update"],
+        )
+
+        attack.add_graph(
+            Graphs.SimpleAttack
+        )
+
+        attack.add_victim(
+            DeepSpeech.Model,
+            tokens=settings["tokens"],
+            beam_width=settings["beam_width"]
+        )
+
+        attack.add_adversarial_loss(CTCLoss)
+        attack.add_distance_loss(
+            Losses.MultiScaleSpectralLoss,
+            norm=1
+        )
+        attack.create_loss_fn()
+
+        attack.add_optimiser(
+            Optimisers.AdamOptimiser,
+            learning_rate=settings["learning_rate"]
+        )
+
+        attack.add_procedure(
+            Procedures.UpdateOnDecoding,
+            steps=settings["nsteps"],
+            decode_step=settings["decode_step"]
+        )
+
+        attack.add_outputs(
+            Outputs.Base,
+            settings["outdir"],
+        )
+
+        return attack
+
+    outdir = os.path.join(OUTDIR, "multi_scale/l1/")
+
+    settings = {
+        "audio_indir": AUDIOS_INDIR,
+        "targets_path": TARGETS_PATH,
+        "outdir": outdir,
+        "batch_size": BATCH_SIZE,
+        "tokens": TOKENS,
+        "nsteps": NUMB_STEPS,
+        "decode_step": DECODING_STEP,
+        "beam_width": BEAM_WIDTH,
+        "constraint_update": CONSTRAINT_UPDATE,
+        "rescale": RESCALE,
+        "learning_rate": LEARNING_RATE,
+        "gpu_device": GPU_DEVICE,
+        "max_spawns": MAX_PROCESSES,
+        "spawn_delay": SPAWN_DELAY,
+    }
+
+    settings.update(master_settings)
+    batch_gen = get_batch_generator(settings)
+
+    execute(settings, create_attack_graph, batch_gen)
+
+    log("Finished run.")  # {}.".format(run))
+
+
+def multi_scale_l2_spectral_run(master_settings):
+    """
+    """
+    def create_attack_graph(sess, batch, settings):
+        attack = Constructor(sess, batch)
+
+        attack.add_hard_constraint(
+            Constraints.L2,
+            r_constant=settings["rescale"],
+            update_method=settings["constraint_update"],
+        )
+
+        attack.add_graph(
+            Graphs.SimpleAttack
+        )
+
+        attack.add_victim(
+            DeepSpeech.Model,
+            tokens=settings["tokens"],
+            beam_width=settings["beam_width"]
+        )
+
+        attack.add_adversarial_loss(CTCLoss)
+        attack.add_distance_loss(
+            Losses.MultiScaleSpectralLoss,
+            norm=2
+        )
+        attack.create_loss_fn()
+
+        attack.add_optimiser(
+            Optimisers.AdamOptimiser,
+            learning_rate=settings["learning_rate"]
+        )
+
+        attack.add_procedure(
+            Procedures.UpdateOnDecoding,
+            steps=settings["nsteps"],
+            decode_step=settings["decode_step"]
+        )
+
+        attack.add_outputs(
+            Outputs.Base,
+            settings["outdir"],
+        )
+
+        return attack
+
+    outdir = os.path.join(OUTDIR, "multi_scale/l2/")
+
+    settings = {
+        "audio_indir": AUDIOS_INDIR,
+        "targets_path": TARGETS_PATH,
+        "outdir": outdir,
+        "batch_size": BATCH_SIZE,
+        "tokens": TOKENS,
+        "nsteps": NUMB_STEPS,
+        "decode_step": DECODING_STEP,
+        "beam_width": BEAM_WIDTH,
+        "constraint_update": CONSTRAINT_UPDATE,
+        "rescale": RESCALE,
+        "learning_rate": LEARNING_RATE,
+        "gpu_device": GPU_DEVICE,
+        "max_spawns": MAX_PROCESSES,
+        "spawn_delay": SPAWN_DELAY,
+    }
+
+    settings.update(master_settings)
+    batch_gen = get_batch_generator(settings)
+
+    execute(settings, create_attack_graph, batch_gen)
+
+    log("Finished run.")  # {}.".format(run))
+
+
 if __name__ == '__main__':
 
     log("", wrap=True)
 
     experiments = {
-        "baseline": spectral_run,
+        "spectral": spectral_run,
+        "multiscale-L1": multi_scale_l1_spectral_run,
+        "multiscale-L2": multi_scale_l2_spectral_run,
     }
 
     args(experiments)
-
-
 
