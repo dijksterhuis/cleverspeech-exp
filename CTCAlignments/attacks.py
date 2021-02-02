@@ -34,7 +34,7 @@ OUTDIR = "./adv/ctc-alignments/"
 
 # targets search parameters
 MAX_EXAMPLES = 1000
-MAX_TARGETS = 1000
+MAX_TARGETS = 400
 MAX_AUDIO_LENGTH = 120000
 
 RESCALE = 0.95
@@ -298,7 +298,8 @@ def get_sparse_batch_factory(settings):
         settings["audio_indir"],
         settings["max_examples"],
         filter_term=".wav",
-        max_samples=settings["max_audio_length"]
+        max_samples=settings["max_audio_length"],
+        sort_by_file_size="asc",
     )
 
     all_audio_file_paths = audio_etl.extract().transform().load()
@@ -545,7 +546,7 @@ def ctc_sparse_extreme_alignment_run(master_settings):
             "max_examples": MAX_EXAMPLES,
             "max_targets": MAX_TARGETS,
             "max_audio_length": MAX_AUDIO_LENGTH,
-            "loss_threshold": LOSS_UPDATE_THRESHOLD,
+            "loss_threshold": 1.0,
         }
 
         settings.update(master_settings)
