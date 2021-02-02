@@ -1,7 +1,7 @@
 import tensorflow as tf
 import numpy as np
 
-from cleverspeech.graph.Procedures import Base
+from cleverspeech.graph.Procedures import UpdateOnDecoding, UpdateOnLoss
 from cleverspeech.utils.Utils import lcomp
 
 
@@ -146,8 +146,8 @@ class CTCAlignmentOptimiser:
                 break
 
 
-class CTCAlignmentsUpdateHard(Base):
-    def __init__(self, attack, alignment_graph, *args, loss_lower_bound=10.0, **kwargs):
+class CTCAlignmentsUpdateOnDecode(UpdateOnDecoding):
+    def __init__(self, attack, alignment_graph, *args, **kwargs):
         """
         Initialise the evaluation procedure.
 
@@ -155,8 +155,6 @@ class CTCAlignmentsUpdateHard(Base):
         """
 
         super().__init__(attack, *args, **kwargs)
-
-        self.loss_bound = loss_lower_bound
 
         self.alignment_graph = alignment_graph
         self.__init_optimiser_variables()
@@ -176,40 +174,41 @@ class CTCAlignmentsUpdateHard(Base):
 
         self.attack.sess.run(tf.variables_initializer(opt_vars))
 
-    @staticmethod
-    def success_criteria_check(left, right):
-        return True if left <= right else False
-
     def run(self):
         self.alignment_graph.optimise(self.attack.victim)
         for r in super().run():
             yield r
 
-    def decode_step_logic(self):
 
-        loss = self.tf_run(self.attack.adversarial_loss.loss_fn)
-        decodings, probs = self.attack.victim.inference(
-            self.attack.batch,
-            feed=self.attack.batch.feeds.attack,
-            decoder="batch",
-            top_five=False,
-        )
+class CTCAlignmentsUpdateOnLoss(UpdateOnLoss):
+    def __init__(self, attack, alignment_graph, *args, **kwargs):
+        """
+        Initialise the evaluation procedure.
 
-        target_loss = [self.loss_bound for _ in range(self.attack.batch.size)]
-        targets = self.attack.batch.targets.phrases
+        :param attack_graph: The current attack graph perform optimisation with.
+        """
 
-        return {
-            "step": self.current_step,
-            "data": [
-                {
-                    "idx": idx,
-                    "success": success,
-                    "decodings": decodings[idx],
-                    "target_phrase": targets[idx],
-                    "probs": probs
-                }
-                for idx, success in self.update_on_success(loss, target_loss)
-            ]
-        }
+        super().__init__(attack, *args, **kwargs)
 
+        self.alignment_graph = alignment_graph
+        self.__init_optimiser_variables()
 
+    def __init_optimiser_variables(self):
+
+        # We must wait until now to initialise the optimiser so that we can
+        # initialise only the attack variables (i.e. not the deepspeech ones).
+
+        self.alignment_graph.optimiser.create_optimiser()
+        self.attack.optimiser.create_optimiser()
+
+        opt_vars = self.attack.graph.opt_vars
+        opt_vars += [self.alignment_graph.graph.raw_alignments]
+        opt_vars += self.attack.optimiser.variables
+        opt_vars += self.alignment_graph.optimiser.variables
+
+        self.attack.sess.run(tf.variables_initializer(opt_vars))
+
+    def run(self):
+        self.alignment_graph.optimise(self.attack.victim)
+        for r in super().run():
+            yield r
