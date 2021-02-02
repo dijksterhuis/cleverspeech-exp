@@ -85,6 +85,7 @@ class CTCSearchGraph:
 
         self.logits_alignments = tf.transpose(self.raw_alignments, [1, 0, 2])
         self.softmax_alignments = tf.nn.softmax(self.logits_alignments)
+        self.target_alignments = tf.argmax(self.softmax_alignments, axis=2)
 
         # TODO - this should be loaded from feeds later on
         self.targets = attack_graph.graph.placeholders.targets
