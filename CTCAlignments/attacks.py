@@ -562,7 +562,7 @@ if __name__ == '__main__':
     experiments = {
         "dense": ctc_dense_alignment_run,
         "sparse": ctc_sparse_alignment_run,
-        "dense-extreme": None,
+        "dense-extreme": ctc_dense_extreme_alignment_run,
         "sparse-extreme": ctc_sparse_extreme_alignment_run,
     }
 
