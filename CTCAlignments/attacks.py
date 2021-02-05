@@ -256,7 +256,7 @@ def ctc_dense_extreme_alignment_run(master_settings):
 
     for run in range(0, N_RUNS):
 
-        outdir = os.path.join(OUTDIR, "dense/")
+        outdir = os.path.join(OUTDIR, "extreme/dense/")
         outdir = os.path.join(outdir, "run_{}/".format(run))
 
         settings = {
@@ -524,7 +524,7 @@ def ctc_sparse_extreme_alignment_run(master_settings):
 
     for run in range(0, N_RUNS):
 
-        outdir = os.path.join(OUTDIR, "sparse-extreme/")
+        outdir = os.path.join(OUTDIR, "extreme/sparse/")
         outdir = os.path.join(outdir, "run_{}/".format(run))
 
         settings = {
