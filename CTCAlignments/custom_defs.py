@@ -106,7 +106,7 @@ class CTCSearchGraph:
         self.target_lengths = attack_graph.graph.placeholders.target_lengths
 
         per_logit_lengths = batch.audios.alignment_lengths
-        maxlen = max(batch.audios.feature_lengths)
+        maxlen = batched_alignment_shape[1]
 
         initial_masks = np.asarray(
             [m for m in self.gen_mask(per_logit_lengths, maxlen)],
@@ -121,7 +121,7 @@ class CTCSearchGraph:
         for l in per_logit_len:
             # per possible frame
             masks = []
-            for f in range(maxlen + 1):
+            for f in range(maxlen):
                 if l > f:
                     # if should be optimised
                     mask = np.zeros([29])
