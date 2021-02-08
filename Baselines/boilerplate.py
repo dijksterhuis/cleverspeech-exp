@@ -96,8 +96,8 @@ def boilerplate(results_queue, healthy_conn, settings, attack_fn, batch):
         s += "\n\nError Traceback:\n{e}".format(e=e)
 
         log(s, wrap=True)
-
         healthy_conn.send(False)
+        raise
 
     except Exception as e:
 
@@ -109,6 +109,6 @@ def boilerplate(results_queue, healthy_conn, settings, attack_fn, batch):
         s += "\n\nError Traceback:\n{e}".format(e=e)
 
         log(s, wrap=True)
-
         healthy_conn.send(False)
+        raise
 

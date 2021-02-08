@@ -2,7 +2,7 @@ import os
 
 from tensorflow import errors as tf_errors
 
-from cleverspeech.data.Results import SingleJsonDB
+from cleverspeech.data.Results import SingleJsonDB, FileWriter
 from cleverspeech.eval import BatchProcessing as BasicProcessing
 from cleverspeech.utils.RuntimeUtils import TFRuntime, AttackSpawner
 from cleverspeech.utils.Utils import log, run_decoding_check
@@ -23,10 +23,13 @@ def execute(settings, attack_fn, batch_gen):
 
     # Manage GPU memory and CPU processes usage.
 
+    file_writer = FileWriter(settings["outdir"])
+
     attack_spawner = AttackSpawner(
         gpu_device=settings["gpu_device"],
         max_processes=settings["max_spawns"],
         delay=settings["spawn_delay"],
+        file_writer=file_writer,
     )
 
     with attack_spawner as spawner:
@@ -40,7 +43,7 @@ def execute(settings, attack_fn, batch_gen):
     BasicProcessing.batch_generate_statistic_file(settings["outdir"])
 
 
-def boilerplate(healthy_conn, settings, attack_fn, synthesiser_fn, batch):
+def boilerplate(results_queue, settings, attack_fn, batch):
 
     # we *must* call the tensorflow session within the batch loop so the
     # graph gets reset: the maximum example length in a batch affects the
@@ -82,7 +85,7 @@ def boilerplate(healthy_conn, settings, attack_fn, synthesiser_fn, batch):
             # Inform the parent process that we've successfully loaded the graph
             # and will start the attacks.
             healthy_conn.send(True)
-            attack.run()
+            attack.run(results_queue)
 
     except tf_errors.ResourceExhaustedError as e:
 
@@ -93,8 +96,8 @@ def boilerplate(healthy_conn, settings, attack_fn, synthesiser_fn, batch):
         s += "\n\nError Traceback:\n{e}".format(e=e)
 
         log(s, wrap=True)
-
         healthy_conn.send(False)
+        raise
 
     except Exception as e:
 
@@ -106,6 +109,6 @@ def boilerplate(healthy_conn, settings, attack_fn, synthesiser_fn, batch):
         s += "\n\nError Traceback:\n{e}".format(e=e)
 
         log(s, wrap=True)
-
         healthy_conn.send(False)
+        raise
 
