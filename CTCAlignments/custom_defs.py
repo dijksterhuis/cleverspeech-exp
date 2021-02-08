@@ -19,6 +19,8 @@ class RepeatsCTCLoss(object):
     """
     def __init__(self, attack_graph, alignment=None, loss_weight=1.0):
 
+        seq_lengths = attack_graph.batch.audios.feature_lengths
+
         if alignment is not None:
             log("Using CTC alignment search.", wrap=True)
             self.ctc_target = tf.keras.backend.ctc_label_dense_to_sparse(
@@ -34,11 +36,7 @@ class RepeatsCTCLoss(object):
         logits_shape = attack_graph.victim.raw_logits.get_shape().as_list()
 
         blank_token_pad = tf.zeros(
-            [
-                logits_shape[0],
-                logits_shape[1],
-                1
-            ],
+            [logits_shape[0], logits_shape[1], 1],
             tf.float32
         )
 
@@ -50,7 +48,7 @@ class RepeatsCTCLoss(object):
         self.loss_fn = tf.nn.ctc_loss(
             labels=tf.cast(self.ctc_target, tf.int32),
             inputs=logits_mod,
-            sequence_length=attack_graph.batch.audios.feature_lengths,
+            sequence_length=seq_lengths,
             preprocess_collapse_repeated=False,
             ctc_merge_repeated=False,
         ) * loss_weight
@@ -58,7 +56,7 @@ class RepeatsCTCLoss(object):
 
 class AlignmentLoss(object):
     def __init__(self, alignment_graph):
-        feat_lens = alignment_graph.batch.audios.feature_lengths
+        seq_lens = alignment_graph.batch.audios.alignment_lengths
 
         self.ctc_target = tf.keras.backend.ctc_label_dense_to_sparse(
             alignment_graph.graph.targets,
@@ -68,7 +66,7 @@ class AlignmentLoss(object):
         self.loss_fn = tf.nn.ctc_loss(
             labels=self.ctc_target,
             inputs=alignment_graph.graph.raw_alignments,
-            sequence_length=feat_lens
+            sequence_length=seq_lens,
         )
 
 
@@ -83,6 +81,14 @@ class CTCSearchGraph:
             name='qq_alignment'
         )
 
+        # mask is *added* to force decoder to see the logits for those frames as
+        # repeat characters. CTC-Loss outputs zero valued vectors for those
+        # character classes (as they're beyond the actual alignment length)
+        # This messes with decoder output.
+
+        # --> N.B. This is legacy problem with tensorflow/numpy not being able
+        # to handle ragged inputs for tf.Variables etc.
+
         self.mask = tf.Variable(
             tf.ones(batched_alignment_shape),
             dtype=tf.float32,
@@ -90,7 +96,7 @@ class CTCSearchGraph:
             name='qq_alignment_mask'
         )
 
-        self.logits_alignments = self.mask * self.initial_alignments
+        self.logits_alignments = self.initial_alignments + self.mask
         self.raw_alignments = tf.transpose(self.logits_alignments, [1, 0, 2])
         self.softmax_alignments = tf.nn.softmax(self.logits_alignments)
         self.target_alignments = tf.argmax(self.softmax_alignments, axis=2)
@@ -100,46 +106,29 @@ class CTCSearchGraph:
         self.target_lengths = attack_graph.graph.placeholders.target_lengths
 
         per_logit_lengths = batch.audios.alignment_lengths
-        maxlen = max(attack_graph.batch.audios.feature_lengths)
+        maxlen = max(batch.audios.feature_lengths)
 
         initial_masks = np.asarray(
-            [
-                np.concatenate(
-                    (m, np.zeros([1, 29], np.float32))
-                ) for m in self.gen_mask(per_logit_lengths, maxlen)
-            ],
+            [m for m in self.gen_mask(per_logit_lengths, maxlen)],
             dtype=np.float32
         )
-
-        print(initial_masks.shape)
-        print(initial_masks[-1].shape)
-        print(initial_masks[-1][-10:-1])
-        print(initial_masks[initial_masks < 1].shape)
 
         sess.run(self.mask.assign(initial_masks))
 
     @staticmethod
     def gen_mask(per_logit_len, maxlen):
-
-        # per example logit length
+        # per actual frame
         for l in per_logit_len:
-            # per frame step
+            # per possible frame
             masks = []
-            for f in range(maxlen):
-
-                # FIXME: `+2` is required to get masked logits optimised.
-                #  ...
-                #  In theory, alignment lengths == numb. mask 1's, but example
-                #  00216.wav requires n_feats + 3 to optimise?
-                #  ...
-                #  Settings to reproduce:
-                #  MAX_EXAMPLES=1000, MAX_TARGETS=400, MAX_LEN=120k,
-                #  ETL.AudioFiles(sort="asc")
-
-                if l + 2 > f:
-                    mask = np.ones([29])
-                else:
+            for f in range(maxlen + 1):
+                if l > f:
+                    # if should be optimised
                     mask = np.zeros([29])
+                else:
+                    # shouldn't be optimised
+                    mask = np.zeros([29])
+                    mask[28] = 30.0
                 masks.append(mask)
             yield np.asarray(masks)
 
@@ -155,7 +144,7 @@ class CTCAlignmentOptimiser:
 
     def create_optimiser(self):
 
-        optimizer = tf.train.AdamOptimizer(100)
+        optimizer = tf.train.AdamOptimizer(1)
 
         grad_var = optimizer.compute_gradients(
             self.graph.loss_fn,
@@ -194,7 +183,6 @@ class CTCAlignmentOptimiser:
                 decoder="batch",
                 top_five=False
             )
-            print(decodings, probs, ctc_limit)
 
             if all([d == b.targets.phrases[0] for d in decodings]):
                 s = "Found an alignment for each example:"
