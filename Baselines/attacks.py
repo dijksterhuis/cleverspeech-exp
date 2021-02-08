@@ -25,7 +25,7 @@ import custom_defs
 
 GPU_DEVICE = 0
 MAX_PROCESSES = 4
-SPAWN_DELAY = 60 * 5
+SPAWN_DELAY = 30
 
 TOKENS = " abcdefghijklmnopqrstuvwxyz'-"
 BEAM_WIDTH = 500
@@ -65,14 +65,6 @@ def get_batch_generator(settings):
         settings["targets_path"], settings["max_targets"],
     )
     all_targets = targets_etl.extract().transform().load()
-
-    # hack the targets data for the naive non-merging CTC experiment
-
-    if "n_repeats" in settings.keys():
-        all_targets = l_map(
-            lambda x: "".join([i * settings["n_repeats"] for i in x]),
-            all_targets
-        )
 
     # Generate the batches in turn, rather than all in one go ...
 

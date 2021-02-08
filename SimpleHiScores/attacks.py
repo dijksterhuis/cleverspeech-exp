@@ -20,7 +20,7 @@ import custom_etl
 
 GPU_DEVICE = 0
 MAX_PROCESSES = 3
-SPAWN_DELAY = 60 * 5
+SPAWN_DELAY = 30
 
 TOKENS = " abcdefghijklmnopqrstuvwxyz'-"
 BEAM_WIDTH = 500

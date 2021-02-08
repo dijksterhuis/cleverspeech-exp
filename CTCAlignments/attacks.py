@@ -23,7 +23,7 @@ import custom_etl
 
 GPU_DEVICE = 0
 MAX_PROCESSES = 3
-SPAWN_DELAY = 60 * 5
+SPAWN_DELAY = 30
 
 TOKENS = " abcdefghijklmnopqrstuvwxyz'-"
 BEAM_WIDTH = 500
@@ -46,7 +46,7 @@ BATCH_SIZE = 10
 
 # extreme run settings
 LOSS_UPDATE_THRESHOLD = 10.0
-LOSS_UPDATE_NUMB_STEPS = 20000
+LOSS_UPDATE_NUMB_STEPS = 50000
 
 N_RUNS = 1
 
@@ -256,7 +256,7 @@ def ctc_dense_extreme_alignment_run(master_settings):
 
     for run in range(0, N_RUNS):
 
-        outdir = os.path.join(OUTDIR, "dense/")
+        outdir = os.path.join(OUTDIR, "extreme/dense/")
         outdir = os.path.join(outdir, "run_{}/".format(run))
 
         settings = {
@@ -525,7 +525,7 @@ def ctc_sparse_extreme_alignment_run(master_settings):
 
     for run in range(0, N_RUNS):
 
-        outdir = os.path.join(OUTDIR, "sparse-extreme/")
+        outdir = os.path.join(OUTDIR, "extreme/sparse/")
         outdir = os.path.join(outdir, "run_{}/".format(run))
 
         settings = {
@@ -563,7 +563,7 @@ if __name__ == '__main__':
     experiments = {
         "dense": ctc_dense_alignment_run,
         "sparse": ctc_sparse_alignment_run,
-        "dense-extreme": None,
+        "dense-extreme": ctc_dense_extreme_alignment_run,
         "sparse-extreme": ctc_sparse_extreme_alignment_run,
     }
 
