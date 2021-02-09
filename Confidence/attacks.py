@@ -100,7 +100,7 @@ def squared_diff_loss(master_settings):
             beam_width=settings["beam_width"]
         )
 
-        attack.add_adversarial_loss(
+        attack.add_loss(
             custom_defs.HiScoresAbsLoss,
         )
         attack.create_loss_fn()
@@ -232,12 +232,12 @@ def adaptive_kappa_ctc_sparse_run(master_settings):
         alignment.create_loss_fn()
         alignment.add_optimiser(custom_defs.CTCAlignmentOptimiser)
 
-        attack.add_adversarial_loss(
+        attack.add_loss(
             custom_defs.AdaptiveKappaCWMaxDiff,
             alignment.graph.target_alignments,
             k=settings["kappa"],
         )
-        attack.add_distance_loss(
+        attack.add_loss(
             Losses.CTCLoss,
             loss_weight=1.0,
         )
@@ -321,11 +321,11 @@ def adaptive_kappa_sparse_run(master_settings):
 
         alignment = Constructor(attack.sess, batch)
         alignment.add_graph(custom_defs.CTCSearchGraph, attack)
-        alignment.add_adversarial_loss(custom_defs.AlignmentLoss)
+        alignment.add_loss(custom_defs.AlignmentLoss)
         alignment.create_loss_fn()
         alignment.add_optimiser(custom_defs.CTCAlignmentOptimiser)
 
-        attack.add_adversarial_loss(
+        attack.add_loss(
             custom_defs.AdaptiveKappaCWMaxDiff,
             alignment.graph.target_alignments,
             k=settings["kappa"]
@@ -446,12 +446,12 @@ def adaptive_kappa_ctc_dense_run(master_settings):
             beam_width=settings["beam_width"]
         )
 
-        attack.add_adversarial_loss(
+        attack.add_loss(
             custom_defs.AdaptiveKappaCWMaxDiff,
             attack.graph.placeholders.targets,
             k=settings["kappa"]
         )
-        attack.add_distance_loss(
+        attack.add_loss(
             Losses.CTCLoss,
             loss_weight=1.0,
         )
@@ -531,7 +531,7 @@ def adaptive_kappa_dense_run(master_settings):
             beam_width=settings["beam_width"]
         )
 
-        attack.add_adversarial_loss(
+        attack.add_loss(
             custom_defs.AdaptiveKappaCWMaxDiff,
             attack.graph.placeholders.targets,
             k=settings["kappa"]

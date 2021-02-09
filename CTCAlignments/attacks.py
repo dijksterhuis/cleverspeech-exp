@@ -151,7 +151,7 @@ def ctc_dense_alignment_run(master_settings):
             beam_width=settings["beam_width"]
         )
 
-        attack.add_adversarial_loss(custom_defs.RepeatsCTCLoss)
+        attack.add_loss(custom_defs.RepeatsCTCLoss)
 
         attack.create_loss_fn()
 
@@ -231,7 +231,7 @@ def ctc_dense_extreme_alignment_run(master_settings):
             beam_width=settings["beam_width"]
         )
 
-        attack.add_adversarial_loss(custom_defs.RepeatsCTCLoss)
+        attack.add_loss(custom_defs.RepeatsCTCLoss)
 
         attack.create_loss_fn()
 
@@ -401,11 +401,11 @@ def ctc_sparse_alignment_run(master_settings):
 
         alignment = Constructor(attack.sess, batch)
         alignment.add_graph(custom_defs.CTCSearchGraph, attack)
-        alignment.add_adversarial_loss(custom_defs.AlignmentLoss)
+        alignment.add_loss(custom_defs.AlignmentLoss)
         alignment.create_loss_fn()
         alignment.add_optimiser(custom_defs.CTCAlignmentOptimiser)
 
-        attack.add_adversarial_loss(
+        attack.add_loss(
             custom_defs.RepeatsCTCLoss,
             alignment=alignment.graph.target_alignments,
         )
@@ -492,11 +492,11 @@ def ctc_sparse_extreme_alignment_run(master_settings):
 
         alignment = Constructor(attack.sess, batch)
         alignment.add_graph(custom_defs.CTCSearchGraph, attack)
-        alignment.add_adversarial_loss(custom_defs.AlignmentLoss)
+        alignment.add_loss(custom_defs.AlignmentLoss)
         alignment.create_loss_fn()
         alignment.add_optimiser(custom_defs.CTCAlignmentOptimiser)
 
-        attack.add_adversarial_loss(
+        attack.add_loss(
             custom_defs.RepeatsCTCLoss,
             alignment=alignment.graph.target_alignments,
         )

@@ -117,7 +117,7 @@ def create_attack_graph(sess, batch, synth, settings):
         beam_width=settings["beam_width"]
     )
 
-    attack.add_adversarial_loss(CTCLoss)
+    attack.add_loss(CTCLoss)
     attack.create_loss_fn()
 
     attack.add_optimiser(
@@ -410,7 +410,7 @@ def spectral_run(master_settings):
     Using a hard constraint is better for security evaluations, so we ignore the
     L2 distance regularisation term in the optimisation goal.
 
-    TODO: I could probably remove `Base.add_distance_loss()` method...?
+    TODO: I could probably remove `Base.add_loss()` method...?
 
     :return: None
     """
@@ -459,7 +459,7 @@ def spectral_regularised_run(master_settings):
     Using a hard constraint is better for security evaluations, so we ignore the
     L2 distance regularisation term in the optimisation goal.
 
-    TODO: I could probably remove `Base.add_distance_loss()` method...?
+    TODO: I could probably remove `Base.add_loss()` method...?
 
     :return: None
     """
@@ -483,8 +483,8 @@ def spectral_regularised_run(master_settings):
             beam_width=settings["beam_width"]
         )
 
-        attack.add_adversarial_loss(CTCLoss)
-        attack.add_distance_loss(custom_defs.SpectralLoss)
+        attack.add_loss(CTCLoss)
+        attack.add_loss(custom_defs.SpectralLoss)
         attack.create_loss_fn()
 
         attack.add_optimiser(

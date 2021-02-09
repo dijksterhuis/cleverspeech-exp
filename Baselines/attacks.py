@@ -93,7 +93,7 @@ def baseline_ctc_run(master_settings):
     Using a hard constraint is better for security evaluations, so we ignore the
     L2 distance regularisation term in the optimisation goal.
 
-    TODO: I could probably remove `Base.add_distance_loss()` method...?
+    TODO: I could probably remove `Base.add_loss()` method...?
 
     :return: None
     """
@@ -116,7 +116,7 @@ def baseline_ctc_run(master_settings):
             beam_width=settings["beam_width"]
         )
 
-        attack.add_adversarial_loss(Losses.CTCLoss)
+        attack.add_loss(Losses.CTCLoss)
         attack.create_loss_fn()
 
         attack.add_optimiser(
@@ -197,11 +197,11 @@ def f6_ctc_beam_search_decoder_run(master_settings):
 
         alignment = Constructor(attack.sess, batch)
         alignment.add_graph(custom_defs.CTCSearchGraph, attack)
-        alignment.add_adversarial_loss(custom_defs.AlignmentLoss)
+        alignment.add_loss(custom_defs.AlignmentLoss)
         alignment.create_loss_fn()
         alignment.add_optimiser(custom_defs.CTCAlignmentOptimiser)
 
-        attack.add_adversarial_loss(
+        attack.add_loss(
             Losses.CWMaxDiff,
             alignment.graph.raw_alignments,
             k=settings["kappa"]
@@ -289,11 +289,11 @@ def f6_ctc_greedy_search_decoder_run(master_settings):
 
         alignment = Constructor(attack.sess, batch)
         alignment.add_graph(custom_defs.CTCSearchGraph, attack)
-        alignment.add_adversarial_loss(custom_defs.AlignmentLoss)
+        alignment.add_loss(custom_defs.AlignmentLoss)
         alignment.create_loss_fn()
         alignment.add_optimiser(custom_defs.CTCAlignmentOptimiser)
 
-        attack.add_adversarial_loss(
+        attack.add_loss(
             Losses.CWMaxDiff,
             alignment.graph.raw_alignments,
             k=settings["kappa"]

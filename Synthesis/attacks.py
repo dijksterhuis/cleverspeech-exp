@@ -126,7 +126,7 @@ def inharmonic_run(master_settings):
             beam_width=settings["beam_width"]
         )
 
-        attack.add_adversarial_loss(CTCLoss)
+        attack.add_loss(CTCLoss)
         attack.create_loss_fn()
 
         attack.add_optimiser(
@@ -210,7 +210,7 @@ def freq_harmonic_run(master_settings):
             beam_width=settings["beam_width"]
         )
 
-        attack.add_adversarial_loss(CTCLoss)
+        attack.add_loss(CTCLoss)
         attack.create_loss_fn()
 
         attack.add_optimiser(
@@ -294,7 +294,7 @@ def full_harmonic_run(master_settings):
             beam_width=settings["beam_width"]
         )
 
-        attack.add_adversarial_loss(CTCLoss)
+        attack.add_loss(CTCLoss)
         attack.create_loss_fn()
 
         attack.add_optimiser(
@@ -378,7 +378,7 @@ def detnoise_inharmonic_run(master_settings):
             beam_width=settings["beam_width"]
         )
 
-        attack.add_adversarial_loss(CTCLoss)
+        attack.add_loss(CTCLoss)
         attack.create_loss_fn()
 
         attack.add_optimiser(
@@ -462,7 +462,7 @@ def detnoise_freq_harmonic_run(master_settings):
             beam_width=settings["beam_width"]
         )
 
-        attack.add_adversarial_loss(CTCLoss)
+        attack.add_loss(CTCLoss)
         attack.create_loss_fn()
 
         attack.add_optimiser(
@@ -546,7 +546,7 @@ def detnoise_full_harmonic_run(master_settings):
             beam_width=settings["beam_width"]
         )
 
-        attack.add_adversarial_loss(CTCLoss)
+        attack.add_loss(CTCLoss)
         attack.create_loss_fn()
 
         attack.add_optimiser(
@@ -630,7 +630,7 @@ def spectral_run(master_settings):
             beam_width=settings["beam_width"]
         )
 
-        attack.add_adversarial_loss(CTCLoss)
+        attack.add_loss(CTCLoss)
         attack.create_loss_fn()
 
         attack.add_optimiser(

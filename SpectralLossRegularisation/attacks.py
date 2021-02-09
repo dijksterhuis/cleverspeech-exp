@@ -116,8 +116,8 @@ def spectral_run(master_settings):
             beam_width=settings["beam_width"]
         )
 
-        attack.add_adversarial_loss(CTCLoss)
-        attack.add_distance_loss(Losses.SpectralLoss)
+        attack.add_loss(CTCLoss)
+        attack.add_loss(Losses.SpectralLoss)
         attack.create_loss_fn()
 
         attack.add_optimiser(
@@ -187,8 +187,8 @@ def multi_scale_l1_spectral_run(master_settings):
             beam_width=settings["beam_width"]
         )
 
-        attack.add_adversarial_loss(CTCLoss)
-        attack.add_distance_loss(
+        attack.add_loss(CTCLoss)
+        attack.add_loss(
             Losses.MultiScaleSpectralLoss,
             norm=1
         )
@@ -261,8 +261,8 @@ def multi_scale_l2_spectral_run(master_settings):
             beam_width=settings["beam_width"]
         )
 
-        attack.add_adversarial_loss(CTCLoss)
-        attack.add_distance_loss(
+        attack.add_loss(CTCLoss)
+        attack.add_loss(
             Losses.MultiScaleSpectralLoss,
             norm=2
         )
