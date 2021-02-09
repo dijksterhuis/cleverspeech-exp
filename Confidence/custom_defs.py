@@ -1,6 +1,7 @@
 import tensorflow as tf
 import numpy as np
 
+from cleverspeech.graph.Losses import BaseLoss
 from cleverspeech.graph.Procedures import UpdateOnDecoding, UpdateOnLoss
 from cleverspeech.graph.Placeholders import Placeholders
 from cleverspeech.utils.Utils import np_arr, np_zero, np_one, lcomp, log
@@ -733,8 +734,8 @@ class HiScoresAbsLoss(object):
         self.loss_fn = tf.reduce_sum(self.diff, axis=1) * loss_weight
 
 
-class AdaptiveKappaCWMaxDiff(object):
-    def __init__(self, attack_graph, target_argmax, char_weight=1000.0, k=0.5, loss_weight=1.0, ref_fn=tf.reduce_min):
+class AdaptiveKappaCWMaxDiff(BaseLoss):
+    def __init__(self, attack_graph, target_argmax, k=0.5, ref_fn=tf.reduce_min):
         """
         This is f_{6} from https://arxiv.org/abs/1608.04644 using the gradient
         clipping update method.
@@ -761,6 +762,13 @@ class AdaptiveKappaCWMaxDiff(object):
               of variable` optimisation
         """
 
+        super().__init__(
+            attack_graph.sess,
+            attack_graph.batch.size,
+            weight_initial=1.0,
+            weight_increment=1.0
+        )
+
         # We have to set k > 0 for this loss function because k = 0 will only
         # cause the probability of the target character to exactly match the
         # next most likely character...
@@ -774,14 +782,10 @@ class AdaptiveKappaCWMaxDiff(object):
         # target_logits should be [b, feats, chars]
         self.target_argmax = target_argmax  # [b x feats]
 
-        print(self.target_argmax)
-
         # Current logits is [b, feats, chars]
         # current_argmax is for debugging purposes only
         self.current = tf.transpose(g.victim.raw_logits, [1, 0, 2])
-        print(self.current)
         self.current_argmax = tf.argmax(self.current, axis=2)
-        print(self.current_argmax)
 
         # Create one hot matrices to multiply by current logits.
         # These essentially act as a filter to keep only the target logit or
@@ -824,7 +828,7 @@ class AdaptiveKappaCWMaxDiff(object):
         self.max_diff = tf.maximum(self.max_diff_abs, -self.kappas) + self.kappas
         self.loss_fn = tf.reduce_sum(self.max_diff, axis=1)
 
-        self.loss_fn = self.loss_fn * loss_weight
+        self.loss_fn = self.loss_fn * self.weights
 
 
 class AlignmentLoss(object):
