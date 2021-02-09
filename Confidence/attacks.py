@@ -37,7 +37,7 @@ MAX_EXAMPLES = 1000
 
 RESCALE = 0.95
 CONSTRAINT_UPDATE = "geom"
-LEARNING_RATE = 10
+LEARNING_RATE = 100
 NUMB_STEPS = 20000
 DECODING_STEP = 10
 BATCH_SIZE = 10
@@ -50,6 +50,8 @@ AUDIOS_INDIR = "./samples/all/"
 TARGETS_PATH = "./samples/cv-valid-test.csv"
 MAX_TARGETS = 1000
 MAX_AUDIO_LENGTH = 120000
+
+KAPPA = 0.02
 
 
 def get_sbgs_batch_factory(settings):
@@ -239,7 +241,6 @@ def adaptive_kappa_ctc_sparse_run(master_settings):
         )
         attack.add_loss(
             Losses.CTCLoss,
-            loss_weight=1.0,
         )
         attack.create_loss_fn()
         attack.add_optimiser(
@@ -250,7 +251,8 @@ def adaptive_kappa_ctc_sparse_run(master_settings):
             custom_defs.CTCAlignmentsUpdateOnDecode,
             alignment_graph=alignment,
             steps=settings["nsteps"],
-            decode_step=settings["decode_step"]
+            decode_step=settings["decode_step"],
+            loss_update_idx=0,
         )
         attack.add_outputs(
             Outputs.Base,
@@ -259,10 +261,8 @@ def adaptive_kappa_ctc_sparse_run(master_settings):
 
         return attack
 
-    kappa = 0.1
-
-    outdir = os.path.join(OUTDIR, "adaptivekappa-ctcmaxdiff-ctc-sparse/")
-    outdir = os.path.join(outdir, "kappa_{}/".format(kappa))
+    outdir = os.path.join(OUTDIR, "adaptivekappa-ctcmaxdiff-sparse/")
+    outdir = os.path.join(outdir, "kappa_{}/".format(KAPPA))
 
     settings = {
         "audio_indir": AUDIOS_INDIR,
@@ -279,7 +279,7 @@ def adaptive_kappa_ctc_sparse_run(master_settings):
         "gpu_device": GPU_DEVICE,
         "max_spawns": MAX_PROCESSES,
         "spawn_delay": SPAWN_DELAY,
-        "kappa": float(kappa),
+        "kappa": float(KAPPA),
         "decoder_type": "batch",
         "max_examples": MAX_EXAMPLES,
         "max_targets": MAX_TARGETS,
@@ -291,7 +291,7 @@ def adaptive_kappa_ctc_sparse_run(master_settings):
 
     execute(settings, create_attack_graph, batch_gen)
 
-    log("Finished run {}.".format(kappa))
+    log("Finished run {}.".format(KAPPA))
 
 
 def adaptive_kappa_sparse_run(master_settings):
@@ -348,10 +348,8 @@ def adaptive_kappa_sparse_run(master_settings):
 
         return attack
 
-    kappa = 0.1
-
-    outdir = os.path.join(OUTDIR, "adaptivekappa-ctcmaxdiff-sparse/")
-    outdir = os.path.join(outdir, "kappa_{}/".format(kappa))
+    outdir = os.path.join(OUTDIR, "adaptivekappa-maxdiff-sparse/")
+    outdir = os.path.join(outdir, "kappa_{}/".format(KAPPA))
 
     settings = {
         "audio_indir": AUDIOS_INDIR,
@@ -368,7 +366,7 @@ def adaptive_kappa_sparse_run(master_settings):
         "gpu_device": GPU_DEVICE,
         "max_spawns": MAX_PROCESSES,
         "spawn_delay": SPAWN_DELAY,
-        "kappa": float(kappa),
+        "kappa": KAPPA,
         "decoder_type": "batch",
         "max_examples": MAX_EXAMPLES,
         "max_targets": MAX_TARGETS,
@@ -380,7 +378,7 @@ def adaptive_kappa_sparse_run(master_settings):
 
     execute(settings, create_attack_graph, batch_gen)
 
-    log("Finished run {}.".format(kappa))
+    log("Finished run {}.".format(KAPPA))
 
 
 def get_dense_batch_factory(settings):
@@ -453,7 +451,6 @@ def adaptive_kappa_ctc_dense_run(master_settings):
         )
         attack.add_loss(
             Losses.CTCLoss,
-            loss_weight=1.0,
         )
         attack.create_loss_fn()
         attack.add_optimiser(
@@ -463,7 +460,8 @@ def adaptive_kappa_ctc_dense_run(master_settings):
         attack.add_procedure(
             Procedures.UpdateOnDecoding,
             steps=settings["nsteps"],
-            decode_step=settings["decode_step"]
+            decode_step=settings["decode_step"],
+            loss_update_idx=0,
         )
         attack.add_outputs(
             Outputs.Base,
@@ -472,10 +470,8 @@ def adaptive_kappa_ctc_dense_run(master_settings):
 
         return attack
 
-    kappa = 0.1
-
-    outdir = os.path.join(OUTDIR, "adaptivekappa-ctcmaxdiff-ctc-dense/")
-    outdir = os.path.join(outdir, "kappa_{}/".format(kappa))
+    outdir = os.path.join(OUTDIR, "adaptivekappa-ctcmaxdiff-dense/")
+    outdir = os.path.join(outdir, "kappa_{}/".format(KAPPA))
 
     settings = {
         "audio_indir": AUDIOS_INDIR,
@@ -492,7 +488,7 @@ def adaptive_kappa_ctc_dense_run(master_settings):
         "gpu_device": GPU_DEVICE,
         "max_spawns": MAX_PROCESSES,
         "spawn_delay": SPAWN_DELAY,
-        "kappa": float(kappa),
+        "kappa": KAPPA,
         "decoder_type": "batch",
         "max_examples": MAX_EXAMPLES,
         "max_targets": MAX_TARGETS,
@@ -504,7 +500,7 @@ def adaptive_kappa_ctc_dense_run(master_settings):
 
     execute(settings, create_attack_graph, batch_gen)
 
-    log("Finished run {}.".format(kappa))
+    log("Finished run {}.".format(KAPPA))
 
 
 def adaptive_kappa_dense_run(master_settings):
@@ -553,10 +549,8 @@ def adaptive_kappa_dense_run(master_settings):
 
         return attack
 
-    kappa = 0.25
-
     outdir = os.path.join(OUTDIR, "adaptivekappa-ctcmaxdiff-dense/")
-    outdir = os.path.join(outdir, "kappa_{}/".format(kappa))
+    outdir = os.path.join(outdir, "kappa_{}/".format(KAPPA))
 
     settings = {
         "audio_indir": AUDIOS_INDIR,
@@ -573,7 +567,7 @@ def adaptive_kappa_dense_run(master_settings):
         "gpu_device": GPU_DEVICE,
         "max_spawns": MAX_PROCESSES,
         "spawn_delay": SPAWN_DELAY,
-        "kappa": float(kappa),
+        "kappa": float(KAPPA),
         "decoder_type": "batch",
         "max_examples": MAX_EXAMPLES,
         "max_targets": MAX_TARGETS,
@@ -585,7 +579,7 @@ def adaptive_kappa_dense_run(master_settings):
 
     execute(settings, create_attack_graph, batch_gen)
 
-    log("Finished run {}.".format(kappa))
+    log("Finished run {}.".format(KAPPA))
 
 
 if __name__ == '__main__':
