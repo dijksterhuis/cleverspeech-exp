@@ -56,6 +56,16 @@ KAPPA_HYPERS = [[k/(10 ** l) for k in [np.exp2(x) for x in range(0, 4)]] for l i
 KAPPA = 0.02
 
 
+# Max Diff Adaptive Kappa Confidence Attacks
+# ==============================================================================
+# Main ideas:
+# Set kappa kappa as a constant per frame instead of a single constant over all
+# frames.
+#
+# Additional work to use CTC Loss (and rCTC variant) as a regulariser to ensure
+# target alignments are valid CTC alignments.
+
+
 def get_dense_batch_factory(settings):
 
     # get N samples of all the data. alsp make sure to limit example length,

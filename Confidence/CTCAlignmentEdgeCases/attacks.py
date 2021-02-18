@@ -53,6 +53,20 @@ LOSS_UPDATE_NUMB_STEPS = 50000
 N_RUNS = 1
 
 
+# Edge Case CTC Alignments
+# ==============================================================================
+# Main idea: what happens during attacks when we focus on two types of
+# alignments at either end of the probability spectrum (for CTC at least)?
+#
+# Sparse Alignment  = o----------p---------e-------------n------------
+# Dense Alignment   = oooooooooooppppppppppeeeeeeeeeeeeeennnnnnnnnnnnn
+#
+# Does one type produce more confident adversarial examples than the other?
+# Is one more robust to destructive transforms than the other?
+# Which one achieves the smallest distance?
+# What happens to confidence as distance is minimised?
+
+
 def get_dense_batch_factory(settings):
 
     # get N samples of all the data. alsp make sure to limit example length,

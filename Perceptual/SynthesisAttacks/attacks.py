@@ -56,6 +56,13 @@ SPECTRAL_FFT_LENGTH = 256
 SPECTRAL_CONSTANT = 64
 
 
+# Synthesis Attacks
+# ==============================================================================
+# Main Question: What happens if we constrain how an adversary can generate
+# perturbations instead of only constraining by *how much* perturbation it can
+# generate?
+
+
 def get_batch_generator(settings):
 
     # get N samples of all the data. alsp make sure to limit example length,
