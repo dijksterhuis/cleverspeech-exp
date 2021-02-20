@@ -137,7 +137,88 @@ def baseline_ctc_run(master_settings):
 
         return attack
 
-    outdir = os.path.join(OUTDIR, "baseline/")
+    outdir = os.path.join(OUTDIR, "ctc/")
+
+    settings = {
+        "audio_indir": AUDIOS_INDIR,
+        "targets_path": TARGETS_PATH,
+        "outdir": outdir,
+        "batch_size": BATCH_SIZE,
+        "tokens": TOKENS,
+        "nsteps": NUMB_STEPS,
+        "decode_step": DECODING_STEP,
+        "beam_width": BEAM_WIDTH,
+        "constraint_update": CONSTRAINT_UPDATE,
+        "rescale": RESCALE,
+        "learning_rate": LEARNING_RATE,
+        "gpu_device": GPU_DEVICE,
+        "max_spawns": MAX_PROCESSES,
+        "spawn_delay": SPAWN_DELAY,
+        "max_examples": MAX_EXAMPLES,
+        "max_targets": MAX_TARGETS,
+        "max_audio_length": MAX_AUDIO_LENGTH,
+    }
+
+    settings.update(master_settings)
+    batch_gen = get_batch_generator(settings)
+
+    execute(settings, create_attack_graph, batch_gen)
+
+    log("Finished run.")  # {}.".format(run))
+
+
+def baseline_ctc_v2_run(master_settings):
+    """
+    CTC Loss attack modified from the original Carlini & Wagner work.
+
+    Using a hard constraint is better for security evaluations, so we ignore the
+    L2 distance regularisation term in the optimisation goal.
+
+    TODO: I could probably remove `Base.add_loss()` method...?
+
+    :return: None
+    """
+    def create_attack_graph(sess, batch, settings):
+        attack = Constructor(sess, batch)
+
+        attack.add_hard_constraint(
+            Constraints.L2,
+            r_constant=settings["rescale"],
+            update_method=settings["constraint_update"],
+        )
+
+        attack.add_graph(
+            Graphs.SimpleAttack
+        )
+
+        attack.add_victim(
+            Victim.Model,
+            tokens=settings["tokens"],
+            beam_width=settings["beam_width"]
+        )
+
+        attack.add_loss(Losses.CTCLossV2)
+        attack.create_loss_fn()
+
+        attack.add_optimiser(
+            Optimisers.AdamOptimiser,
+            learning_rate=settings["learning_rate"]
+        )
+
+        attack.add_procedure(
+            Procedures.UpdateOnDecoding,
+            steps=settings["nsteps"],
+            decode_step=settings["decode_step"]
+        )
+
+        attack.add_outputs(
+            Outputs.Base,
+            settings["outdir"],
+        )
+
+        return attack
+
+    outdir = os.path.join(OUTDIR, "ctc2/")
 
     settings = {
         "audio_indir": AUDIOS_INDIR,
@@ -357,7 +438,8 @@ if __name__ == '__main__':
     log("", wrap=True)
 
     experiments = {
-        "baseline": baseline_ctc_run,
+        "ctc": baseline_ctc_run,
+        "ctc_v2": baseline_ctc_v2_run,
         "ctcmaxdiff_beam": f6_ctc_beam_search_decoder_run,
         "ctcmaxdiff_greedy": f6_ctc_greedy_search_decoder_run,
     }
