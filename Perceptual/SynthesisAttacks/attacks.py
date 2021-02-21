@@ -4,10 +4,10 @@ import os
 # attack def imports
 from cleverspeech.graph.GraphConstructor import Constructor
 from cleverspeech.graph import Constraints
-from cleverspeech.graph import Graphs
+# from cleverspeech.graph import Graphs
 from cleverspeech.graph import Losses
 from cleverspeech.graph import Optimisers
-from cleverspeech.graph import Procedures
+# from cleverspeech.graph import Procedures
 from cleverspeech.graph import Outputs
 from cleverspeech.data import Feeds
 
@@ -106,7 +106,7 @@ def create_attack_graph(sess, batch, settings):
     )
 
     attack.add_procedure(
-        Procedures.UpdateOnDecoding,
+        custom_defs.UpdateOnDecodingSynth,
         steps=settings["nsteps"],
         decode_step=settings["decode_step"]
     )

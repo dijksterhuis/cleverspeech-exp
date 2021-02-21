@@ -2,6 +2,7 @@ import tensorflow as tf
 import numpy as np
 
 from cleverspeech.graph.Placeholders import Placeholders
+from cleverspeech.graph.Procedures import UpdateOnDecoding, UpdateOnLoss
 from cleverspeech.utils.Utils import np_arr, np_zero, np_one, lcomp
 
 
@@ -143,3 +144,96 @@ class SpectralLoss(object):
         self.mag_loss_fn = tf.reduce_mean(self.magnitude_diff ** norm, axis=[1, 2])
 
         self.loss_fn = loss_weight * self.mag_loss_fn
+
+
+class UpdateOnDecodingSynth(UpdateOnDecoding):
+
+    def decode_step_logic(self):
+
+        # we can't do the rounding for synthesis attack unfortunately.
+        # (at least I don't think so? maybe it's just slightly more complex?)
+
+        # deltas = self.attack.sess.run(self.attack.graph.raw_deltas)
+        # self.attack.sess.run(
+        #     self.attack.graph.raw_deltas.assign(tf.round(deltas))
+        # )
+
+        # can use either tf or deepspeech decodings ("ds" or "batch")
+        # "batch" is prefered as it's what the actual model would use.
+        # It does mean switching to CPU every time we want to do
+        # inference but it's not a major hit to performance
+
+        # keep the top 5 scoring decodings and their probabilities as that might
+        # be useful come analysis time...
+
+        top_5_decodings, top_5_probs = self.attack.victim.inference(
+            self.attack.batch,
+            feed=self.attack.feeds.attack,
+            decoder="batch",
+            top_five=True,
+        )
+
+        decodings, probs = self.attack.victim.inference(
+            self.attack.batch,
+            feed=self.attack.feeds.attack,
+            decoder="batch",
+            top_five=False,
+        )
+
+        targets = self.attack.batch.targets["phrases"]
+
+        return {
+            "step": self.current_step,
+            "data": [
+                {
+                    "idx": idx,
+                    "success": success,
+                    "decodings": decodings[idx],
+                    "target_phrase": targets[idx],
+                    "probs": probs[idx],
+                    "top_five_decodings": top_5_decodings[idx],
+                    "top_five_probs": top_5_probs[idx],
+                }
+                for idx, success in self.update_on_success(decodings, targets)
+            ]
+        }
+
+
+class UpdateOnLossSynth(UpdateOnLoss):
+
+    def decode_step_logic(self):
+
+        loss = self.tf_run(self.attack.loss_fn)
+
+        top_5_decodings, top_5_probs = self.attack.victim.inference(
+            self.attack.batch,
+            feed=self.attack.feeds.attack,
+            decoder="batch",
+            top_five=True,
+        )
+
+        decodings, probs = self.attack.victim.inference(
+            self.attack.batch,
+            feed=self.attack.feeds.attack,
+            decoder="batch",
+            top_five=False,
+        )
+
+        target_loss = [self.loss_bound for _ in range(self.attack.batch.size)]
+        targets = self.attack.batch.targets["phrases"]
+
+        return {
+            "step": self.current_step,
+            "data": [
+                {
+                    "idx": idx,
+                    "success": success,
+                    "decodings": decodings[idx],
+                    "target_phrase": targets[idx],
+                    "top_five_decodings": top_5_decodings[idx],
+                    "top_five_probs": top_5_probs[idx],
+                    "probs": probs[idx]
+                }
+                for idx, success in self.update_on_success(loss, target_loss)
+            ]
+        }
