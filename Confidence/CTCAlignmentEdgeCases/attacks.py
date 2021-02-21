@@ -34,7 +34,7 @@ TARGETS_PATH = "./samples/cv-valid-test.csv"
 OUTDIR = "./adv/ctc-alignments/"
 
 # targets search parameters
-MAX_EXAMPLES = 1000
+MAX_EXAMPLES = 100
 MAX_TARGETS = 1000
 MAX_AUDIO_LENGTH = 120000
 

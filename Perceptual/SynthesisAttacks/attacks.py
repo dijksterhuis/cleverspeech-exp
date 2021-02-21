@@ -33,7 +33,7 @@ BEAM_WIDTH = 500
 AUDIOS_INDIR = "./samples/all/"
 TARGETS_PATH = "./samples/cv-valid-test.csv"
 OUTDIR = "./adv/synthesis/"
-MAX_EXAMPLES = 1000
+MAX_EXAMPLES = 100
 MAX_TARGETS = 500
 MAX_AUDIO_LENGTH = 120000
 
