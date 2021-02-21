@@ -6,8 +6,12 @@ from cleverspeech.graph.GraphConstructor import Constructor
 from cleverspeech.graph import Constraints
 from cleverspeech.graph.Losses import CTCLoss
 from cleverspeech.graph import Optimisers
-from cleverspeech.graph import Procedures
+# from cleverspeech.graph import Procedures
 from cleverspeech.graph import Outputs
+from cleverspeech.data import Feeds
+
+from cleverspeech.data.etl.batch_generators import get_standard_batch_generator
+from cleverspeech.utils.Utils import log, l_map, lcomp, args
 
 from SecEval import VictimAPI as DeepSpeech
 
@@ -15,10 +19,6 @@ from experiments.Perceptual.SynthesisAttacks.Synthesisers import Spectral, \
     DeterministicPlusNoise, Additive
 
 # boilerplate imports
-from cleverspeech.data import ETL
-from cleverspeech.data import Feeds
-from cleverspeech.data import Generators
-from cleverspeech.utils.Utils import log, l_map, args
 
 from boilerplate import execute
 
@@ -48,56 +48,24 @@ N_OSC = 64
 
 N_RUNS = 5
 
-
-def get_batch_generator(settings):
-
-    # get N samples of all the data. alsp make sure to limit example length,
-    # otherwise we'd have to do adaptive batch sizes.
-
-    audio_etl = ETL.AllAudioFilePaths(
-        settings["audio_indir"],
-        MAX_EXAMPLES,
-        filter_term=".wav",
-        max_samples=MAX_AUDIO_LENGTH
-    )
-
-    all_audio_file_paths = audio_etl.extract().transform().load()
-
-    targets_etl = ETL.AllTargetPhrases(
-        settings["targets_path"], MAX_TARGETS,
-    )
-    all_targets = targets_etl.extract().transform().load()
-
-    # hack the targets data for the naive non-merging CTC experiment
-
-    if "n_repeats" in settings.keys():
-        all_targets = l_map(
-            lambda x: "".join([i * settings["n_repeats"] for i in x]),
-            all_targets
-        )
-
-    # Generate the batches in turn, rather than all in one go ...
-
-    batch_factory = Generators.BatchGenerator(
-        all_audio_file_paths, all_targets, settings["batch_size"]
-    )
-
-    # ... To save resources by only running the final ETLs on a batch of data
-
-    batch_gen = batch_factory.generate(
-        ETL.AudioExamples, ETL.TargetPhrases, Feeds.Attack
-    )
-
-    log(
-        "New Run",
-        "Number of test examples: {}".format(batch_factory.numb_examples),
-        ''.join(["{k}: {v}\n".format(k=k, v=v) for k, v in settings.items()]),
-    )
-    return batch_gen
+SYNTHS = {
+    "inharmonic": Additive.InHarmonic,
+    "freqharmonic": Additive.FreqHarmonic,
+    "fullharmonic": Additive.FullyHarmonic,
+    "dn_inharmonic": DeterministicPlusNoise.InharmonicPlusPlain,
+    "dn_freqharmonic": DeterministicPlusNoise.FreqHarmonicPlusPlain,
+    "dn_fullharmonic": DeterministicPlusNoise.FullyHarmonicPlusPlain,
+    "stft": Spectral.STFT,
+}
 
 
-def create_attack_graph(sess, batch, synth, settings):
-    attack = Constructor(sess, batch)
+def create_attack_graph(sess, batch, settings):
+
+    synth_cls = SYNTHS[settings["synth_cls"]]
+    synth = synth_cls(batch, **settings["synth"])
+
+    feeds = Feeds.Attack(batch)
+    attack = Constructor(sess, batch, feeds)
 
     attack.add_hard_constraint(
         Constraints.L2,
@@ -125,7 +93,7 @@ def create_attack_graph(sess, batch, synth, settings):
     )
 
     attack.add_procedure(
-        Procedures.UpdateOnDecoding,
+        custom_defs.UpdateOnDecodingSynth,
         steps=settings["nsteps"],
         decode_step=settings["decode_step"]
     )
@@ -135,19 +103,21 @@ def create_attack_graph(sess, batch, synth, settings):
         settings["outdir"],
     )
 
+    attack.create_feeds()
+
     return attack
 
 
 def inharmonic_run(master_settings):
-
-    synth_fn = Additive.InHarmonic
+    synth_cls = "inharmonic"
 
     for run in range(N_OSC, 1, -4):
 
-        outdir = os.path.join(OUTDIR, "inharmonic/")
+        outdir = os.path.join(OUTDIR, synth_cls + "/")
         outdir = os.path.join(outdir, "osc_{}/".format(run))
 
         settings = {
+            "synth_cls": synth_cls,
             "audio_indir": AUDIOS_INDIR,
             "targets_path": TARGETS_PATH,
             "outdir": outdir,
@@ -175,23 +145,24 @@ def inharmonic_run(master_settings):
         }
 
         settings.update(master_settings)
-        batch_gen = get_batch_generator(settings)
+        batch_gen = get_standard_batch_generator(settings)
 
-        execute(settings, create_attack_graph, synth_fn, batch_gen)
+        execute(settings, create_attack_graph, batch_gen)
 
         log("Finished run {}.".format(run))
 
 
 def freq_harmonic_run(master_settings):
 
-    synth_fn = Additive.FreqHarmonic
+    synth_cls = "freqharmonic"
 
     for run in range(N_OSC, 1, -4):
 
-        outdir = os.path.join(OUTDIR, "freq_harmonic/")
+        outdir = os.path.join(OUTDIR, synth_cls + "/")
         outdir = os.path.join(outdir, "osc_{}/".format(run))
 
         settings = {
+            "synth_cls": synth_cls,
             "audio_indir": AUDIOS_INDIR,
             "targets_path": TARGETS_PATH,
             "outdir": outdir,
@@ -219,23 +190,24 @@ def freq_harmonic_run(master_settings):
         }
 
         settings.update(master_settings)
-        batch_gen = get_batch_generator(settings)
+        batch_gen = get_standard_batch_generator(settings)
 
-        execute(settings, create_attack_graph, synth_fn, batch_gen)
+        execute(settings, create_attack_graph, batch_gen)
 
         log("Finished run {}.".format(run))
 
 
 def full_harmonic_run(master_settings):
 
-    synth_fn = Additive.FullyHarmonic
+    synth_cls = "fullharmonic"
 
     for run in range(N_OSC, 1, -4):
 
-        outdir = os.path.join(OUTDIR, "full_harmonic/")
+        outdir = os.path.join(OUTDIR, synth_cls + "/")
         outdir = os.path.join(outdir, "osc_{}/".format(run))
 
         settings = {
+            "synth_cls": synth_cls,
             "audio_indir": AUDIOS_INDIR,
             "targets_path": TARGETS_PATH,
             "outdir": outdir,
@@ -263,23 +235,24 @@ def full_harmonic_run(master_settings):
         }
 
         settings.update(master_settings)
-        batch_gen = get_batch_generator(settings)
+        batch_gen = get_standard_batch_generator(settings)
 
-        execute(settings, create_attack_graph, synth_fn, batch_gen)
+        execute(settings, create_attack_graph, batch_gen)
 
         log("Finished run {}.".format(run))
 
 
 def detnoise_inharmonic_run(master_settings):
 
-    synth_fn = DeterministicPlusNoise.InharmonicPlusPlain
+    synth_cls = "dn_inharmonic"
 
     for run in range(N_OSC, 1, -4):
 
-        outdir = os.path.join(OUTDIR, "detnoise_inharmonic/")
+        outdir = os.path.join(OUTDIR, synth_cls + "/")
         outdir = os.path.join(outdir, "osc_{}/".format(run))
 
         settings = {
+            "synth_cls": synth_cls,
             "audio_indir": AUDIOS_INDIR,
             "targets_path": TARGETS_PATH,
             "outdir": outdir,
@@ -307,7 +280,7 @@ def detnoise_inharmonic_run(master_settings):
         }
 
         settings.update(master_settings)
-        batch_gen = get_batch_generator(settings)
+        batch_gen = get_standard_batch_generator(settings)
 
         execute(settings, create_attack_graph, synth_fn, batch_gen)
 
@@ -316,14 +289,15 @@ def detnoise_inharmonic_run(master_settings):
 
 def detnoise_freq_harmonic_run(master_settings):
 
-    synth_fn = DeterministicPlusNoise.FreqHarmonicPlusPlain
+    synth_cls = "dn_freqharmonic"
 
     for run in range(N_OSC, 1, -4):
 
-        outdir = os.path.join(OUTDIR, "detnoise_freq_harmonic/")
+        outdir = os.path.join(OUTDIR, synth_cls + "/")
         outdir = os.path.join(outdir, "osc_{}/".format(run))
 
         settings = {
+            "synth_cls": synth_cls,
             "audio_indir": AUDIOS_INDIR,
             "targets_path": TARGETS_PATH,
             "outdir": outdir,
@@ -351,23 +325,24 @@ def detnoise_freq_harmonic_run(master_settings):
         }
 
         settings.update(master_settings)
-        batch_gen = get_batch_generator(settings)
+        batch_gen = get_standard_batch_generator(settings)
 
-        execute(settings, create_attack_graph, synth_fn, batch_gen)
+        execute(settings, create_attack_graph, batch_gen)
 
         log("Finished run {}.".format(run))
 
 
 def detnoise_full_harmonic_run(master_settings):
 
-    synth_fn = DeterministicPlusNoise.FullyHarmonicPlusPlain
+    synth_cls = "dn_fullharmonic"
 
     for run in range(N_OSC, 1, -4):
 
-        outdir = os.path.join(OUTDIR, "detnoise_full_harmonic/")
+        outdir = os.path.join(OUTDIR, synth_cls + "/")
         outdir = os.path.join(outdir, "osc_{}/".format(run))
 
         settings = {
+            "synth_cls": synth_cls,
             "audio_indir": AUDIOS_INDIR,
             "targets_path": TARGETS_PATH,
             "outdir": outdir,
@@ -395,9 +370,9 @@ def detnoise_full_harmonic_run(master_settings):
         }
 
         settings.update(master_settings)
-        batch_gen = get_batch_generator(settings)
+        batch_gen = get_standard_batch_generator(settings)
 
-        execute(settings, create_attack_graph, synth_fn, batch_gen)
+        execute(settings, create_attack_graph, batch_gen)
 
         log("Finished run {}.".format(run))
 
@@ -413,12 +388,12 @@ def spectral_run(master_settings):
 
     :return: None
     """
-    
+
+    synth_cls = "stft"
     outdir = os.path.join(OUTDIR, "spectral/")
 
-    synth_fn = Spectral.STFT
-
     settings = {
+        "synth_cls": synth_cls,
         "audio_indir": AUDIOS_INDIR,
         "targets_path": TARGETS_PATH,
         "outdir": outdir,
@@ -444,9 +419,9 @@ def spectral_run(master_settings):
     }
 
     settings.update(master_settings)
-    batch_gen = get_batch_generator(settings)
+    batch_gen = get_standard_batch_generator(settings)
 
-    execute(settings, create_attack_graph, synth_fn, batch_gen)
+    execute(settings, create_attack_graph, batch_gen)
 
     log("Finished run.")  # {}.".format(run))
 
@@ -462,8 +437,13 @@ def spectral_regularised_run(master_settings):
 
     :return: None
     """
-    def create_attack_graph(sess, batch, synth, settings):
-        attack = Constructor(sess, batch)
+    def create_attack_graph(sess, batch, settings):
+
+        synth_cls = SYNTHS[settings["synth_cls"]]
+        synth = synth_cls(batch, **settings["synth"])
+
+        feeds = Feeds.Attack(batch)
+        attack = Constructor(sess, batch, feeds)
 
         attack.add_hard_constraint(
             Constraints.L2,
@@ -492,7 +472,7 @@ def spectral_regularised_run(master_settings):
         )
 
         attack.add_procedure(
-            Procedures.UpdateOnDecoding,
+            custom_defs.UpdateOnDecodingSynth,
             steps=settings["nsteps"],
             decode_step=settings["decode_step"]
         )
@@ -502,13 +482,15 @@ def spectral_regularised_run(master_settings):
             settings["outdir"],
         )
 
+        attack.create_feeds()
+
         return attack
 
+    synth_cls = "stft"
     outdir = os.path.join(OUTDIR, "spectral/")
 
-    synth_fn = Spectral.STFT
-
     settings = {
+        "synth_cls": synth_cls,
         "audio_indir": AUDIOS_INDIR,
         "targets_path": TARGETS_PATH,
         "outdir": outdir,
@@ -534,9 +516,9 @@ def spectral_regularised_run(master_settings):
     }
 
     settings.update(master_settings)
-    batch_gen = get_batch_generator(settings)
+    batch_gen = get_standard_batch_generator(settings)
 
-    execute(settings, create_attack_graph, synth_fn, batch_gen)
+    execute(settings, create_attack_graph, batch_gen)
 
     log("Finished run.")  # {}.".format(run))
 
