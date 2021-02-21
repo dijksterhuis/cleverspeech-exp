@@ -1,5 +1,5 @@
 from experiments.Perceptual.SynthesisAttacks.Synthesisers.Base import Synth
-from experiments.Perceptual.SynthesisAttacks import Plain
+from experiments.Perceptual.SynthesisAttacks.Synthesisers import Plain
 from experiments.Perceptual.SynthesisAttacks.Synthesisers import Additive
 
 
@@ -17,7 +17,7 @@ class FreqHarmonicPlusPlain(Synth):
             initial_hz=initial_hz,
             normalise=normalise,
         )
-        self.noise = Plain(batch)
+        self.noise = Plain.Plain(batch)
         self.noise_weight = float(noise_weight)
 
         super().__init__()
@@ -45,7 +45,7 @@ class FullyHarmonicPlusPlain(Synth):
             initial_hz=initial_hz,
             normalise=normalise,
         )
-        self.noise = Plain(batch)
+        self.noise = Plain.Plain(batch)
         self.noise_weight = float(noise_weight)
 
         super().__init__()
@@ -72,7 +72,7 @@ class InharmonicPlusPlain(Synth):
             initial_hz=initial_hz,
             normalise=normalise,
         )
-        self.noise = Plain(batch)
+        self.noise = Plain.Plain(batch)
         self.noise_weight = float(noise_weight)
 
         super().__init__()

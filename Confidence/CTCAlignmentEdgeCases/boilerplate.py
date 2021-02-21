@@ -2,8 +2,8 @@ import os
 
 from tensorflow import errors as tf_errors
 
-from cleverspeech.data.Results import SingleJsonDB, FileWriter
-from cleverspeech.eval import BatchProcessing as BasicProcessing
+from cleverspeech.data.Results import SingleJsonDB, SingleFileWriter
+from cleverspeech.eval import PerceptualStatsBatch as BasicProcessing
 from cleverspeech.utils.RuntimeUtils import TFRuntime, AttackSpawner
 from cleverspeech.utils.Utils import log, run_decoding_check
 
@@ -23,7 +23,7 @@ def execute(settings, attack_fn, batch_gen):
 
     # Manage GPU memory and CPU processes usage.
 
-    file_writer = FileWriter(settings["outdir"])
+    file_writer = SingleFileWriter(settings["outdir"])
 
     attack_spawner = AttackSpawner(
         gpu_device=settings["gpu_device"],
@@ -60,10 +60,6 @@ def boilerplate(results_queue, healthy_conn, settings, attack_fn, batch):
 
             attack = attack_fn(sess, batch, settings)
 
-            # create placeholder feeds
-
-            batch.feeds.create_feeds(attack.graph)
-
             # log some useful things for debugging before the attack runs
 
             run_decoding_check(attack, batch)
@@ -92,7 +88,7 @@ def boilerplate(results_queue, healthy_conn, settings, attack_fn, batch):
         # Fail gracefully for OOM GPU issues, at the very least.
 
         s = "Out of GPU Memory! Attack failed to run for these examples:\n"
-        s += '\n'.join(batch.audios.basenames)
+        s += '\n'.join(batch.audios["basenames"])
         s += "\n\nError Traceback:\n{e}".format(e=e)
 
         log(s, wrap=True)
@@ -105,7 +101,7 @@ def boilerplate(results_queue, healthy_conn, settings, attack_fn, batch):
         # point of breakage right now.
 
         s = "Something broke! Attack failed to run for these examples:\n"
-        s += '\n'.join(batch.audios.basenames)
+        s += '\n'.join(batch.audios["basenames"])
         s += "\n\nError Traceback:\n{e}".format(e=e)
 
         log(s, wrap=True)

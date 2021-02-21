@@ -21,8 +21,8 @@ class SynthesisAttack:
 
         """
         batch_size = batch.size
-        max_len = batch.audios.max_length
-        act_lengths = batch.audios.actual_lengths
+        max_len = batch.audios["max_samples"]
+        act_lengths = batch.audios["n_samples"]
 
         self.placeholders = Placeholders(batch_size, max_len)
 
@@ -99,13 +99,13 @@ class AdditiveAmplitudeLoss(object):
 
         g, b = attack_graph, attack_graph.batch
 
-        assert b.audios.feature_lengths.all() > 0
+        assert b.audios["ds_feats"].all() > 0
 
         self.loss_fn = tf.reduce_sum(
             tf.abs(g.synthesis.amplitude_deltas),
             axis=[1, 2]
         )
-        self.loss_fn = self.loss_fn * loss_weight / b.audios.feature_lengths
+        self.loss_fn = self.loss_fn * loss_weight / b.audios["ds_feats"]
 
 
 class AdditiveEnergyLoss(object):
@@ -113,13 +113,13 @@ class AdditiveEnergyLoss(object):
 
         g, b = attack_graph, attack_graph.batch
 
-        assert b.audios.feature_lengths.all() > 0
+        assert b.audios["ds_feats"].all() > 0
 
         self.loss_fn = tf.reduce_sum(
             tf.square(g.synthesis.amplitude_deltas),
             axis=[1, 2]
         )
-        self.loss_fn = self.loss_fn * loss_weight / b.audios.feature_lengths
+        self.loss_fn = self.loss_fn * loss_weight / b.audios["ds_feats"]
 
 
 class DetNoiseRMSRatioLoss(object):

@@ -8,7 +8,7 @@ from cleverspeech.utils.Utils import lcomp, log
 
 class AlignmentLoss(object):
     def __init__(self, alignment_graph):
-        seq_lens = alignment_graph.batch.audios.alignment_lengths
+        seq_lens = alignment_graph.batch.audios["real_feats"]
 
         self.ctc_target = tf.keras.backend.ctc_label_dense_to_sparse(
             alignment_graph.graph.targets,
@@ -57,7 +57,7 @@ class CTCSearchGraph:
         self.targets = attack_graph.graph.placeholders.targets
         self.target_lengths = attack_graph.graph.placeholders.target_lengths
 
-        per_logit_lengths = batch.audios.alignment_lengths
+        per_logit_lengths = batch.audios["real_feats"]
         maxlen = batched_alignment_shape[1]
 
         initial_masks = np.asarray(
@@ -89,7 +89,7 @@ class CTCAlignmentOptimiser:
     def __init__(self, graph):
 
         self.graph = graph
-        self.loss = self.graph.adversarial_loss
+        self.loss = self.graph.loss_fn
 
         self.train_alignment = None
         self.variables = None
@@ -111,7 +111,7 @@ class CTCAlignmentOptimiser:
 
         g, v, b = self.graph, victim, batch
 
-        logits = v.get_logits(v.raw_logits, b.feeds.examples)
+        logits = v.get_logits(v.raw_logits, g.feeds.examples)
         assert logits.shape == g.graph.raw_alignments.shape
 
         while True:
@@ -126,7 +126,7 @@ class CTCAlignmentOptimiser:
 
             ctc_limit, softmax, raw, m, _ = g.sess.run(
                 train_ops,
-                feed_dict=b.feeds.alignments
+                feed_dict=g.feeds.alignments
             )
 
             decodings, probs = victim.inference(
@@ -136,9 +136,9 @@ class CTCAlignmentOptimiser:
                 top_five=False
             )
 
-            if all([d == b.targets.phrases[0] for d in decodings]):
+            if all([d == b.targets["phrases"][0] for d in decodings]):
                 s = "Found an alignment for each example:"
-                for d, p, t in zip(decodings, probs, b.targets.phrases):
+                for d, p, t in zip(decodings, probs, b.targets["phrases"]):
                     s += "\nTarget: {t} | Decoding: {d} | Probs: {p:.3f}".format(
                         t=t,
                         d=d,
@@ -261,12 +261,14 @@ class BaseLogitDiffLoss(BaseLoss):
         # Create one hot matrices to multiply by current logits.
         # These essentially act as a filter to keep only the target logit or
         # the rest of the logits (non-target).
+
         targ_onehot = tf.one_hot(
             self.target_argmax,
             self.current.shape.as_list()[2],
             on_value=1.0,
             off_value=0.0
         )
+
         others_onehot = tf.one_hot(
             self.target_argmax,
             self.current.shape.as_list()[2],
@@ -372,8 +374,8 @@ class FwdOnlyVibertish(BaseVibertishLoss):
             target_argmax,
         )
 
-        self.loss_fn = self.fwd_prod
-        #self.loss_fn = tf.reduce_sum(self.prod, axis=1) * self.weights
+        self.prod = self.fwd_prod
+        self.loss_fn = tf.reduce_sum(self.prod, axis=1) * self.weights
 
 
 class BackOnlyVibertish(BaseVibertishLoss):

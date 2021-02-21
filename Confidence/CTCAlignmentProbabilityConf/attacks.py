@@ -10,8 +10,9 @@ from cleverspeech.graph import Optimisers
 from cleverspeech.graph import Procedures
 from cleverspeech.graph import Outputs
 from cleverspeech.data import Feeds
-from cleverspeech.data import ETL
-from cleverspeech.data import Generators
+
+from cleverspeech.data.etl.batch_generators import get_standard_batch_generator
+from cleverspeech.data.etl.batch_generators import get_dense_batch_factory
 from cleverspeech.utils.Utils import log, args
 
 from SecEval import VictimAPI as DeepSpeech
@@ -21,7 +22,6 @@ from boilerplate import execute
 
 # local attack classes
 import custom_defs
-import custom_etl
 
 GPU_DEVICE = 0
 MAX_PROCESSES = 3
@@ -55,50 +55,13 @@ N_RUNS = 1
 # all others instead of optimising for individual class labels per frame.
 
 
-def get_dense_batch_factory(settings):
-
-    # get N samples of all the data. alsp make sure to limit example length,
-    # otherwise we'd have to do adaptive batch sizes.
-
-    audio_etl = ETL.AllAudioFilePaths(
-        settings["audio_indir"],
-        settings["max_examples"],
-        filter_term=".wav",
-        max_samples=settings["max_audio_length"]
-    )
-
-    all_audio_file_paths = audio_etl.extract().transform().load()
-
-    targets_etl = ETL.AllTargetPhrases(
-        settings["targets_path"], settings["max_targets"],
-    )
-    all_targets = targets_etl.extract().transform().load()
-
-    # Generate the batches in turn, rather than all in one go ...
-
-    batch_factory = custom_etl.CTCHiScoresBatchGenerator(
-        all_audio_file_paths, all_targets, settings["batch_size"]
-    )
-
-    # ... To save resources by only running the final ETLs on a batch of data
-
-    batch_gen = batch_factory.generate(
-        ETL.AudioExamples, custom_etl.RepeatsTargetPhrases, Feeds.Attack
-    )
-
-    log(
-        "New Run",
-        "Number of test examples: {}".format(batch_factory.numb_examples),
-        ''.join(["{k}: {v}\n".format(k=k, v=v) for k, v in settings.items()]),
-    )
-    return batch_gen
-
-
 def vibertish_fwd_only_dense_run(master_settings):
     """
     """
     def create_attack_graph(sess, batch, settings):
-        attack = Constructor(sess, batch)
+
+        feeds = Feeds.Attack(batch)
+        attack = Constructor(sess, batch, feeds)
 
         attack.add_hard_constraint(
             Constraints.L2,
@@ -135,6 +98,8 @@ def vibertish_fwd_only_dense_run(master_settings):
             Outputs.Base,
             settings["outdir"],
         )
+
+        attack.create_feeds()
 
         return attack
 
@@ -174,7 +139,9 @@ def vibertish_back_only_dense_run(master_settings):
     """
     """
     def create_attack_graph(sess, batch, settings):
-        attack = Constructor(sess, batch)
+
+        feeds = Feeds.Attack(batch)
+        attack = Constructor(sess, batch, feeds)
 
         attack.add_hard_constraint(
             Constraints.L2,
@@ -211,6 +178,8 @@ def vibertish_back_only_dense_run(master_settings):
             Outputs.Base,
             settings["outdir"],
         )
+
+        attack.create_feeds()
 
         return attack
 
@@ -250,7 +219,9 @@ def vibertish_fwd_plus_back_dense_run(master_settings):
     """
     """
     def create_attack_graph(sess, batch, settings):
-        attack = Constructor(sess, batch)
+
+        feeds = Feeds.Attack(batch)
+        attack = Constructor(sess, batch, feeds)
 
         attack.add_hard_constraint(
             Constraints.L2,
@@ -287,6 +258,8 @@ def vibertish_fwd_plus_back_dense_run(master_settings):
             Outputs.Base,
             settings["outdir"],
         )
+
+        attack.create_feeds()
 
         return attack
 
@@ -326,7 +299,9 @@ def vibertish_fwd_mult_back_dense_run(master_settings):
     """
     """
     def create_attack_graph(sess, batch, settings):
-        attack = Constructor(sess, batch)
+
+        feeds = Feeds.Attack(batch)
+        attack = Constructor(sess, batch, feeds)
 
         attack.add_hard_constraint(
             Constraints.L2,
@@ -364,6 +339,8 @@ def vibertish_fwd_mult_back_dense_run(master_settings):
             settings["outdir"],
         )
 
+        attack.create_feeds()
+
         return attack
 
     outdir = os.path.join(OUTDIR, "fwd_mult_back/")
@@ -398,51 +375,13 @@ def vibertish_fwd_mult_back_dense_run(master_settings):
     log("Finished run.")
 
 
-def get_sparse_batch_factory(settings):
-
-    # get N samples of all the data. alsp make sure to limit example length,
-    # otherwise we'd have to do adaptive batch sizes.
-
-    audio_etl = ETL.AllAudioFilePaths(
-        settings["audio_indir"],
-        settings["max_examples"],
-        filter_term=".wav",
-        max_samples=settings["max_audio_length"],
-        #sort_by_file_size="asc",
-    )
-
-    all_audio_file_paths = audio_etl.extract().transform().load()
-
-    targets_etl = ETL.AllTargetPhrases(
-        settings["targets_path"], settings["max_targets"],
-    )
-    all_targets = targets_etl.extract().transform().load()
-
-    # Generate the batches in turn, rather than all in one go ...
-
-    batch_factory = Generators.BatchGenerator(
-        all_audio_file_paths, all_targets, settings["batch_size"]
-    )
-
-    # ... To save resources by only running the final ETLs on a batch of data
-
-    batch_gen = batch_factory.generate(
-        ETL.AudioExamples, ETL.TargetPhrases, Feeds.Attack
-    )
-
-    log(
-        "New Run",
-        "Number of test examples: {}".format(batch_factory.numb_examples),
-        ''.join(["{k}: {v}\n".format(k=k, v=v) for k, v in settings.items()]),
-    )
-    return batch_gen
-
-
 def vibertish_fwd_only_sparse_run(master_settings):
     """
     """
     def create_attack_graph(sess, batch, settings):
-        attack = Constructor(sess, batch)
+
+        feeds = Feeds.Attack(batch)
+        attack = Constructor(sess, batch, feeds)
 
         attack.add_hard_constraint(
             Constraints.L2,
@@ -461,7 +400,7 @@ def vibertish_fwd_only_sparse_run(master_settings):
             beam_width=settings["beam_width"]
         )
 
-        alignment = Constructor(attack.sess, batch)
+        alignment = Constructor(attack.sess, batch, feeds)
         alignment.add_graph(custom_defs.CTCSearchGraph, attack)
         alignment.add_loss(custom_defs.AlignmentLoss)
         alignment.create_loss_fn()
@@ -486,6 +425,7 @@ def vibertish_fwd_only_sparse_run(master_settings):
             Outputs.Base,
             settings["outdir"],
         )
+        attack.create_feeds()
 
         return attack
 
@@ -514,7 +454,7 @@ def vibertish_fwd_only_sparse_run(master_settings):
     }
 
     settings.update(master_settings)
-    batch_gen = get_sparse_batch_factory(settings)
+    batch_gen = get_standard_batch_generator(settings)
 
     execute(settings, create_attack_graph, batch_gen)
 
@@ -525,7 +465,9 @@ def vibertish_back_only_sparse_run(master_settings):
     """
     """
     def create_attack_graph(sess, batch, settings):
-        attack = Constructor(sess, batch)
+
+        feeds = Feeds.Attack(batch)
+        attack = Constructor(sess, batch, feeds)
 
         attack.add_hard_constraint(
             Constraints.L2,
@@ -544,7 +486,7 @@ def vibertish_back_only_sparse_run(master_settings):
             beam_width=settings["beam_width"]
         )
 
-        alignment = Constructor(attack.sess, batch)
+        alignment = Constructor(attack.sess, batch, feeds)
         alignment.add_graph(custom_defs.CTCSearchGraph, attack)
         alignment.add_loss(custom_defs.AlignmentLoss)
         alignment.create_loss_fn()
@@ -569,6 +511,8 @@ def vibertish_back_only_sparse_run(master_settings):
             Outputs.Base,
             settings["outdir"],
         )
+
+        attack.create_feeds()
 
         return attack
 
@@ -597,7 +541,7 @@ def vibertish_back_only_sparse_run(master_settings):
     }
 
     settings.update(master_settings)
-    batch_gen = get_sparse_batch_factory(settings)
+    batch_gen = get_standard_batch_generator(settings)
 
     execute(settings, create_attack_graph, batch_gen)
 
@@ -608,7 +552,9 @@ def vibertish_fwd_plus_back_sparse_run(master_settings):
     """
     """
     def create_attack_graph(sess, batch, settings):
-        attack = Constructor(sess, batch)
+
+        feeds = Feeds.Attack(batch)
+        attack = Constructor(sess, batch, feeds)
 
         attack.add_hard_constraint(
             Constraints.L2,
@@ -627,7 +573,7 @@ def vibertish_fwd_plus_back_sparse_run(master_settings):
             beam_width=settings["beam_width"]
         )
 
-        alignment = Constructor(attack.sess, batch)
+        alignment = Constructor(attack.sess, batch, feeds)
         alignment.add_graph(custom_defs.CTCSearchGraph, attack)
         alignment.add_loss(custom_defs.AlignmentLoss)
         alignment.create_loss_fn()
@@ -652,6 +598,8 @@ def vibertish_fwd_plus_back_sparse_run(master_settings):
             Outputs.Base,
             settings["outdir"],
         )
+
+        attack.create_feeds()
 
         return attack
 
@@ -680,7 +628,7 @@ def vibertish_fwd_plus_back_sparse_run(master_settings):
     }
 
     settings.update(master_settings)
-    batch_gen = get_sparse_batch_factory(settings)
+    batch_gen = get_standard_batch_generator(settings)
 
     execute(settings, create_attack_graph, batch_gen)
 
@@ -691,7 +639,9 @@ def vibertish_fwd_mult_back_sparse_run(master_settings):
     """
     """
     def create_attack_graph(sess, batch, settings):
-        attack = Constructor(sess, batch)
+
+        feeds = Feeds.Attack(batch)
+        attack = Constructor(sess, batch, feeds)
 
         attack.add_hard_constraint(
             Constraints.L2,
@@ -735,6 +685,7 @@ def vibertish_fwd_mult_back_sparse_run(master_settings):
             Outputs.Base,
             settings["outdir"],
         )
+        attack.create_feeds()
 
         return attack
 
@@ -763,7 +714,7 @@ def vibertish_fwd_mult_back_sparse_run(master_settings):
     }
 
     settings.update(master_settings)
-    batch_gen = get_sparse_batch_factory(settings)
+    batch_gen = get_standard_batch_generator(settings)
 
     execute(settings, create_attack_graph, batch_gen)
 

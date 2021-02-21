@@ -274,8 +274,8 @@ class FullyHarmonic(Additive):
         """
 
         batch_size = batch.size
-        maxlen = batch.audios.max_length
-        actual_lengths = batch.audios.actual_lengths
+        maxlen = batch.audios["max_samples"]
+        actual_lengths = batch.audios["n_samples"]
 
         self.maxlen = maxlen
         self.n_osc = n_osc
@@ -386,8 +386,8 @@ class FreqHarmonic(Additive):
         """
 
         batch_size = batch.size
-        maxlen = batch.audios.max_length
-        actual_lengths = batch.audios.actual_lengths
+        maxlen = batch.audios["max_samples"]
+        actual_lengths = batch.audios["n_samples"]
 
         self.maxlen = maxlen
         self.n_osc = n_osc
@@ -486,8 +486,8 @@ class InHarmonic(Additive):
         # == Sanity check inputs
 
         batch_size = batch.size
-        maxlen = batch.audios.max_length
-        actual_lengths = batch.audios.actual_lengths
+        maxlen = batch.audios["max_samples"]
+        actual_lengths = batch.audios["n_samples"]
 
         self.frame_length = frame_length
         self.frame_step = frame_step

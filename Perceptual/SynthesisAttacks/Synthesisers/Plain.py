@@ -7,7 +7,7 @@ class Plain(Synth):
     def __init__(self, batch):
 
         self.deltas = tf.Variable(
-            tf.zeros([batch.size, batch.audios.max_length], dtype=tf.float32),
+            tf.zeros([batch.size, batch.audios["max_samples"]], dtype=tf.float32),
             trainable=True,
             validate_shape=True,
             dtype=tf.float32,

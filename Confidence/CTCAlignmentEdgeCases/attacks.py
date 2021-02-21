@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import os
-import numpy as np
 
 from cleverspeech.graph.GraphConstructor import Constructor
 from cleverspeech.graph import Constraints
@@ -10,18 +9,18 @@ from cleverspeech.graph import Optimisers
 from cleverspeech.graph import Procedures
 from cleverspeech.graph import Outputs
 from cleverspeech.data import Feeds
-from cleverspeech.data import ETL
-from cleverspeech.data import Generators
+
+from cleverspeech.data.etl.batch_generators import get_standard_batch_generator
+from cleverspeech.data.etl.batch_generators import get_dense_batch_factory
 from cleverspeech.utils.Utils import log, args
 
+# victim model
 from SecEval import VictimAPI as DeepSpeech
-
-
-from boilerplate import execute
 
 # local attack classes
 import custom_defs
-import custom_etl
+from boilerplate import execute
+
 
 GPU_DEVICE = 0
 MAX_PROCESSES = 3
@@ -67,45 +66,6 @@ N_RUNS = 1
 # What happens to confidence as distance is minimised?
 
 
-def get_dense_batch_factory(settings):
-
-    # get N samples of all the data. alsp make sure to limit example length,
-    # otherwise we'd have to do adaptive batch sizes.
-
-    audio_etl = ETL.AllAudioFilePaths(
-        settings["audio_indir"],
-        settings["max_examples"],
-        filter_term=".wav",
-        max_samples=settings["max_audio_length"]
-    )
-
-    all_audio_file_paths = audio_etl.extract().transform().load()
-
-    targets_etl = ETL.AllTargetPhrases(
-        settings["targets_path"], settings["max_targets"],
-    )
-    all_targets = targets_etl.extract().transform().load()
-
-    # Generate the batches in turn, rather than all in one go ...
-
-    batch_factory = custom_etl.CTCHiScoresBatchGenerator(
-        all_audio_file_paths, all_targets, settings["batch_size"]
-    )
-
-    # ... To save resources by only running the final ETLs on a batch of data
-
-    batch_gen = batch_factory.generate(
-        ETL.AudioExamples, custom_etl.RepeatsTargetPhrases, Feeds.Attack
-    )
-
-    log(
-        "New Run",
-        "Number of test examples: {}".format(batch_factory.numb_examples),
-        ''.join(["{k}: {v}\n".format(k=k, v=v) for k, v in settings.items()]),
-    )
-    return batch_gen
-
-
 def ctc_dense_alignment_run(master_settings):
     """
     Repeating characters (linear expansion) from a target transcription to
@@ -149,7 +109,9 @@ def ctc_dense_alignment_run(master_settings):
     """
     def create_attack_graph(sess, batch, settings):
 
-        attack = Constructor(sess, batch)
+        feeds = Feeds.Attack(batch)
+
+        attack = Constructor(sess, batch, feeds)
 
         attack.add_hard_constraint(
             Constraints.L2,
@@ -186,6 +148,8 @@ def ctc_dense_alignment_run(master_settings):
             Outputs.Base,
             settings["outdir"],
         )
+
+        attack.create_feeds()
 
         return attack
 
@@ -229,8 +193,9 @@ def ctc_dense_extreme_alignment_run(master_settings):
     As above, expect only update bounds when loss is below some threshold.
     """
     def create_attack_graph(sess, batch, settings):
+        feeds = Feeds.Attack(batch)
 
-        attack = Constructor(sess, batch)
+        attack = Constructor(sess, batch, feeds)
 
         attack.add_hard_constraint(
             Constraints.L2,
@@ -269,6 +234,8 @@ def ctc_dense_extreme_alignment_run(master_settings):
             settings["outdir"],
         )
 
+        attack.create_feeds()
+
         return attack
 
     for run in range(0, N_RUNS):
@@ -305,46 +272,6 @@ def ctc_dense_extreme_alignment_run(master_settings):
         execute(settings, create_attack_graph, batch_factory)
 
         log("Finished run {}.".format(run))
-
-
-def get_sparse_batch_factory(settings):
-
-    # get N samples of all the data. alsp make sure to limit example length,
-    # otherwise we'd have to do adaptive batch sizes.
-
-    audio_etl = ETL.AllAudioFilePaths(
-        settings["audio_indir"],
-        settings["max_examples"],
-        filter_term=".wav",
-        max_samples=settings["max_audio_length"],
-        #sort_by_file_size="asc",
-    )
-
-    all_audio_file_paths = audio_etl.extract().transform().load()
-
-    targets_etl = ETL.AllTargetPhrases(
-        settings["targets_path"], settings["max_targets"],
-    )
-    all_targets = targets_etl.extract().transform().load()
-
-    # Generate the batches in turn, rather than all in one go ...
-
-    batch_factory = Generators.BatchGenerator(
-        all_audio_file_paths, all_targets, settings["batch_size"]
-    )
-
-    # ... To save resources by only running the final ETLs on a batch of data
-
-    batch_gen = batch_factory.generate(
-        ETL.AudioExamples, ETL.TargetPhrases, Feeds.Attack
-    )
-
-    log(
-        "New Run",
-        "Number of test examples: {}".format(batch_factory.numb_examples),
-        ''.join(["{k}: {v}\n".format(k=k, v=v) for k, v in settings.items()]),
-    )
-    return batch_gen
 
 
 def ctc_sparse_alignment_run(master_settings):
@@ -399,7 +326,9 @@ def ctc_sparse_alignment_run(master_settings):
     """
     def create_attack_graph(sess, batch, settings):
 
-        attack = Constructor(sess, batch)
+        feeds = Feeds.Attack(batch)
+
+        attack = Constructor(sess, batch, feeds)
 
         attack.add_hard_constraint(
             Constraints.L2,
@@ -417,7 +346,7 @@ def ctc_sparse_alignment_run(master_settings):
             beam_width=settings["beam_width"]
         )
 
-        alignment = Constructor(attack.sess, batch)
+        alignment = Constructor(attack.sess, batch, feeds)
         alignment.add_graph(custom_defs.CTCSearchGraph, attack)
         alignment.add_loss(custom_defs.AlignmentLoss)
         alignment.create_loss_fn()
@@ -446,6 +375,8 @@ def ctc_sparse_alignment_run(master_settings):
             Outputs.Base,
             settings["outdir"],
         )
+
+        attack.create_feeds()
 
         return attack
 
@@ -477,7 +408,7 @@ def ctc_sparse_alignment_run(master_settings):
 
         settings.update(master_settings)
 
-        batch_factory = get_sparse_batch_factory(settings)
+        batch_factory = get_standard_batch_generator(settings)
 
         execute(settings, create_attack_graph, batch_factory)
 
@@ -491,7 +422,9 @@ def ctc_sparse_extreme_alignment_run(master_settings):
     """
     def create_attack_graph(sess, batch, settings):
 
-        attack = Constructor(sess, batch)
+        feeds = Feeds.Attack(batch)
+
+        attack = Constructor(sess, batch, feeds)
 
         attack.add_hard_constraint(
             Constraints.L2,
@@ -509,7 +442,7 @@ def ctc_sparse_extreme_alignment_run(master_settings):
             beam_width=settings["beam_width"]
         )
 
-        alignment = Constructor(attack.sess, batch)
+        alignment = Constructor(attack.sess, batch, feeds)
         alignment.add_graph(custom_defs.CTCSearchGraph, attack)
         alignment.add_loss(custom_defs.AlignmentLoss)
         alignment.create_loss_fn()
@@ -539,6 +472,8 @@ def ctc_sparse_extreme_alignment_run(master_settings):
             Outputs.Base,
             settings["outdir"],
         )
+
+        attack.create_feeds()
 
         return attack
 
@@ -571,7 +506,7 @@ def ctc_sparse_extreme_alignment_run(master_settings):
 
         settings.update(master_settings)
 
-        batch_factory = get_sparse_batch_factory(settings)
+        batch_factory = get_standard_batch_generator(settings)
 
         execute(settings, create_attack_graph, batch_factory)
 

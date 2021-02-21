@@ -2,13 +2,13 @@ import os
 
 from tensorflow import errors as tf_errors
 
-from cleverspeech.data.Results import SingleJsonDB, FileWriter
-from cleverspeech.eval import BatchProcessing as BasicProcessing
+from cleverspeech.data.Results import SingleJsonDB, SingleFileWriter
+from cleverspeech.eval import PerceptualStatsBatch as BasicProcessing
 from cleverspeech.utils.RuntimeUtils import TFRuntime, AttackSpawner
 from cleverspeech.utils.Utils import log, run_decoding_check
 
 
-def execute(settings, attack_fn, synth_fn, batch_gen):
+def execute(settings, attack_fn, batch_gen):
 
     # set up the directory we'll use for results
 
@@ -23,7 +23,7 @@ def execute(settings, attack_fn, synth_fn, batch_gen):
 
     # Manage GPU memory and CPU processes usage.
 
-    file_writer = FileWriter(settings["outdir"])
+    file_writer = SingleFileWriter(settings["outdir"])
 
     attack_spawner = AttackSpawner(
         gpu_device=settings["gpu_device"],
@@ -34,7 +34,7 @@ def execute(settings, attack_fn, synth_fn, batch_gen):
 
     with attack_spawner as spawner:
         for b_id, batch in batch_gen:
-            spawner.spawn(boilerplate, settings, attack_fn, synth_fn, batch)
+            spawner.spawn(boilerplate, settings, attack_fn, batch)
             log("Running for Batch Number: {}".format(b_id), wrap=True)
 
     # Run the standard stats script on all successful examples once all attacks
@@ -43,7 +43,7 @@ def execute(settings, attack_fn, synth_fn, batch_gen):
     BasicProcessing.batch_generate_statistic_file(settings["outdir"])
 
 
-def boilerplate(results_queue, healthy_conn, settings, attack_fn, synthesiser_fn, batch):
+def boilerplate(results_queue, healthy_conn, settings, attack_fn, batch):
 
     # we *must* call the tensorflow session within the batch loop so the
     # graph gets reset: the maximum example length in a batch affects the
@@ -56,16 +56,9 @@ def boilerplate(results_queue, healthy_conn, settings, attack_fn, synthesiser_fn
         tf_runtime = TFRuntime(settings["gpu_device"])
         with tf_runtime.session as sess, tf_runtime.device as tf_device:
 
-            # Initialise curried synthesiser class
-            synth = synthesiser_fn(batch, **settings["synth"])
-
             # Initialise curried attack graph constructor function
 
-            attack = attack_fn(sess, batch, synth, settings)
-
-            # create placeholder feeds
-
-            batch.feeds.create_feeds(attack.graph)
+            attack = attack_fn(sess, batch, settings)
 
             # log some useful things for debugging before the attack runs
 
@@ -95,7 +88,7 @@ def boilerplate(results_queue, healthy_conn, settings, attack_fn, synthesiser_fn
         # Fail gracefully for OOM GPU issues, at the very least.
 
         s = "Out of GPU Memory! Attack failed to run for these examples:\n"
-        s += '\n'.join(batch.audios.basenames)
+        s += '\n'.join(batch.audios["basenames"])
         s += "\n\nError Traceback:\n{e}".format(e=e)
 
         log(s, wrap=True)
@@ -108,7 +101,7 @@ def boilerplate(results_queue, healthy_conn, settings, attack_fn, synthesiser_fn
         # point of breakage right now.
 
         s = "Something broke! Attack failed to run for these examples:\n"
-        s += '\n'.join(batch.audios.basenames)
+        s += '\n'.join(batch.audios["basenames"])
         s += "\n\nError Traceback:\n{e}".format(e=e)
 
         log(s, wrap=True)

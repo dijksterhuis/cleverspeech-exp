@@ -5,23 +5,22 @@ import os
 from cleverspeech.graph.GraphConstructor import Constructor
 from cleverspeech.graph import Constraints
 from cleverspeech.graph import Graphs
-from cleverspeech.graph.Losses import CTCLoss
+from cleverspeech.graph import Losses
 from cleverspeech.graph import Optimisers
 from cleverspeech.graph import Procedures
 from cleverspeech.graph import Outputs
-
-from SecEval import VictimAPI as DeepSpeech
-
-
-# boilerplate imports
-from cleverspeech.data import ETL
 from cleverspeech.data import Feeds
-from cleverspeech.data import Generators
-from cleverspeech.utils.Utils import log, l_map, args
 
+from cleverspeech.data.etl.batch_generators import get_standard_batch_generator
+from cleverspeech.utils.Utils import log, args
+
+# victim model
+from SecEval import VictimAPI as Victim
+
+# attack spawner import
 from boilerplate import execute
 
-import Losses
+import CustomLosses
 
 GPU_DEVICE = 0
 MAX_PROCESSES = 4
@@ -47,58 +46,14 @@ BATCH_SIZE = 10
 N_RUNS = 5
 
 
-def get_batch_generator(settings):
-
-    # get N samples of all the data. alsp make sure to limit example length,
-    # otherwise we'd have to do adaptive batch sizes.
-
-    audio_etl = ETL.AllAudioFilePaths(
-        settings["audio_indir"],
-        MAX_EXAMPLES,
-        filter_term=".wav",
-        max_samples=MAX_AUDIO_LENGTH
-    )
-
-    all_audio_file_paths = audio_etl.extract().transform().load()
-
-    targets_etl = ETL.AllTargetPhrases(
-        settings["targets_path"], MAX_TARGETS,
-    )
-    all_targets = targets_etl.extract().transform().load()
-
-    # hack the targets data for the naive non-merging CTC experiment
-
-    if "n_repeats" in settings.keys():
-        all_targets = l_map(
-            lambda x: "".join([i * settings["n_repeats"] for i in x]),
-            all_targets
-        )
-
-    # Generate the batches in turn, rather than all in one go ...
-
-    batch_factory = Generators.BatchGenerator(
-        all_audio_file_paths, all_targets, settings["batch_size"]
-    )
-
-    # ... To save resources by only running the final ETLs on a batch of data
-
-    batch_gen = batch_factory.generate(
-        ETL.AudioExamples, ETL.TargetPhrases, Feeds.Attack
-    )
-
-    log(
-        "New Run",
-        "Number of test examples: {}".format(batch_factory.numb_examples),
-        ''.join(["{k}: {v}\n".format(k=k, v=v) for k, v in settings.items()]),
-    )
-    return batch_gen
-
-
 def spectral_run(master_settings):
     """
     """
     def create_attack_graph(sess, batch, settings):
-        attack = Constructor(sess, batch)
+
+        feeds = Feeds.Attack(batch)
+
+        attack = Constructor(sess, batch, feeds)
 
         attack.add_hard_constraint(
             Constraints.L2,
@@ -111,13 +66,13 @@ def spectral_run(master_settings):
         )
 
         attack.add_victim(
-            DeepSpeech.Model,
+            Victim.Model,
             tokens=settings["tokens"],
             beam_width=settings["beam_width"]
         )
 
-        attack.add_loss(CTCLoss)
-        attack.add_loss(Losses.SpectralLoss)
+        attack.add_loss(Losses.CTCLoss)
+        attack.add_loss(CustomLosses.SpectralLoss)
         attack.create_loss_fn()
 
         attack.add_optimiser(
@@ -135,6 +90,8 @@ def spectral_run(master_settings):
             Outputs.Base,
             settings["outdir"],
         )
+
+        attack.create_feeds()
 
         return attack
 
@@ -158,7 +115,7 @@ def spectral_run(master_settings):
     }
 
     settings.update(master_settings)
-    batch_gen = get_batch_generator(settings)
+    batch_gen = get_standard_batch_generator(settings)
 
     execute(settings, create_attack_graph, batch_gen)
 
@@ -169,7 +126,10 @@ def multi_scale_l1_spectral_run(master_settings):
     """
     """
     def create_attack_graph(sess, batch, settings):
-        attack = Constructor(sess, batch)
+
+        feeds = Feeds.Attack(batch)
+
+        attack = Constructor(sess, batch, feeds)
 
         attack.add_hard_constraint(
             Constraints.L2,
@@ -182,16 +142,13 @@ def multi_scale_l1_spectral_run(master_settings):
         )
 
         attack.add_victim(
-            DeepSpeech.Model,
+            Victim.Model,
             tokens=settings["tokens"],
             beam_width=settings["beam_width"]
         )
 
-        attack.add_loss(CTCLoss)
-        attack.add_loss(
-            Losses.MultiScaleSpectralLoss,
-            norm=1
-        )
+        attack.add_loss(Losses.CTCLoss)
+        attack.add_loss(CustomLosses.MultiScaleSpectralLoss, norm=1)
         attack.create_loss_fn()
 
         attack.add_optimiser(
@@ -209,6 +166,8 @@ def multi_scale_l1_spectral_run(master_settings):
             Outputs.Base,
             settings["outdir"],
         )
+
+        attack.create_feeds()
 
         return attack
 
@@ -232,7 +191,7 @@ def multi_scale_l1_spectral_run(master_settings):
     }
 
     settings.update(master_settings)
-    batch_gen = get_batch_generator(settings)
+    batch_gen = get_standard_batch_generator(settings)
 
     execute(settings, create_attack_graph, batch_gen)
 
@@ -243,7 +202,10 @@ def multi_scale_l2_spectral_run(master_settings):
     """
     """
     def create_attack_graph(sess, batch, settings):
-        attack = Constructor(sess, batch)
+
+        feeds = Feeds.Attack(batch)
+
+        attack = Constructor(sess, batch, feeds)
 
         attack.add_hard_constraint(
             Constraints.L2,
@@ -256,16 +218,13 @@ def multi_scale_l2_spectral_run(master_settings):
         )
 
         attack.add_victim(
-            DeepSpeech.Model,
+            Victim.Model,
             tokens=settings["tokens"],
             beam_width=settings["beam_width"]
         )
 
-        attack.add_loss(CTCLoss)
-        attack.add_loss(
-            Losses.MultiScaleSpectralLoss,
-            norm=2
-        )
+        attack.add_loss(Losses.CTCLoss)
+        attack.add_loss(CustomLosses.MultiScaleSpectralLoss, norm=2)
         attack.create_loss_fn()
 
         attack.add_optimiser(
@@ -283,6 +242,8 @@ def multi_scale_l2_spectral_run(master_settings):
             Outputs.Base,
             settings["outdir"],
         )
+
+        attack.create_feeds()
 
         return attack
 
@@ -306,7 +267,7 @@ def multi_scale_l2_spectral_run(master_settings):
     }
 
     settings.update(master_settings)
-    batch_gen = get_batch_generator(settings)
+    batch_gen = get_standard_batch_generator(settings)
 
     execute(settings, create_attack_graph, batch_gen)
 

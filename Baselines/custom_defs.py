@@ -6,7 +6,7 @@ from cleverspeech.utils.Utils import lcomp
 
 class AlignmentLoss(object):
     def __init__(self, alignment_graph):
-        feat_lens = alignment_graph.batch.audios.feature_lengths
+        feat_lens = alignment_graph.batch.audios["ds_feats"]
 
         self.ctc_target = tf.keras.backend.ctc_label_dense_to_sparse(
             alignment_graph.graph.targets,
@@ -44,7 +44,7 @@ class CTCAlignmentOptimiser:
     def __init__(self, graph):
 
         self.graph = graph
-        self.loss = self.graph.adversarial_loss
+        self.loss = self.graph.loss_fn
 
         self.train_alignment = None
         self.variables = None
@@ -66,13 +66,13 @@ class CTCAlignmentOptimiser:
 
         g, v, b = self.graph, victim, batch
 
-        logits = v.get_logits(v.raw_logits, b.feeds.examples)
+        logits = v.get_logits(v.raw_logits, g.feeds.examples)
         assert logits.shape == g.graph.raw_alignments.shape
 
         while True:
 
             train_ops = [
-                    self.loss.loss_fn,
+                    g.loss_fn,
                     g.graph.softmax_alignments,
                     g.graph.logits_alignments,
                     self.train_alignment
@@ -80,7 +80,7 @@ class CTCAlignmentOptimiser:
 
             ctc_limit, softmax, raw, _ = g.sess.run(
                 train_ops,
-                feed_dict=b.feeds.alignments
+                feed_dict=g.feeds.alignments
             )
 
             decodings, probs = victim.inference(
@@ -90,7 +90,7 @@ class CTCAlignmentOptimiser:
                 top_five=False
             )
 
-            if all([d == b.targets.phrases[0] for d in decodings]):
+            if all([d == b.targets["phrases"][0] for d in decodings]):
                 break
 
 

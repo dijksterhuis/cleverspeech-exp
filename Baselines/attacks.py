@@ -2,7 +2,6 @@
 import os
 
 # attack def imports
-#from cleverspeech.graph import Alignments
 from cleverspeech.graph.GraphConstructor import Constructor
 from cleverspeech.graph import Constraints
 from cleverspeech.graph import Graphs
@@ -10,15 +9,15 @@ from cleverspeech.graph import Losses
 from cleverspeech.graph import Optimisers
 from cleverspeech.graph import Procedures
 from cleverspeech.graph import Outputs
+from cleverspeech.data import Feeds
 
+from cleverspeech.data.etl.batch_generators import get_standard_batch_generator
+from cleverspeech.utils.Utils import log, args
+
+# victim model
 from SecEval import VictimAPI as Victim
 
-# boilerplate imports
-from cleverspeech.data import ETL
-from cleverspeech.data import Feeds
-from cleverspeech.data import Generators
-from cleverspeech.utils.Utils import log, l_map, args
-
+# attack spawner import
 from boilerplate import execute
 
 import custom_defs
@@ -47,45 +46,6 @@ BATCH_SIZE = 10
 N_RUNS = 5
 
 
-def get_batch_generator(settings):
-
-    # get N samples of all the data. alsp make sure to limit example length,
-    # otherwise we'd have to do adaptive batch sizes.
-
-    audio_etl = ETL.AllAudioFilePaths(
-        settings["audio_indir"],
-        settings["max_examples"],
-        filter_term=".wav",
-        max_samples=settings["max_audio_length"]
-    )
-
-    all_audio_file_paths = audio_etl.extract().transform().load()
-
-    targets_etl = ETL.AllTargetPhrases(
-        settings["targets_path"], settings["max_targets"],
-    )
-    all_targets = targets_etl.extract().transform().load()
-
-    # Generate the batches in turn, rather than all in one go ...
-
-    batch_factory = Generators.BatchGenerator(
-        all_audio_file_paths, all_targets, settings["batch_size"]
-    )
-
-    # ... To save resources by only running the final ETLs on a batch of data
-
-    batch_gen = batch_factory.generate(
-        ETL.AudioExamples, ETL.TargetPhrases, Feeds.Attack
-    )
-
-    log(
-        "New Run",
-        "Number of test examples: {}".format(batch_factory.numb_examples),
-        ''.join(["{k}: {v}\n".format(k=k, v=v) for k, v in settings.items()]),
-    )
-    return batch_gen
-
-
 def baseline_ctc_run(master_settings):
     """
     CTC Loss attack modified from the original Carlini & Wagner work.
@@ -98,7 +58,10 @@ def baseline_ctc_run(master_settings):
     :return: None
     """
     def create_attack_graph(sess, batch, settings):
-        attack = Constructor(sess, batch)
+
+        feeds = Feeds.Attack(batch)
+
+        attack = Constructor(sess, batch, feeds)
 
         attack.add_hard_constraint(
             Constraints.L2,
@@ -135,6 +98,8 @@ def baseline_ctc_run(master_settings):
             settings["outdir"],
         )
 
+        attack.create_feeds()
+
         return attack
 
     outdir = os.path.join(OUTDIR, "ctc/")
@@ -160,7 +125,7 @@ def baseline_ctc_run(master_settings):
     }
 
     settings.update(master_settings)
-    batch_gen = get_batch_generator(settings)
+    batch_gen = get_standard_batch_generator(settings)
 
     execute(settings, create_attack_graph, batch_gen)
 
@@ -179,7 +144,10 @@ def baseline_ctc_v2_run(master_settings):
     :return: None
     """
     def create_attack_graph(sess, batch, settings):
-        attack = Constructor(sess, batch)
+
+        feeds = Feeds.Attack(batch)
+
+        attack = Constructor(sess, batch, feeds)
 
         attack.add_hard_constraint(
             Constraints.L2,
@@ -216,6 +184,8 @@ def baseline_ctc_v2_run(master_settings):
             settings["outdir"],
         )
 
+        attack.create_feeds()
+
         return attack
 
     outdir = os.path.join(OUTDIR, "ctc2/")
@@ -241,7 +211,7 @@ def baseline_ctc_v2_run(master_settings):
     }
 
     settings.update(master_settings)
-    batch_gen = get_batch_generator(settings)
+    batch_gen = get_standard_batch_generator(settings)
 
     execute(settings, create_attack_graph, batch_gen)
 
@@ -257,7 +227,9 @@ def f6_ctc_beam_search_decoder_run(master_settings):
     :return: None
     """
     def create_attack_graph(sess, batch, settings):
-        attack = Constructor(sess, batch)
+        feeds = Feeds.Attack(batch)
+
+        attack = Constructor(sess, batch, feeds)
 
         attack.add_hard_constraint(
             Constraints.L2,
@@ -276,7 +248,7 @@ def f6_ctc_beam_search_decoder_run(master_settings):
             beam_width=settings["beam_width"]
         )
 
-        alignment = Constructor(attack.sess, batch)
+        alignment = Constructor(attack.sess, batch, feeds)
         alignment.add_graph(custom_defs.CTCSearchGraph, attack)
         alignment.add_loss(custom_defs.AlignmentLoss)
         alignment.create_loss_fn()
@@ -302,6 +274,8 @@ def f6_ctc_beam_search_decoder_run(master_settings):
             Outputs.Base,
             settings["outdir"],
         )
+
+        attack.create_feeds()
 
         return attack
 
@@ -333,7 +307,7 @@ def f6_ctc_beam_search_decoder_run(master_settings):
         }
 
         settings.update(master_settings)
-        batch_gen = get_batch_generator(settings)
+        batch_gen = get_standard_batch_generator(settings)
 
         execute(settings, create_attack_graph, batch_gen)
 
@@ -349,7 +323,9 @@ def f6_ctc_greedy_search_decoder_run(master_settings):
     :return: None
     """
     def create_attack_graph(sess, batch, settings):
-        attack = Constructor(sess, batch)
+        feeds = Feeds.Attack(batch)
+
+        attack = Constructor(sess, batch, feeds)
 
         attack.add_hard_constraint(
             Constraints.L2,
@@ -368,7 +344,7 @@ def f6_ctc_greedy_search_decoder_run(master_settings):
             beam_width=settings["beam_width"]
         )
 
-        alignment = Constructor(attack.sess, batch)
+        alignment = Constructor(attack.sess, batch, feeds)
         alignment.add_graph(custom_defs.CTCSearchGraph, attack)
         alignment.add_loss(custom_defs.AlignmentLoss)
         alignment.create_loss_fn()
@@ -395,6 +371,8 @@ def f6_ctc_greedy_search_decoder_run(master_settings):
             Outputs.Base,
             settings["outdir"],
         )
+
+        attack.create_feeds()
 
         return attack
 
@@ -426,7 +404,7 @@ def f6_ctc_greedy_search_decoder_run(master_settings):
         }
 
         settings.update(master_settings)
-        batch_gen = get_batch_generator(settings)
+        batch_gen = get_standard_batch_generator(settings)
 
         execute(settings, create_attack_graph, batch_gen)
 

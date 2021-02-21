@@ -8,7 +8,7 @@ class STFT(Synth):
     def __init__(self, batch, frame_step: int = 512, frame_length: int = 1024, fft_length: int = 1024):
 
         self.batch_size = batch_size = batch.size
-        self.maxlen = maxlen = max(map(len, batch.audios.padded_audio))
+        self.maxlen = maxlen = max(map(len, batch.audios["padded_audio"]))
 
         self.frame_length = int(frame_length)
         self.frame_step = int(frame_step)
