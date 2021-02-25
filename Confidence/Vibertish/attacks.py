@@ -403,16 +403,13 @@ def vibertish_fwd_only_sparse_run(master_settings):
         alignment.add_loss(custom_defs.AlignmentLoss)
         alignment.create_loss_fn()
         alignment.add_optimiser(custom_defs.CTCAlignmentOptimiser)
-        attack.add_loss(
-            custom_defs.AntiCTC,
-            alignment=alignment.graph.target_alignments,
-            loss_weight=10,
-        )
+
         attack.add_loss(
             custom_defs.FwdOnlyVibertish,
             alignment.graph.target_alignments,
         )
         attack.create_loss_fn()
+
         attack.add_optimiser(
             Optimisers.AdamOptimiser,
             learning_rate=settings["learning_rate"]
