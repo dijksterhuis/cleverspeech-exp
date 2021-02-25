@@ -189,7 +189,7 @@ class CTCAlignmentOptimiser:
 
             target_phrases = b.targets["phrases"]
 
-            if all([d == target_phrases[0] for d in decodings]):
+            if all([d == target_phrases[0] for d in decodings]) and all(c < 0.1 for c in ctc_limit):
                 s = "Found an alignment for each example:"
                 for d, p, t in zip(decodings, probs, target_phrases):
                     s += "\nTarget: {t} | Decoding: {d} | Probs: {p:.3f}".format(
