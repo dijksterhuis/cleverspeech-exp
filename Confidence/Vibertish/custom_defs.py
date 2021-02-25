@@ -332,6 +332,36 @@ class BaseVibertishLoss(BaseLogitDiffLoss):
         self.back_prod = -self.back_target + self.back_next_likely
 
 
+class FwdOnlyVibertish(BaseVibertishLoss):
+    def __init__(self, attack_graph, target_argmax, weight_settings=(-1.0, -1.0)):
+        """
+        """
+
+        super().__init__(
+            attack_graph,
+            target_argmax,
+            weight_settings=weight_settings,
+        )
+
+        self.prod = self.fwd_prod
+        self.loss_fn = tf.reduce_sum(self.prod, axis=0) * self.weights
+
+
+class BackOnlyVibertish(BaseVibertishLoss):
+    def __init__(self, attack_graph, target_argmax, weight_settings=(-1.0, -1.0)):
+        """
+        """
+
+        super().__init__(
+            attack_graph,
+            target_argmax,
+            weight_settings=weight_settings,
+        )
+
+        self.prod = self.back_prod
+        self.loss_fn = tf.reduce_sum(self.prod, axis=0) * self.weights
+
+
 class FwdPlusBackVibertish(BaseVibertishLoss):
     def __init__(self, attack_graph, target_argmax, weight_settings=(-1.0, -1.0)):
         """
@@ -361,34 +391,5 @@ class FwdMultBackVibertish(BaseVibertishLoss):
         self.prod = -(self.fwd_prod * self.back_prod)
         self.loss_fn = tf.reduce_sum(self.prod, axis=0) * self.weights
 
-
-class FwdOnlyVibertish(BaseVibertishLoss):
-    def __init__(self, attack_graph, target_argmax, weight_settings=(-1.0, -1.0)):
-        """
-        """
-
-        super().__init__(
-            attack_graph,
-            target_argmax,
-            weight_settings=weight_settings,
-        )
-
-        self.prod = self.fwd_prod
-        self.loss_fn = tf.reduce_sum(self.prod, axis=0) * self.weights
-
-
-class BackOnlyVibertish(BaseVibertishLoss):
-    def __init__(self, attack_graph, target_argmax, weight_settings=(-1.0, -1.0)):
-        """
-        """
-
-        super().__init__(
-            attack_graph,
-            target_argmax,
-            weight_settings=weight_settings,
-        )
-
-        self.prod = self.back_prod
-        self.loss_fn = tf.reduce_sum(self.prod, axis=0) * self.weights
 
 
