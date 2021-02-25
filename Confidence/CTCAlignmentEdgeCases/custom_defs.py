@@ -268,3 +268,73 @@ class CTCAlignmentsUpdateOnLoss(UpdateOnLoss):
         for r in super().run():
             yield r
 
+
+class AntiCTC(object):
+    def __init__(self, attack_graph, alignment=None, loss_weight=1.0):
+
+        seq_lengths = attack_graph.batch.audios["ds_feats"]
+
+        self.target_argmax = alignment  # [b x feats]
+
+        # Current logits is [b, feats, chars]
+        # current_argmax is for debugging purposes only
+        self.current = tf.transpose(attack_graph.victim.raw_logits, [1, 0, 2])
+
+        # Create one hot matrices to multiply by current logits.
+        # These essentially act as a filter to keep only the target logit or
+        # the rest of the logits (non-target).
+
+        targs_onehot = tf.one_hot(
+            self.target_argmax,
+            self.current.shape.as_list()[2],
+            on_value=1.0,
+            off_value=0.0
+        )
+
+        others_onehot = tf.one_hot(
+            self.target_argmax,
+            self.current.shape.as_list()[2],
+            on_value=0.0,
+            off_value=1.0
+        )
+
+        # we want to make all other alignments *less* likely, so we only pass
+        # those logits to CTC
+
+        logits_mod = others_onehot * self.current
+        self.targs = tf.reduce_sum(targs_onehot * self.current, axis=2)
+
+        if alignment is not None:
+            log("Using CTC alignment search.", wrap=True)
+            self.ctc_target = tf.keras.backend.ctc_label_dense_to_sparse(
+                alignment,
+                attack_graph.batch.audios["ds_feats"],
+            )
+        else:
+            log("Using repeated alignment.", wrap=True)
+            self.ctc_target = tf.keras.backend.ctc_label_dense_to_sparse(
+                attack_graph.graph.placeholders.targets,
+                attack_graph.graph.placeholders.target_lengths,
+            )
+
+        logits_shape = attack_graph.victim.raw_logits.get_shape().as_list()
+
+        blank_token_pad = tf.zeros(
+            [logits_shape[0], logits_shape[1], 1],
+            tf.float32
+        )
+
+        self.logits_mod = tf.concat(
+            [tf.transpose(logits_mod, [1, 0, 2]), blank_token_pad],
+            axis=2
+        )
+
+        print(self.logits_mod)
+
+        self.loss_fn = tf.nn.ctc_loss(
+            labels=tf.cast(self.ctc_target, tf.int32),
+            inputs=self.logits_mod,
+            sequence_length=seq_lengths,
+            preprocess_collapse_repeated=False,
+            ctc_merge_repeated=False,
+        ) * loss_weight
