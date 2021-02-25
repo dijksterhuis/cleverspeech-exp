@@ -136,7 +136,7 @@ class CTCAlignmentOptimiser:
                 top_five=False
             )
 
-            if all([d == b.targets["phrases"][0] for d in decodings]):
+            if all([d == b.targets["phrases"][0] for d in decodings]) and all(c < 0.1 for c in ctc_limit):
                 s = "Found an alignment for each example:"
                 for d, p, t in zip(decodings, probs, b.targets["phrases"]):
                     s += "\nTarget: {t} | Decoding: {d} | Probs: {p:.3f}".format(
@@ -179,11 +179,6 @@ class CTCAlignmentsUpdateOnDecode(UpdateOnDecoding):
     def run(self):
         self.alignment_graph.optimise(self.attack.victim)
         for r in super().run():
-            print("TARG", self.attack.procedure.tf_run(self.attack.loss[0].target_logit))
-            print("FT", self.attack.procedure.tf_run(self.attack.loss[0].max_fwd_target))
-            print("FO", self.attack.procedure.tf_run(self.attack.loss[0].max_fwd_others))
-            # print("ORIG", self.attack.procedure.tf_run(
-            #     self.attack.loss[0].fwd_others))
             yield r
 
 
@@ -222,7 +217,7 @@ class CTCAlignmentsUpdateOnLoss(UpdateOnLoss):
 
 
 class BaseLogitDiffLoss(BaseLoss):
-    def __init__(self, attack_graph, target_argmax, weight_initial=1.0, weight_increment=1.0):
+    def __init__(self, attack_graph, target_argmax, weight_settings=(None, None)):
         """
         This is a modified version of f_{6} from https://arxiv.org/abs/1608.04644
         using the gradient clipping update method.
@@ -242,8 +237,7 @@ class BaseLogitDiffLoss(BaseLoss):
         super().__init__(
             attack_graph.sess,
             attack_graph.batch.size,
-            weight_initial=weight_initial,
-            weight_increment=weight_increment
+            weight_settings=weight_settings
         )
 
         g = attack_graph
@@ -288,106 +282,113 @@ class BaseLogitDiffLoss(BaseLoss):
 
 
 class BaseVibertishLoss(BaseLogitDiffLoss):
-    def __init__(self, attack_graph, target_argmax):
+    def __init__(self, attack_graph, target_argmax, weight_settings=(None, None)):
+
         super().__init__(
             attack_graph,
             target_argmax,
-            weight_initial=1.0,
-            weight_increment=1.0
+            weight_settings=weight_settings
         )
 
-        framewise_targets = tf.transpose(self.target_logit, [1, 0])
-        framewise_others = tf.transpose(self.max_other_logit, [1, 0])
+        exp_framewise_targets = tf.transpose(self.target_logit, [1, 0])
+        exp_framewise_others = tf.nn.log_softmax(tf.transpose(self.max_other_logit, [1, 0]))
 
-        initial = tf.ones([self.current.shape.as_list()[2]])
+        max_log_state = tf.reduce_max(exp_framewise_targets, axis=0)
 
         # the geometric prob product of the target alignment
+
         self.fwd_target = tf.scan(
-            lambda a, x: a + tf.exp(x),
-            framewise_targets,
+            lambda a, x: max_log_state - tf.log(tf.exp(a) * tf.exp(x)),
+            exp_framewise_targets
         )
         self.back_target = tf.scan(
-            lambda a, x: a + tf.exp(x),
-            framewise_targets,
+            lambda a, x: max_log_state - tf.log(tf.exp(a) * tf.exp(x)),
+            exp_framewise_targets,
             reverse=True
         )
 
         # others only calculates the next likely alignment based on the argmax
         # ==> I need to calculate the [state, state] matrix from CTC loss, but
         # excluding the target alignment. Then take the difference of the target
-        # alignment vs. **ALL** other alignments.3
+        # alignment vs. **ALL** other alignments.
 
-        self.fwd_others = tf.scan(
-            lambda a, x: a + tf.exp(x),
-            framewise_others,
+        self.fwd_next_likely = tf.scan(
+            lambda a, x: max_log_state - tf.log(tf.exp(a) * tf.exp(x)),
+            exp_framewise_others
         )
-        self.back_others = tf.scan(
-            lambda a, x: a + tf.exp(x),
-            framewise_others,
+        self.back_next_likely = tf.scan(
+            lambda a, x: max_log_state - tf.log(tf.exp(a) * tf.exp(x)),
+            exp_framewise_others,
             reverse=True
         )
 
         # alignment probabilities are the last values in this sequence
         self.max_fwd_target = tf.reduce_max(self.fwd_target, axis=0)
-        self.max_fwd_others = tf.reduce_max(self.fwd_others, axis=0)
+        self.max_fwd_others = tf.reduce_max(self.fwd_next_likely, axis=0)
+        self.max_back_target = tf.reduce_max(self.back_target, axis=0)
+        self.max_back_others = tf.reduce_max(self.back_next_likely, axis=0)
 
-        self.fwd_prod = -self.max_fwd_target + self.max_fwd_others
-        #self.fwd_prod = tf.transpose(self.fwd_prod, [1 ,0])
-        self.back_prod = -self.back_target + self.back_others
+        self.fwd_prod = -self.fwd_target + self.fwd_next_likely
+        self.back_prod = -self.back_target + self.back_next_likely
 
 
 class FwdPlusBackVibertish(BaseVibertishLoss):
-    def __init__(self, attack_graph, target_argmax):
+    def __init__(self, attack_graph, target_argmax, weight_settings=(-1.0, -1.0)):
         """
         """
 
         super().__init__(
             attack_graph,
             target_argmax,
+            weight_settings=weight_settings,
         )
 
         self.prod = self.fwd_prod + self.back_prod
-        self.loss_fn = tf.reduce_sum(self.prod, axis=1) * self.weights
+        self.loss_fn = tf.reduce_sum(self.prod, axis=0) * self.weights
 
 
 class FwdMultBackVibertish(BaseVibertishLoss):
-    def __init__(self, attack_graph, target_argmax):
+    def __init__(self, attack_graph, target_argmax, weight_settings=(-1.0, -1.0)):
         """
         """
 
         super().__init__(
             attack_graph,
             target_argmax,
+            weight_settings=weight_settings,
         )
 
         self.prod = -(self.fwd_prod * self.back_prod)
-        self.loss_fn = tf.reduce_sum(self.prod, axis=1) * self.weights
+        self.loss_fn = tf.reduce_sum(self.prod, axis=0) * self.weights
 
 
 class FwdOnlyVibertish(BaseVibertishLoss):
-    def __init__(self, attack_graph, target_argmax):
+    def __init__(self, attack_graph, target_argmax, weight_settings=(-1.0, -1.0)):
         """
         """
 
         super().__init__(
             attack_graph,
             target_argmax,
+            weight_settings=weight_settings,
         )
 
         self.prod = self.fwd_prod
-        self.loss_fn = tf.reduce_sum(self.prod, axis=1) * self.weights
+        self.loss_fn = tf.reduce_sum(self.prod, axis=0) * self.weights
 
 
 class BackOnlyVibertish(BaseVibertishLoss):
-    def __init__(self, attack_graph, target_argmax):
+    def __init__(self, attack_graph, target_argmax, weight_settings=(-1.0, -1.0)):
         """
         """
 
         super().__init__(
             attack_graph,
             target_argmax,
+            weight_settings=weight_settings,
         )
 
         self.prod = self.back_prod
-        self.loss_fn = tf.reduce_sum(self.prod, axis=1) * self.weights
+        self.loss_fn = tf.reduce_sum(self.prod, axis=0) * self.weights
+
 

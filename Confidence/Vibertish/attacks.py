@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import os
-import numpy as np
 
 from cleverspeech.graph.GraphConstructor import Constructor
 from cleverspeech.graph import Constraints
@@ -16,7 +15,6 @@ from cleverspeech.data.etl.batch_generators import get_dense_batch_factory
 from cleverspeech.utils.Utils import log, args
 
 from SecEval import VictimAPI as DeepSpeech
-
 
 from boilerplate import execute
 
@@ -405,7 +403,11 @@ def vibertish_fwd_only_sparse_run(master_settings):
         alignment.add_loss(custom_defs.AlignmentLoss)
         alignment.create_loss_fn()
         alignment.add_optimiser(custom_defs.CTCAlignmentOptimiser)
-
+        attack.add_loss(
+            custom_defs.AntiCTC,
+            alignment=alignment.graph.target_alignments,
+            loss_weight=10,
+        )
         attack.add_loss(
             custom_defs.FwdOnlyVibertish,
             alignment.graph.target_alignments,
@@ -660,7 +662,7 @@ def vibertish_fwd_mult_back_sparse_run(master_settings):
             beam_width=settings["beam_width"]
         )
 
-        alignment = Constructor(attack.sess, batch)
+        alignment = Constructor(attack.sess, batch, feeds)
         alignment.add_graph(custom_defs.CTCSearchGraph, attack)
         alignment.add_loss(custom_defs.AlignmentLoss)
         alignment.create_loss_fn()
@@ -726,8 +728,8 @@ if __name__ == '__main__':
     experiments = {
         "dense-vibertish-fwd": vibertish_fwd_only_dense_run,
         "dense-vibertish-back": vibertish_back_only_sparse_run,
-        "dense-vibertish-fwdplusback": vibertish_fwd_plus_back_sparse_run,
-        "dense-vibertish-fwdmultback": vibertish_fwd_mult_back_sparse_run,
+        "dense-vibertish-fwdplusback": vibertish_fwd_plus_back_dense_run,
+        "dense-vibertish-fwdmultback": vibertish_fwd_mult_back_dense_run,
         "sparse-vibertish-fwd": vibertish_fwd_only_sparse_run,
         "sparse-vibertish-back": vibertish_back_only_sparse_run,
         "sparse-vibertish-fwdplusback": vibertish_fwd_plus_back_sparse_run,
