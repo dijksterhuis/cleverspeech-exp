@@ -1,3 +1,1 @@
-# HiScores Attacks
-
 TODO
