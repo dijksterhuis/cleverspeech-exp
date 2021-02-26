@@ -9,6 +9,7 @@ from cleverspeech.utils.Utils import lcomp, log
 class AlignmentLoss(object):
     def __init__(self, alignment_graph):
         seq_lens = alignment_graph.batch.audios["real_feats"]
+        # seq_lens = [s for s in seq_lens]
 
         self.ctc_target = tf.keras.backend.ctc_label_dense_to_sparse(
             alignment_graph.graph.targets,
@@ -73,7 +74,14 @@ class CTCSearchGraph:
         for l in per_logit_len:
             # per possible frame
             masks = []
-            for f in range(maxlen):
+            # FWD Viberti weirdness means we need to leave one blank space at
+            # the end of the alignment, for some reason (possibly even/odd
+            # numbers of feats?).
+            for _ in range(3):
+                mask = np.zeros([29])
+                mask[28] = 30.0
+                masks.append(mask)
+            for f in range(3, maxlen):
                 if l > f:
                     # if should be optimised
                     mask = np.zeros([29])
@@ -135,8 +143,9 @@ class CTCAlignmentOptimiser:
                 decoder="batch",
                 top_five=False
             )
+            print(decodings, ctc_limit)
 
-            if all([d == b.targets["phrases"][0] for d in decodings]) and all(c < 0.1 for c in ctc_limit):
+            if all([d == b.targets["phrases"][0] for d in decodings]) and all(c < 0.0001 for c in ctc_limit):
                 s = "Found an alignment for each example:"
                 for d, p, t in zip(decodings, probs, b.targets["phrases"]):
                     s += "\nTarget: {t} | Decoding: {d} | Probs: {p:.3f}".format(
@@ -290,50 +299,106 @@ class BaseVibertishLoss(BaseLogitDiffLoss):
             weight_settings=weight_settings
         )
 
-        exp_framewise_targets = tf.transpose(self.target_logit, [1, 0])
+        n_feats = self.target_logit.get_shape().as_list()[1]
+
+        feats_weight = tf.cast(tf.range(1, n_feats + 1), dtype=tf.float32)
+        back_feats_weight = tf.cast(tf.range(n_feats + 1, 1, -1), dtype=tf.float32)
+
+        if (n_feats) // 2 == 0:
+            sign = 1
+        else:
+            sign = -1
+
+        exp_framewise_targets = tf.nn.softmax(tf.transpose(self.target_logit, [1, 0]))
         exp_framewise_others = tf.nn.log_softmax(tf.transpose(self.max_other_logit, [1, 0]))
 
         max_log_state = tf.reduce_max(exp_framewise_targets, axis=0)
 
         # the geometric prob product of the target alignment
 
-        self.fwd_target = tf.scan(
-            lambda a, x: max_log_state - tf.log(tf.exp(a) * tf.exp(x)),
-            exp_framewise_targets
-        )
-        self.back_target = tf.scan(
-            lambda a, x: max_log_state - tf.log(tf.exp(a) * tf.exp(x)),
-            exp_framewise_targets,
-            reverse=True
-        )
+        # self.fwd_target = tf.scan(
+        #     lambda a, x: tf.log(tf.exp(a) * tf.exp(x)) / tf.reduce_sum(a),
+        #     exp_framewise_targets
+        # )
+
+        # self.back_target = tf.scan(
+        #     lambda a, x: max_log_state - tf.log(tf.exp(a) * tf.exp(x)),
+        #     exp_framewise_targets,
+        #     reverse=True
+        # )
+
+        self.log_smax = tf.nn.log_softmax(self.target_logit),
+
+        self.fwd_target = tf.abs(tf.cumprod(
+            tf.nn.log_softmax(self.target_logit),
+            exclusive=False,
+            reverse=False,
+            axis=1
+        )) / tf.exp(feats_weight)
+
+        self.back_target = tf.abs(tf.cumprod(
+            tf.nn.log_softmax(self.target_logit),
+            exclusive=False,
+            reverse=True,
+            axis=1
+        )) / tf.exp(back_feats_weight)
+
+        # self.fwd_target_mod = tf.scan(
+        #     lambda a, x: a * tf.abs(x),
+        #     tf.transpose(tf.nn.log_softmax(self.target_logit), [1, 0])
+        # )
+        #
+        # self.fwd_target_mod = tf.transpose(
+        #     self.fwd_target_mod, [1, 0]
+        # ) * (self.target_logit)
+        #
+        # self.back_target_mod = tf.cumprod(
+        #     tf.nn.softmax(self.target_logit),
+        #     exclusive=False,
+        #     reverse=True,
+        #     axis=1
+        # )
 
         # others only calculates the next likely alignment based on the argmax
         # ==> I need to calculate the [state, state] matrix from CTC loss, but
         # excluding the target alignment. Then take the difference of the target
         # alignment vs. **ALL** other alignments.
 
-        self.fwd_next_likely = tf.scan(
-            lambda a, x: max_log_state - tf.log(tf.exp(a) * tf.exp(x)),
-            exp_framewise_others
-        )
-        self.back_next_likely = tf.scan(
-            lambda a, x: max_log_state - tf.log(tf.exp(a) * tf.exp(x)),
-            exp_framewise_others,
-            reverse=True
-        )
+        self.fwd_next_likely = tf.abs(tf.cumprod(
+            tf.nn.log_softmax(self.max_other_logit),
+            exclusive=False,
+            reverse=False,
+            axis=1
+        )) / tf.exp(feats_weight)
+
+        self.back_next_likely = tf.abs(tf.cumprod(
+            tf.nn.log_softmax(self.max_other_logit),
+            exclusive=False,
+            reverse=True,
+            axis=1
+        )) / tf.exp(back_feats_weight)
+
+
+        # self.fwd_next_likely = tf.scan(
+        #     lambda a, x: max_log_state - tf.log(tf.exp(a) * tf.exp(x)),
+        #     exp_framewise_others
+        # )
+        # self.back_next_likely = tf.scan(
+        #     lambda a, x: max_log_state - tf.log(tf.exp(a) * tf.exp(x)),
+        #     exp_framewise_others,
+        #     reverse=True
+        # )
 
         # alignment probabilities are the last values in this sequence
-        self.max_fwd_target = tf.reduce_max(self.fwd_target, axis=0)
-        self.max_fwd_others = tf.reduce_max(self.fwd_next_likely, axis=0)
-        self.max_back_target = tf.reduce_max(self.back_target, axis=0)
-        self.max_back_others = tf.reduce_max(self.back_next_likely, axis=0)
-
-        self.fwd_prod = -self.fwd_target + self.fwd_next_likely
-        self.back_prod = -self.back_target + self.back_next_likely
+        # self.max_fwd_target = tf.reduce_max(self.fwd_target, axis=1)
+        self.max_fwd_target = tf.reduce_sum(self.fwd_target, axis=1)
+        self.max_fwd_others = tf.reduce_sum(self.fwd_next_likely, axis=1)
+        self.max_back_target = tf.reduce_sum(self.back_target, axis=1)
+        self.max_back_others = tf.reduce_sum(self.back_next_likely, axis=0)
 
 
 class FwdOnlyVibertish(BaseVibertishLoss):
-    def __init__(self, attack_graph, target_argmax, weight_settings=(-1.0, -1.0)):
+    def __init__(self, attack_graph, target_argmax, weight_settings=(1.0, 1.0)):
         """
         """
 
@@ -343,12 +408,12 @@ class FwdOnlyVibertish(BaseVibertishLoss):
             weight_settings=weight_settings,
         )
 
-        self.prod = self.fwd_prod
-        self.loss_fn = tf.reduce_sum(self.prod, axis=0) * self.weights
+        self.loss_fn = self.max_fwd_target
+        self.loss_fn *= self.weights
 
 
 class BackOnlyVibertish(BaseVibertishLoss):
-    def __init__(self, attack_graph, target_argmax, weight_settings=(-1.0, -1.0)):
+    def __init__(self, attack_graph, target_argmax, weight_settings=(1.0, 1.0)):
         """
         """
 
@@ -358,12 +423,12 @@ class BackOnlyVibertish(BaseVibertishLoss):
             weight_settings=weight_settings,
         )
 
-        self.prod = self.back_prod
-        self.loss_fn = tf.reduce_sum(self.prod, axis=0) * self.weights
+        self.loss_fn = self.max_back_target
+        self.loss_fn *= self.weights
 
 
 class FwdPlusBackVibertish(BaseVibertishLoss):
-    def __init__(self, attack_graph, target_argmax, weight_settings=(-1.0, -1.0)):
+    def __init__(self, attack_graph, target_argmax, weight_settings=(1.0, 1.0)):
         """
         """
 
@@ -373,12 +438,13 @@ class FwdPlusBackVibertish(BaseVibertishLoss):
             weight_settings=weight_settings,
         )
 
-        self.prod = self.fwd_prod + self.back_prod
-        self.loss_fn = tf.reduce_sum(self.prod, axis=0) * self.weights
+        self.loss_fn = self.max_fwd_target # + self.max_fwd_others
+        self.loss_fn += self.max_back_target # + self.max_back_others
+        self.loss_fn *= self.weights
 
 
 class FwdMultBackVibertish(BaseVibertishLoss):
-    def __init__(self, attack_graph, target_argmax, weight_settings=(-1.0, -1.0)):
+    def __init__(self, attack_graph, target_argmax, weight_settings=(1.0, 1.0)):
         """
         """
 
@@ -388,8 +454,7 @@ class FwdMultBackVibertish(BaseVibertishLoss):
             weight_settings=weight_settings,
         )
 
-        self.prod = -(self.fwd_prod * self.back_prod)
-        self.loss_fn = tf.reduce_sum(self.prod, axis=0) * self.weights
-
+        self.loss_fn = self.max_fwd_target * self.max_back_target
+        self.loss_fn *= self.weights
 
 
