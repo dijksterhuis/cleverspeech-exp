@@ -22,7 +22,7 @@ from boilerplate import execute
 import custom_defs
 
 GPU_DEVICE = 0
-MAX_PROCESSES = 3
+MAX_PROCESSES = 1
 SPAWN_DELAY = 30
 
 TOKENS = " abcdefghijklmnopqrstuvwxyz'-"
@@ -34,15 +34,16 @@ OUTDIR = "./adv/vibertish/"
 
 # targets search parameters
 MAX_EXAMPLES = 100
-MAX_TARGETS = 1000
+MAX_TARGETS = 200
 MAX_AUDIO_LENGTH = 120000
 
-RESCALE = 0.95
 CONSTRAINT_UPDATE = "geom"
-LEARNING_RATE = 10
-NUMB_STEPS = 20000
-DECODING_STEP = 10
-BATCH_SIZE = 10
+RESCALE = 0.85
+LEARNING_RATE = 100
+BATCH_SIZE = 1
+DECODING_STEP = 500
+QUERIES = 1e3
+NUMB_STEPS = QUERIES * DECODING_STEP
 
 N_RUNS = 1
 
