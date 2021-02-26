@@ -723,14 +723,14 @@ def vibertish_fwd_mult_back_sparse_run(master_settings):
 if __name__ == '__main__':
 
     experiments = {
-        "dense-vibertish-fwd": vibertish_fwd_only_dense_run,
-        "dense-vibertish-back": vibertish_back_only_sparse_run,
-        "dense-vibertish-fwdplusback": vibertish_fwd_plus_back_dense_run,
-        "dense-vibertish-fwdmultback": vibertish_fwd_mult_back_dense_run,
-        "sparse-vibertish-fwd": vibertish_fwd_only_sparse_run,
-        "sparse-vibertish-back": vibertish_back_only_sparse_run,
-        "sparse-vibertish-fwdplusback": vibertish_fwd_plus_back_sparse_run,
-        "sparse-vibertish-fwdmultback": vibertish_fwd_mult_back_sparse_run,
+        "dense-fwd": vibertish_fwd_only_dense_run,
+        "dense-back": vibertish_back_only_sparse_run,
+        "dense-fwdplusback": vibertish_fwd_plus_back_dense_run,
+        "dense-fwdmultback": vibertish_fwd_mult_back_dense_run,
+        "sparse-fwd": vibertish_fwd_only_sparse_run,
+        "sparse-back": vibertish_back_only_sparse_run,
+        "sparse-fwdplusback": vibertish_fwd_plus_back_sparse_run,
+        "sparse-fwdmultback": vibertish_fwd_mult_back_sparse_run,
     }
 
     args(experiments)
