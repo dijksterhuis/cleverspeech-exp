@@ -288,7 +288,7 @@ class AntiCTC(BaseLoss):
             axis=2
         )
 
-        self.loss_fn = tf.nn.ctc_loss(
+        self.loss_fn = -tf.nn.ctc_loss(
             labels=tf.cast(self.ctc_target, tf.int32),
             inputs=self.logits_mod,
             sequence_length=seq_lengths,
