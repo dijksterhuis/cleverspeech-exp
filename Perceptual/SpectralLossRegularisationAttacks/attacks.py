@@ -12,14 +12,16 @@ from cleverspeech.graph import Outputs
 from cleverspeech.data import Feeds
 
 from cleverspeech.data.etl.batch_generators import get_standard_batch_generator
+from cleverspeech.data.etl.batch_generators import get_dense_batch_factory
+from cleverspeech.data.Results import SingleJsonDB, SingleFileWriter
+from cleverspeech.eval import PerceptualStatsBatch
+from cleverspeech.utils.RuntimeUtils import AttackSpawner
 from cleverspeech.utils.Utils import log, args
 
 # victim model
 from SecEval import VictimAPI as Victim
 
-# attack spawner import
-from boilerplate import execute
-
+# custom definitions
 import CustomLosses
 
 GPU_DEVICE = 0
@@ -44,6 +46,40 @@ DECODING_STEP = 10
 BATCH_SIZE = 10
 
 N_RUNS = 5
+
+
+def execute(settings, attack_fn, batch_gen):
+
+    # set up the directory we'll use for results
+
+    if not os.path.exists(settings["outdir"]):
+        os.makedirs(settings["outdir"], exist_ok=True)
+
+    file_writer = SingleFileWriter(settings["outdir"])
+
+    # Write the current settings to "settings.json" file.
+
+    settings_db = SingleJsonDB(settings["outdir"])
+    settings_db.open("settings").put(settings)
+    log("Wrote settings.")
+
+    # Manage GPU memory and CPU processes usage.
+
+    attack_spawner = AttackSpawner(
+        gpu_device=settings["gpu_device"],
+        max_processes=settings["max_spawns"],
+        delay=settings["spawn_delay"],
+        file_writer=file_writer,
+    )
+
+    with attack_spawner as spawner:
+        for b_id, batch in batch_gen:
+            log("Running for Batch Number: {}".format(b_id), wrap=True)
+            spawner.spawn(settings, attack_fn, batch)
+
+    # Run the stats function on all successful examples once all attacks
+    # are completed.
+    PerceptualStatsBatch.batch_generate_statistic_file(settings["outdir"])
 
 
 def spectral_run(master_settings):
