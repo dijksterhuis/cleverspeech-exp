@@ -17,7 +17,7 @@ from cleverspeech.eval import PerceptualStatsBatch
 from cleverspeech.utils.RuntimeUtils import AttackSpawner
 from cleverspeech.utils.Utils import log, args
 
-from experiments.Perceptual.SynthesisAttacks.Synthesisers import Spectral, \
+from experiments.Perceptual.Synthesis.Synthesisers import Spectral, \
     DeterministicPlusNoise, Additive
 
 from SecEval import VictimAPI as DeepSpeech

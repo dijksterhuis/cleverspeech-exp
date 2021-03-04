@@ -1,6 +1,6 @@
-from experiments.Perceptual.SynthesisAttacks.Synthesisers.Base import Synth
-from experiments.Perceptual.SynthesisAttacks.Synthesisers import Plain
-from experiments.Perceptual.SynthesisAttacks.Synthesisers import Additive
+from experiments.Perceptual.Synthesis.Synthesisers.Base import Synth
+from experiments.Perceptual.Synthesis.Synthesisers import Plain
+from experiments.Perceptual.Synthesis.Synthesisers import Additive
 
 
 class FreqHarmonicPlusPlain(Synth):

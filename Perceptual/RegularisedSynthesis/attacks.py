@@ -19,7 +19,7 @@ from cleverspeech.utils.Utils import log, args
 
 from SecEval import VictimAPI as DeepSpeech
 
-from experiments.Perceptual.SynthesisAttacks.Synthesisers import Spectral, \
+from experiments.Perceptual.Synthesis.Synthesisers import Spectral, \
     DeterministicPlusNoise, Additive
 
 import custom_defs

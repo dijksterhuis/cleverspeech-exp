@@ -6,8 +6,8 @@ pipeline {
         IMAGE_NAME = "dijksterhuis/cleverspeech"
         TAG = "latest"
         GITHUB_BRANCH = "master"
-        EXP_ARG = "detnoise_freq_harmonic"
-        EXP_DIR = "./experiments/Perceptual/Synthesis"
+        EXP_ARG = "detnoise_full_harmonic"
+        EXP_DIR = "./experiments/Perceptual/RegularisedSynthesis"
         CLEVERSPEECH_HOME = "/home/cleverspeech/cleverSpeech"
     }
     stages {

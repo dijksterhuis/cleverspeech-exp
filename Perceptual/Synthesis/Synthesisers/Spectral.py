@@ -1,7 +1,7 @@
 import tensorflow as tf
 import numpy as np
 
-from experiments.Perceptual.SynthesisAttacks.Synthesisers.Base import Synth
+from experiments.Perceptual.Synthesis.Synthesisers.Base import Synth
 
 
 class STFT(Synth):
