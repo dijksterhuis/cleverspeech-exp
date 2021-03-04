@@ -1,6 +1,8 @@
 import tensorflow as tf
 
-from cleverspeech.graph.Procedures import UpdateOnDecoding
+from abc import ABC
+
+from cleverspeech.graph import Procedures
 from cleverspeech.utils.Utils import lcomp
 
 
@@ -94,19 +96,20 @@ class CTCAlignmentOptimiser:
                 break
 
 
-class CTCAlignmentsUpdateHard(UpdateOnDecoding):
+class CTCAlignmentsMixIn(Procedures.AbstractProcedure, ABC):
     def __init__(self, attack, alignment_graph, *args, **kwargs):
         """
         Initialise the evaluation procedure.
 
         :param attack_graph: The current attack graph perform optimisation with.
         """
+
         super().__init__(attack, *args, **kwargs)
-
         self.alignment_graph = alignment_graph
-        self.__init_optimiser_variables()
+        self.init_optimiser_variables()
 
-    def __init_optimiser_variables(self):
+    def init_optimiser_variables(self):
+
         # We must wait until now to initialise the optimiser so that we can
         # initialise only the attack variables (i.e. not the deepspeech ones).
 
@@ -114,15 +117,29 @@ class CTCAlignmentsUpdateHard(UpdateOnDecoding):
         self.attack.optimiser.create_optimiser()
 
         opt_vars = self.attack.graph.opt_vars
-        opt_vars += [self.alignment_graph.graph.raw_alignments]
+        opt_vars += [self.alignment_graph.graph.initial_alignments]
         opt_vars += self.attack.optimiser.variables
         opt_vars += self.alignment_graph.optimiser.variables
 
         self.attack.sess.run(tf.variables_initializer(opt_vars))
 
     def run(self):
-
         self.alignment_graph.optimise(self.attack.victim)
+        for r in super().run():
+            yield r
 
-        for results in super().run():
-            yield results
+
+class CTCAlignmentsUpdateOnDecode(Procedures.UpdateOnDecoding, CTCAlignmentsMixIn):
+    pass
+
+
+class CTCAlignmentsUnbounded(Procedures.UpdateOnDecoding, CTCAlignmentsMixIn):
+    pass
+
+
+class CTCAlignmentsUpdateOnLoss(Procedures.UpdateOnLoss, CTCAlignmentsMixIn):
+    pass
+
+
+class CTCAlignmentsHardcoreMode(Procedures.HardcoreMode, CTCAlignmentsMixIn):
+    pass

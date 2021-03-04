@@ -265,7 +265,7 @@ def f6_ctc_beam_search_decoder_run(master_settings):
             learning_rate=settings["learning_rate"]
         )
         attack.add_procedure(
-            custom_defs.CTCAlignmentsUpdateHard,
+            custom_defs.CTCAlignmentsUpdateOnDecode,
             alignment_graph=alignment,
             steps=settings["nsteps"],
             decode_step=settings["decode_step"]
@@ -361,7 +361,7 @@ def f6_ctc_greedy_search_decoder_run(master_settings):
             learning_rate=settings["learning_rate"]
         )
         attack.add_procedure(
-            custom_defs.CTCAlignmentsUpdateHard,
+            custom_defs.CTCAlignmentsUpdateOnDecode,
             alignment_graph=alignment,
             steps=settings["nsteps"],
             decode_step=settings["decode_step"]

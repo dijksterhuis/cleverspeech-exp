@@ -194,7 +194,7 @@ class UpdateOnDecodingSynth(UpdateOnDecoding):
                     "top_five_decodings": top_5_decodings[idx],
                     "top_five_probs": top_5_probs[idx],
                 }
-                for idx, success in self.update_on_success(decodings, targets)
+                for idx, success in self.check_for_success(decodings, targets)
             ]
         }
 
@@ -234,6 +234,6 @@ class UpdateOnLossSynth(UpdateOnLoss):
                     "top_five_probs": top_5_probs[idx],
                     "probs": probs[idx]
                 }
-                for idx, success in self.update_on_success(loss, target_loss)
+                for idx, success in self.check_for_success(loss, target_loss)
             ]
         }

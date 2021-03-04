@@ -1,8 +1,10 @@
 import tensorflow as tf
 import numpy as np
 
+from abc import ABC
+
 from cleverspeech.graph.Losses import BaseLoss
-from cleverspeech.graph.Procedures import UpdateOnDecoding, UpdateOnLoss
+from cleverspeech.graph import Procedures
 from cleverspeech.utils.Utils import lcomp, log
 
 
@@ -198,7 +200,7 @@ class CTCAlignmentOptimiser:
                 break
 
 
-class CTCAlignmentsUpdateOnDecode(UpdateOnDecoding):
+class CTCAlignmentsMixIn(Procedures.AbstractProcedure, ABC):
     def __init__(self, attack, alignment_graph, *args, **kwargs):
         """
         Initialise the evaluation procedure.
@@ -207,11 +209,10 @@ class CTCAlignmentsUpdateOnDecode(UpdateOnDecoding):
         """
 
         super().__init__(attack, *args, **kwargs)
-
         self.alignment_graph = alignment_graph
-        self.__init_optimiser_variables()
+        self.init_optimiser_variables()
 
-    def __init_optimiser_variables(self):
+    def init_optimiser_variables(self):
 
         # We must wait until now to initialise the optimiser so that we can
         # initialise only the attack variables (i.e. not the deepspeech ones).
@@ -232,38 +233,20 @@ class CTCAlignmentsUpdateOnDecode(UpdateOnDecoding):
             yield r
 
 
-class CTCAlignmentsUpdateOnLoss(UpdateOnLoss):
-    def __init__(self, attack, alignment_graph, *args, **kwargs):
-        """
-        Initialise the evaluation procedure.
+class CTCAlignmentsUpdateOnDecode(Procedures.UpdateOnDecoding, CTCAlignmentsMixIn):
+    pass
 
-        :param attack_graph: The current attack graph perform optimisation with.
-        """
 
-        super().__init__(attack, *args, **kwargs)
+class CTCAlignmentsUnbounded(Procedures.UpdateOnDecoding, CTCAlignmentsMixIn):
+    pass
 
-        self.alignment_graph = alignment_graph
-        self.__init_optimiser_variables()
 
-    def __init_optimiser_variables(self):
+class CTCAlignmentsUpdateOnLoss(Procedures.UpdateOnLoss, CTCAlignmentsMixIn):
+    pass
 
-        # We must wait until now to initialise the optimiser so that we can
-        # initialise only the attack variables (i.e. not the deepspeech ones).
 
-        self.alignment_graph.optimiser.create_optimiser()
-        self.attack.optimiser.create_optimiser()
-
-        opt_vars = self.attack.graph.opt_vars
-        opt_vars += [self.alignment_graph.graph.initial_alignments]
-        opt_vars += self.attack.optimiser.variables
-        opt_vars += self.alignment_graph.optimiser.variables
-
-        self.attack.sess.run(tf.variables_initializer(opt_vars))
-
-    def run(self):
-        self.alignment_graph.optimise(self.attack.victim)
-        for r in super().run():
-            yield r
+class CTCAlignmentsHardcoreMode(Procedures.HardcoreMode, CTCAlignmentsMixIn):
+    pass
 
 
 class BaseLogitDiffLoss(BaseLoss):
