@@ -4,7 +4,7 @@ pipeline {
     agent { label "gpu" }
     environment {
         IMAGE = "dijksterhuis/cleverspeech:latest"
-        EXP_DIR = "./experiments/Confidence/MaxDiffAdaptiveKappaConf/"
+        EXP_DIR = "./experiments/Confidence/AdaptiveKappa/"
         CLEVERSPEECH_HOME = "/home/cleverspeech/cleverSpeech"
     }
     stages {
