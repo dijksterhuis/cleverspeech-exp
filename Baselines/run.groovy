@@ -11,6 +11,7 @@ pipeline {
         stage("Run experiments in parallel."){
             failFast false
             matrix {
+                agent { label "gpu" }
                 axes {
                     axis {
                         name 'experiment'
@@ -18,16 +19,7 @@ pipeline {
                     }
                 }
                 stages {
-                    stage("Prep work.") {
-                        steps {
-                            script {
-                                withDockerRegistry([ credentialsId: "dhub-mr", url: "" ]) {
-                                    sh "docker container prune -f"
-                                    sh "docker pull ${IMAGE}"
-                                }
-                            }
-                        }
-                    }
+
                     stage("Run experiment") {
                         steps {
                             script {
