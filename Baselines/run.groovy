@@ -1,7 +1,7 @@
 #!/usr/bin/env groovy
 
 pipeline {
-    agent { label "gpu" }
+    agent { label "build" }
     environment {
         IMAGE = "dijksterhuis/cleverspeech:latest"
         EXP_DIR = "./experiments/Baselines/"
@@ -19,7 +19,6 @@ pipeline {
                     }
                 }
                 stages {
-
                     stage("Run experiment") {
                         steps {
                             script {
@@ -41,13 +40,13 @@ pipeline {
                         }
                     }
                 }
-                post {
+                /* post {
                     always {
                         sh "docker image prune -f"
                         sh "docker container prune -f"
                         sh "docker image rm ${IMAGE}"
                     }
-                }
+                } */
             }
         }
     }
