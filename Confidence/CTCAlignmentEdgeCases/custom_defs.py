@@ -23,7 +23,6 @@ class RepeatsCTCLoss(object):
     def __init__(self, attack_graph, alignment=None, loss_weight=1.0):
 
         seq_lengths = attack_graph.batch.audios["ds_feats"]
-        print("SEQ", seq_lengths)
 
         if alignment is not None:
             log("Using CTC alignment search.", wrap=True)

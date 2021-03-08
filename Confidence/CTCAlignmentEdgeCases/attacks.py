@@ -11,6 +11,7 @@ from cleverspeech.graph import Outputs
 from cleverspeech.data import Feeds
 
 from cleverspeech.data.etl.batch_generators import get_standard_batch_generator
+from cleverspeech.data.etl.batch_generators import get_sparse_batch_generator
 from cleverspeech.data.etl.batch_generators import get_dense_batch_factory
 from cleverspeech.data.Results import SingleJsonDB, SingleFileWriter
 from cleverspeech.eval import PerceptualStatsBatch
@@ -54,19 +55,6 @@ LOSS_UPDATE_NUMB_STEPS = 50000
 N_RUNS = 1
 
 
-# Edge Case CTC Alignments
-# ==============================================================================
-# Main idea: what happens during attacks when we focus on two types of
-# alignments at either end of the probability spectrum (for CTC at least)?
-#
-# Sparse Alignment  = o----------p---------e-------------n------------
-# Dense Alignment   = oooooooooooppppppppppeeeeeeeeeeeeeennnnnnnnnnnnn
-#
-# Does one type produce more confident adversarial examples than the other?
-# Is one more robust to destructive transforms than the other?
-# Which one achieves the smallest distance?
-# What happens to confidence as distance is minimised?
-
 
 def execute(settings, attack_fn, batch_gen):
 
@@ -104,14 +92,6 @@ def execute(settings, attack_fn, batch_gen):
 
 def ctc_dense_alignment_run(master_settings):
     """
-    Repeating characters (linear expansion) from a target transcription to
-    create an alignment doesn't help the adversary. There's a 0.5 drop in
-    cumulative log probabilities and a tripling of the required modification
-    size (relative to maximum possible size).
-
-    We want to maximise the classifier confidence for our attacks (see Wild
-    Patterns -- Biggio et al. about the perturbation size misconception).
-
     CTC Loss is used to perform maximum likelihood optimisation. CTC
     Loss is usually used with respect to a target transcription (where the
     length of the target transcription is less than or equal to the number of
@@ -382,15 +362,8 @@ def ctc_sparse_alignment_run(master_settings):
             beam_width=settings["beam_width"]
         )
 
-        alignment = Constructor(attack.sess, batch, feeds)
-        alignment.add_graph(custom_defs.CTCSearchGraph, attack)
-        alignment.add_loss(custom_defs.AlignmentLoss)
-        alignment.create_loss_fn()
-        alignment.add_optimiser(custom_defs.CTCAlignmentOptimiser)
-
         attack.add_loss(
             custom_defs.RepeatsCTCLoss,
-            alignment=alignment.graph.target_alignments,
         )
 
         attack.create_loss_fn()
@@ -401,8 +374,7 @@ def ctc_sparse_alignment_run(master_settings):
         )
 
         attack.add_procedure(
-            custom_defs.CTCAlignmentsUpdateOnDecode,
-            alignment_graph=alignment,
+            Procedures.UpdateOnDecoding,
             steps=settings["nsteps"],
             decode_step=settings["decode_step"],
         )
@@ -444,7 +416,7 @@ def ctc_sparse_alignment_run(master_settings):
 
         settings.update(master_settings)
 
-        batch_factory = get_standard_batch_generator(settings)
+        batch_factory = get_sparse_batch_generator(settings)
 
         execute(settings, create_attack_graph, batch_factory)
 
