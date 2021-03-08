@@ -1,7 +1,7 @@
 #!/usr/bin/env groovy
 
 pipeline {
-    agent { label "gpu" }
+    agent { label "build" }
     environment {
         IMAGE = "dijksterhuis/cleverspeech:latest"
         EXP_DIR = "./experiments/Confidence/AdaptiveKappa/"
@@ -11,6 +11,7 @@ pipeline {
         stage("Run experiments in parallel."){
             failFast false
             matrix {
+                agent { label "gpu" }
                 axes {
                     axis {
                         name 'alignment_type'
@@ -22,43 +23,30 @@ pipeline {
                     }
                 }
                 stages {
-                    stage("Prep work.") {
+                    stage("Run experiment") {
                         steps {
                             script {
-                                withDockerRegistry([ credentialsId: "dhub-mr", url: "" ]) {
-                                    sh "docker container prune -f"
-                                    sh "docker pull ${IMAGE}"
-                                }
+                                echo "+=+=+=+=+=====> Running experiment: ${alignment_type}${loss_type}"
+                                def exp = "${alignment_type}${loss_type}"
+                                sh """
+                                    docker run \
+                                        --gpus device=${GPU_N} \
+                                        -t \
+                                        --rm \
+                                        --name ${exp} \
+                                        -v \$(pwd)/results/:${CLEVERSPEECH_HOME}/adv/ \
+                                        -e LOCAL_UID=\$(id -u ${USER}) \
+                                        -e LOCAL_GID=\$(id -g ${USER}) \
+                                        ${IMAGE} \
+                                        python3 ${EXP_DIR}/attacks.py ${exp} --max_spawns 5
+                                """
                             }
                         }
-                    }
-                    stage("Run experiment") {
-                        script {
-                            echo "+=+=+=+=+=====> Running experiment: ${alignment_type}${loss_type}"
-                            def exp = "${alignment_type}${loss_type}"
-                            sh """
-                                docker run \
-                                    --gpus device=${GPU_N} \
-                                    -t \
-                                    --rm \
-                                    --name ${EXP_ARG} \
-                                    -v \$(pwd)/results/:${CLEVERSPEECH_HOME}/adv/ \
-                                    -e LOCAL_UID=\$(id -u ${USER}) \
-                                    -e LOCAL_GID=\$(id -g ${USER}) \
-                                    ${IMAGE} \
-                                    python3 ${EXP_DIR}/attacks.py ${exp} --max_spawns 5
-                            """
-                        }
-                    }
-                }
-                post {
-                    always {
-                        sh "docker image prune -f"
-                        sh "docker container prune -f"
-                        sh "docker image rm ${IMAGE}"
                     }
                 }
             }
         }
     }
 }
+
+

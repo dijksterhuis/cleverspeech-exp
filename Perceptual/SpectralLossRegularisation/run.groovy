@@ -1,52 +1,47 @@
 #!/usr/bin/env groovy
 
 pipeline {
-    agent { label "gpu" }
+    agent { label "build" }
     environment {
         IMAGE = "dijksterhuis/cleverspeech:latest"
         EXP_DIR = "./experiments/Perceptual/SpectralLossRegularisation"
         CLEVERSPEECH_HOME = "/home/cleverspeech/cleverSpeech"
     }
     stages {
-        stage("Prep work.") {
-            steps {
-                script {
-                    withDockerRegistry([ credentialsId: "dhub-mr", url: "" ]) {
-                        sh "docker container prune -f"
-                        sh "docker pull ${IMAGE}"
-                    }
-                }
-            }
-        }
         stage("Run experiments."){
-            steps {
-                script {
-                    def experiments = ['multi_scale', 'spectral']
-                    for (int i = 0; i < experiments.size(); ++i) {
-                        echo "Running ${experiments[i]}"
-                        sh """
-                            docker run \
-                                --gpus device=${GPU_N} \
-                                -t \
-                                --rm \
-                                --name ${EXP_ARG} \
-                                -v \$(pwd)/results/:${CLEVERSPEECH_HOME}/adv/ \
-                                -e LOCAL_UID=\$(id -u ${USER}) \
-                                -e LOCAL_GID=\$(id -g ${USER}) \
-                                ${IMAGE} \
-                                python3 ${EXP_DIR}/attacks.py ${experiments[i]} --max_spawns 5
-                        """
+            failFast false
+            matrix {
+                agent { label "gpu" }
+                axes {
+                    axis {
+                        name 'experiment'
+                        values 'multi_scale', 'spectral'
                     }
-
+                }
+                stages {
+                    stage("Run ${experiment} experiment") {
+                        steps {
+                            script {
+                                echo "+=+=+=+=+=====> Running experiment: ${experiment}"
+                                def exp = "${experiment}"
+                                sh """
+                                    docker run \
+                                        --gpus device=${GPU_N} \
+                                        -t \
+                                        --rm \
+                                        --name ${exp} \
+                                        -v \$(pwd)/results/:${CLEVERSPEECH_HOME}/adv/ \
+                                        -e LOCAL_UID=\$(id -u ${USER}) \
+                                        -e LOCAL_GID=\$(id -g ${USER}) \
+                                        ${IMAGE} \
+                                        python3 ${EXP_DIR}/attacks.py ${exp} --max_spawns 5
+                                """
+                                }
+                            }
+                        }
+                    }
                 }
             }
-        }
-    }
-    post  {
-        always {
-            sh "docker image prune -f"
-            sh "docker container prune -f"
-            sh "docker image rm ${IMAGE}"
         }
     }
 }
