@@ -5,8 +5,6 @@ pipeline {
     environment {
         IMAGE_NAME = "dijksterhuis/cleverspeech"
         TAG = "latest"
-        BEAM_EXP_ARG = "ctcmaxdiff_beam"
-        GREEDY_EXP_ARG = "ctcmaxdiff_greedy"
         EXP_DIR = "./experiments/Baselines"
         CLEVERSPEECH_HOME = "/home/cleverspeech/cleverSpeech"
     }
@@ -21,7 +19,50 @@ pipeline {
                 }
             }
         }
+        stage("Run baseline CTC experiment."){
+            steps {
+                script {
 
+                    sh """
+                    docker run \
+                        --gpus device=${GPU_N} \
+                        -t \
+                        --rm \
+                        --name ${EXP_ARG} \
+                        -v \$(pwd)/results/:${CLEVERSPEECH_HOME}/adv/ \
+                        -e LOCAL_UID=\$(id -u ${USER}) \
+                        -e LOCAL_GID=\$(id -g ${USER}) \
+                        ${IMAGE_NAME}:${TAG} \
+                        python3 \
+                        ${EXP_DIR}/attacks.py \
+                        ctc \
+                        --max_spawns 5
+                    """
+                }
+            }
+        }
+        stage("Run CTC V2 experiment."){
+            steps {
+                script {
+
+                    sh """
+                    docker run \
+                        --gpus device=${GPU_N} \
+                        -t \
+                        --rm \
+                        --name ${EXP_ARG} \
+                        -v \$(pwd)/results/:${CLEVERSPEECH_HOME}/adv/ \
+                        -e LOCAL_UID=\$(id -u ${USER}) \
+                        -e LOCAL_GID=\$(id -g ${USER}) \
+                        ${IMAGE_NAME}:${TAG} \
+                        python3 \
+                        ${EXP_DIR}/attacks.py \
+                        ctc_v2 \
+                        --max_spawns 5
+                    """
+                }
+            }
+        }
         stage("Run CW Max Diff attack with CTC alignment search and greedy search decoder."){
             steps {
                 script {
@@ -37,7 +78,7 @@ pipeline {
                         ${IMAGE_NAME}:${TAG} \
                         python3 \
                         ${EXP_DIR}/attacks.py \
-                        ${GREEDY_EXP_ARG} \
+                        ctcalign_maxdiff_greedy \
                         --max_spawns 5
                     """
                 }
@@ -59,7 +100,7 @@ pipeline {
                         ${IMAGE_NAME}:${TAG} \
                         python3 \
                         ${EXP_DIR}/attacks.py \
-                        ${BEAM_EXP_ARG} \
+                        ctcalign_maxdiff_beam \
                         --max_spawns 5
                     """
                 }

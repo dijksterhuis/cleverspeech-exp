@@ -45,6 +45,7 @@ DECODING_STEP = 10
 BATCH_SIZE = 10
 
 N_RUNS = 5
+KAPPA=5.0
 
 
 def execute(settings, attack_fn, batch_gen):
@@ -316,40 +317,41 @@ def f6_ctc_beam_search_decoder_run(master_settings):
 
         return attack
 
-    for run in range(0, N_RUNS * 2 + 1, 2):
+    # for run in range(0, N_RUNS * 2 + 1, 2):
 
-        outdir = os.path.join(OUTDIR, "ctcmaxdiff/")
-        outdir = os.path.join(outdir, "kappa_{}/".format(run))
+    outdir = os.path.join(OUTDIR, "maxdiff/")
+    outdir = os.path.join(outdir, "ctcalign/")
+    outdir = os.path.join(outdir, "kappa_{}/".format(KAPPA))
 
-        settings = {
-            "audio_indir": AUDIOS_INDIR,
-            "targets_path": TARGETS_PATH,
-            "outdir": outdir,
-            "batch_size": BATCH_SIZE,
-            "tokens": TOKENS,
-            "nsteps": NUMB_STEPS,
-            "decode_step": DECODING_STEP,
-            "beam_width": BEAM_WIDTH,
-            "constraint_update": CONSTRAINT_UPDATE,
-            "rescale": RESCALE,
-            "learning_rate": LEARNING_RATE,
-            "gpu_device": GPU_DEVICE,
-            "max_spawns": MAX_PROCESSES,
-            "spawn_delay": SPAWN_DELAY,
-            "kappa": float(run),
-            "decoder_type": "batch",
-            "max_examples": MAX_EXAMPLES,
-            "max_targets": MAX_TARGETS,
-            "max_audio_length": MAX_AUDIO_LENGTH,
-        }
+    settings = {
+        "audio_indir": AUDIOS_INDIR,
+        "targets_path": TARGETS_PATH,
+        "outdir": outdir,
+        "batch_size": BATCH_SIZE,
+        "tokens": TOKENS,
+        "nsteps": NUMB_STEPS,
+        "decode_step": DECODING_STEP,
+        "beam_width": BEAM_WIDTH,
+        "constraint_update": CONSTRAINT_UPDATE,
+        "rescale": RESCALE,
+        "learning_rate": LEARNING_RATE,
+        "gpu_device": GPU_DEVICE,
+        "max_spawns": MAX_PROCESSES,
+        "spawn_delay": SPAWN_DELAY,
+        "kappa": float(KAPPA),
+        "decoder_type": "batch",
+        "max_examples": MAX_EXAMPLES,
+        "max_targets": MAX_TARGETS,
+        "max_audio_length": MAX_AUDIO_LENGTH,
+    }
 
-        settings.update(master_settings)
+    settings.update(master_settings)
 
-        batch_gen = get_standard_batch_generator(settings)
+    batch_gen = get_standard_batch_generator(settings)
 
-        execute(settings, create_attack_graph, batch_gen)
+    execute(settings, create_attack_graph, batch_gen)
 
-        log("Finished run {}.".format(run))
+    log("Finished run.") # {}.".format(run))
 
 
 def f6_ctc_greedy_search_decoder_run(master_settings):
@@ -414,44 +416,45 @@ def f6_ctc_greedy_search_decoder_run(master_settings):
 
         return attack
 
-    for run in range(0, N_RUNS * 2 + 1, 2):
+    # for run in range(0, N_RUNS * 2 + 1, 2):
 
-        outdir = os.path.join(OUTDIR, "ctcmaxdiff/")
-        outdir = os.path.join(outdir, "kappa_{}/".format(run))
+    outdir = os.path.join(OUTDIR, "maxdiff/")
+    outdir = os.path.join(outdir, "ctcalign/")
+    outdir = os.path.join(outdir, "kappa_{}/".format(KAPPA))
 
-        settings = {
-            "audio_indir": AUDIOS_INDIR,
-            "targets_path": TARGETS_PATH,
-            "outdir": outdir,
-            "batch_size": BATCH_SIZE,
-            "tokens": TOKENS,
-            "nsteps": NUMB_STEPS,
-            "decode_step": DECODING_STEP,
-            "beam_width": BEAM_WIDTH,
-            "constraint_update": CONSTRAINT_UPDATE,
-            "rescale": RESCALE,
-            "learning_rate": LEARNING_RATE,
-            "gpu_device": GPU_DEVICE,
-            "max_spawns": MAX_PROCESSES,
-            "spawn_delay": SPAWN_DELAY,
-            "kappa": float(run),
-            "decoder_type": "greedy",
-            "max_examples": MAX_EXAMPLES,
-            "max_targets": MAX_TARGETS,
-            "max_audio_length": MAX_AUDIO_LENGTH,
-        }
+    settings = {
+        "audio_indir": AUDIOS_INDIR,
+        "targets_path": TARGETS_PATH,
+        "outdir": outdir,
+        "batch_size": BATCH_SIZE,
+        "tokens": TOKENS,
+        "nsteps": NUMB_STEPS,
+        "decode_step": DECODING_STEP,
+        "beam_width": BEAM_WIDTH,
+        "constraint_update": CONSTRAINT_UPDATE,
+        "rescale": RESCALE,
+        "learning_rate": LEARNING_RATE,
+        "gpu_device": GPU_DEVICE,
+        "max_spawns": MAX_PROCESSES,
+        "spawn_delay": SPAWN_DELAY,
+        "kappa": float(KAPPA),
+        "decoder_type": "greedy",
+        "max_examples": MAX_EXAMPLES,
+        "max_targets": MAX_TARGETS,
+        "max_audio_length": MAX_AUDIO_LENGTH,
+    }
 
-        settings.update(master_settings)
+    settings.update(master_settings)
 
-        batch_gen = get_standard_batch_generator(settings)
+    batch_gen = get_standard_batch_generator(settings)
 
-        execute(
-            settings,
-            create_attack_graph,
-            batch_gen,
-        )
+    execute(
+        settings,
+        create_attack_graph,
+        batch_gen,
+    )
 
-        log("Finished run {}.".format(run))
+    log("Finished run.") # {}.".format(run))
 
 
 if __name__ == '__main__':
@@ -461,8 +464,8 @@ if __name__ == '__main__':
     experiments = {
         "ctc": baseline_ctc_run,
         "ctc_v2": baseline_ctc_v2_run,
-        "ctcmaxdiff_beam": f6_ctc_beam_search_decoder_run,
-        "ctcmaxdiff_greedy": f6_ctc_greedy_search_decoder_run,
+        "ctcalign_maxdiff_beam": f6_ctc_beam_search_decoder_run,
+        "ctcalign_maxdiff_greedy": f6_ctc_greedy_search_decoder_run,
     }
 
     args(experiments)
