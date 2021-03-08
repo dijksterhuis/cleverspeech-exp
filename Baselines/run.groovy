@@ -13,8 +13,8 @@ pipeline {
             matrix {
                 axes {
                     axis {
-                        name: 'experiment'
-                        values: 'ctc', 'ctc_v2', 'ctcalign_maxdiff_greedy', 'ctcalign_maxdiff_beam'
+                        name 'experiment'
+                        values 'ctc', 'ctc_v2', 'ctcalign_maxdiff_greedy', 'ctcalign_maxdiff_beam'
                     }
                 }
                 stages {

@@ -23,12 +23,12 @@ pipeline {
             matrix {
                 axes {
                     axis {
-                        name: 'alignment_type'
-                        values: 'dense', 'sparse', 'ctcalign'
+                        name 'alignment_type'
+                        values 'dense', 'sparse', 'ctcalign'
                     }
                     axis {
-                        name: 'loss_type'
-                        values: '-adaptive-kappa'
+                        name 'loss_type'
+                        values '-adaptive-kappa'
                     }
                 }
                 stages {

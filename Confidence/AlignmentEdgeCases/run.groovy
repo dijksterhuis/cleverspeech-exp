@@ -23,12 +23,12 @@ pipeline {
             matrix {
                 axes {
                     axis {
-                        name: 'alignment_type'
-                        values: 'dense', 'sparse', 'ctcalign'
+                        name 'alignment_type'
+                        values 'dense', 'sparse', 'ctcalign'
                     }
                     axis {
-                        name: 'proc_type'
-                        values: '', '-extreme'
+                        name 'proc_type'
+                        values '', '-extreme'
                     }
                 }
                 stages {

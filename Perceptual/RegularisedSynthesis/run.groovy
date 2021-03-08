@@ -23,12 +23,12 @@ pipeline {
             matrix {
                 axes {
                     axis {
-                        name: 'synth'
-                        values: 'freq_harmonic', 'full_harmonic', 'inharmonic',
+                        name 'synth'
+                        values 'freq_harmonic', 'full_harmonic', 'inharmonic',
                     }
                     axis {
-                        name: 'detnoise'
-                        values: '', 'detnoise_'
+                        name 'detnoise'
+                        values '', 'detnoise_'
                     }
                 }
                 stages {
