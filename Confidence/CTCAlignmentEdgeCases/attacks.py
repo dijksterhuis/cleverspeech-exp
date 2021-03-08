@@ -55,7 +55,6 @@ LOSS_UPDATE_NUMB_STEPS = 50000
 N_RUNS = 1
 
 
-
 def execute(settings, attack_fn, batch_gen):
 
     # set up the directory we'll use for results
@@ -91,38 +90,6 @@ def execute(settings, attack_fn, batch_gen):
 
 
 def ctc_dense_alignment_run(master_settings):
-    """
-    CTC Loss is used to perform maximum likelihood optimisation. CTC
-    Loss is usually used with respect to a target transcription (where the
-    length of the target transcription is less than or equal to the number of
-    frames). But we can trick CTC Loss into optimising an alignment with two key
-    changes.
-
-    The below settings are an edge case for CTC Loss use.
-    ```
-        preprocess_collapse_repeated=False,
-        ctc_merge_repeated=True,
-    ```
-
-    Enabling them means that:
-    (a) duplicated characters in a target sequence are not collapsed during
-    pre-processing
-    (b) duplicated characters are not merged during optimisation.
-
-    But we can't pass in an alignment sequence as a target without tricking CTC
-    Loss into treating the blank token `-` as a real/valid character.
-
-    The network's softmax matrix output is extended with an M (n_frames) length
-    vector of zero values. These extra values act as a "dummy" blank token,
-    which will never be likely.
-
-    Now we can include the blank `-` token in the target sequence.
-
-    This obviously modifies one of the conditions for CTC Loss -- now the target
-    sequence length must be equal to the number of audio frames.
-
-    :return: None
-    """
     def create_attack_graph(sess, batch, settings):
 
         feeds = Feeds.Attack(batch)
@@ -291,55 +258,6 @@ def ctc_dense_extreme_alignment_run(master_settings):
 
 
 def ctc_sparse_alignment_run(master_settings):
-    """
-    A confident sparse alignment can be derived from the argmax of a dummy
-    softmax matrix (initially zero valued) by solving the following optimisation
-    goal:
-
-        minimise_{Z} CTC Loss(Z, t')
-
-    By optimising a dummy matrix, we end up with a matrix where the most likely
-    characters per frame are (usually) the targets we want.
-
-    *Most importantly*, this optimisation is independent of any audio example --
-    the alignment we find will be the most likely alignment for _this_ model and
-    for _this_ target transcription.
-
-    Again, we want to maximise the classifier confidence for our attacks
-    (see Wild Patterns -- Biggio et al. about the perturbation size
-    misconception).
-
-    CTC Loss is used to perform maximum likelihood optimisation. CTC
-    Loss is usually used with respect to a target transcription (where the
-    length of the target transcription is less than or equal to the number of
-    frames). But we can trick CTC Loss into optimising an alignment with two key
-    changes.
-
-    The below settings are an edge case for CTC Loss use.
-    ```
-        preprocess_collapse_repeated=False,
-        ctc_merge_repeated=True,
-    ```
-
-    Enabling them means that:
-    (a) duplicated characters in a target sequence are not collapsed during
-    pre-processing
-    (b) duplicated characters are not merged during optimisation.
-
-    But we can't pass in an alignment sequence as a target without tricking CTC
-    Loss into treating the blank token `-` as a real/valid character.
-
-    The network's softmax matrix output is extended with an M (n_frames) length
-    vector of zero values. These extra values act as a "dummy" blank token,
-    which will never be likely.
-
-    Now we can include the blank `-` token in the target sequence.
-
-    This obviously modifies one of the conditions for CTC Loss -- now the target
-    sequence length must be equal to the number of audio frames.
-
-    :return: None
-    """
     def create_attack_graph(sess, batch, settings):
 
         feeds = Feeds.Attack(batch)

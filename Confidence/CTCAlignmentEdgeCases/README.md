@@ -13,6 +13,22 @@ Dense Alignment   = oooooooooooppppppppppeeeeeeeeeeeeeennnnnnnnnnnnn
 
 Additional: can we find the most optimal alignment for a model using CTC loss?
 
+### Additional alignment case: best CTC alignment for a target (independent of an example)
+
+A confident sparse alignment can be derived from the argmax of a dummy softmax matrix (initially
+zero valued) by solving the following optimisation goal:
+
+```
+minimise_{Z} CTC Loss(Z, t')
+```
+
+By optimising a dummy matrix, we end up with a matrix where the most likely characters per frame are
+(usually) the targets we want.
+
+*Most importantly*, this optimisation is independent of any audio example -- the alignment we find
+will be the most likely alignment for _this_ model and for _this_ target transcription.
+
+
 ### Tricking CTC Loss
 
 CTC Loss is used to perform maximum likelihood optimisation over **all** valid alignments, and is
