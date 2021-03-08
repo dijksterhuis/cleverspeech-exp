@@ -14,6 +14,7 @@ from cleverspeech.data import Feeds
 
 from cleverspeech.data.etl.batch_generators import get_standard_batch_generator
 from cleverspeech.data.etl.batch_generators import get_dense_batch_factory
+from cleverspeech.data.etl.batch_generators import get_sparse_batch_generator
 from cleverspeech.data.Results import SingleJsonDB, SingleFileWriter
 from cleverspeech.eval import PerceptualStatsBatch
 from cleverspeech.utils.RuntimeUtils import AttackSpawner
@@ -49,14 +50,6 @@ DECODING_STEP = 10
 BATCH_SIZE = 10
 
 N_RUNS = 1
-
-
-random.seed(100)
-
-# antiCTC
-# ==============================================================================
-# Main idea: Use CTC loss to make all other alignments less likely, whilst
-# making one alignment most likely.
 
 
 def execute(settings, attack_fn, batch_gen):
@@ -149,8 +142,8 @@ def anti_ctc_dense_adaptive_kappa_run(master_settings):
         return attack
 
     outdir = os.path.join(OUTDIR, "antictc/")
-    outdir = os.path.join(outdir, "dense/")
     outdir = os.path.join(outdir, "adaptive_kappa/")
+    outdir = os.path.join(outdir, "dense/")
 
     settings = {
         "audio_indir": AUDIOS_INDIR,
@@ -174,7 +167,7 @@ def anti_ctc_dense_adaptive_kappa_run(master_settings):
     }
 
     settings.update(master_settings)
-    batch_gen = get_standard_batch_generator(settings)
+    batch_gen = get_dense_batch_factory(settings)
 
     execute(settings, create_attack_graph, batch_gen)
 
@@ -182,6 +175,94 @@ def anti_ctc_dense_adaptive_kappa_run(master_settings):
 
 
 def anti_ctc_sparse_adaptive_kappa_run(master_settings):
+    """
+    """
+    def create_attack_graph(sess, batch, settings):
+
+        feeds = Feeds.Attack(batch)
+        attack = Constructor(sess, batch, feeds)
+
+        attack.add_hard_constraint(
+            Constraints.L2,
+            r_constant=settings["rescale"],
+            update_method=settings["constraint_update"],
+        )
+
+        attack.add_graph(
+            Graphs.SimpleAttack
+        )
+
+        attack.add_victim(
+            DeepSpeech.Model,
+            tokens=settings["tokens"],
+            decoder=settings["decoder_type"],
+            beam_width=settings["beam_width"]
+        )
+
+        attack.add_loss(
+            custom_defs.AntiCTC,
+            alignment=attack.graph.placeholders.targets,
+            weight_settings=(1 / 100, 1 / 100)
+        )
+
+        attack.add_loss(
+            Losses.AdaptiveKappaCWMaxDiff,
+            attack.graph.placeholders.targets,
+            k=1.0,
+        )
+        attack.create_loss_fn()
+        attack.add_optimiser(
+            Optimisers.AdamOptimiser,
+            learning_rate=settings["learning_rate"]
+        )
+        attack.add_procedure(
+            Procedures.UpdateOnDecoding,
+            steps=settings["nsteps"],
+            decode_step=settings["decode_step"]
+        )
+        attack.add_outputs(
+            Outputs.Base,
+            settings["outdir"],
+        )
+
+        attack.create_feeds()
+
+        return attack
+
+    outdir = os.path.join(OUTDIR, "antictc/")
+    outdir = os.path.join(outdir, "adaptive_kappa/")
+    outdir = os.path.join(outdir, "sparse/")
+
+    settings = {
+        "audio_indir": AUDIOS_INDIR,
+        "targets_path": TARGETS_PATH,
+        "outdir": outdir,
+        "batch_size": BATCH_SIZE,
+        "tokens": TOKENS,
+        "nsteps": NUMB_STEPS,
+        "decode_step": DECODING_STEP,
+        "beam_width": BEAM_WIDTH,
+        "constraint_update": CONSTRAINT_UPDATE,
+        "rescale": RESCALE,
+        "learning_rate": LEARNING_RATE,
+        "gpu_device": GPU_DEVICE,
+        "max_spawns": MAX_PROCESSES,
+        "spawn_delay": SPAWN_DELAY,
+        "decoder_type": "batch",
+        "max_examples": MAX_EXAMPLES,
+        "max_targets": MAX_TARGETS,
+        "max_audio_length": MAX_AUDIO_LENGTH,
+    }
+
+    settings.update(master_settings)
+    batch_gen = get_sparse_batch_generator(settings)
+
+    execute(settings, create_attack_graph, batch_gen)
+
+    log("Finished run.")
+
+
+def anti_ctc_ctcalign_adaptive_kappa_run(master_settings):
     """
     """
     def create_attack_graph(sess, batch, settings):
@@ -245,8 +326,8 @@ def anti_ctc_sparse_adaptive_kappa_run(master_settings):
         return attack
 
     outdir = os.path.join(OUTDIR, "antictc/")
-    outdir = os.path.join(outdir, "sparse/")
     outdir = os.path.join(outdir, "adaptive_kappa/")
+    outdir = os.path.join(outdir, "ctcalign/")
 
     settings = {
         "audio_indir": AUDIOS_INDIR,
@@ -282,6 +363,7 @@ if __name__ == '__main__':
     experiments = {
         "dense-adaptive-kappa": anti_ctc_dense_adaptive_kappa_run,
         "sparse-adaptive-kappa": anti_ctc_sparse_adaptive_kappa_run,
+        "ctcalign-adaptive-kappa": anti_ctc_ctcalign_adaptive_kappa_run,
     }
 
     args(experiments)
