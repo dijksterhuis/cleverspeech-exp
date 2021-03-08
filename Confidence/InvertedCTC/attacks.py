@@ -26,30 +26,29 @@ from SecEval import VictimAPI as DeepSpeech
 # local attack classes
 import custom_defs
 
+
 GPU_DEVICE = 0
 MAX_PROCESSES = 3
 SPAWN_DELAY = 30
 
-TOKENS = " abcdefghijklmnopqrstuvwxyz'-"
-BEAM_WIDTH = 500
-
 AUDIOS_INDIR = "./samples/all/"
 TARGETS_PATH = "./samples/cv-valid-test.csv"
-OUTDIR = "./adv/vibertish/"
-
-# targets search parameters
+OUTDIR = "./adv/antictc/"
 MAX_EXAMPLES = 100
 MAX_TARGETS = 1000
 MAX_AUDIO_LENGTH = 120000
 
-RESCALE = 0.95
-CONSTRAINT_UPDATE = "geom"
+TOKENS = " abcdefghijklmnopqrstuvwxyz'-"
+BEAM_WIDTH = 500
 LEARNING_RATE = 10
-NUMB_STEPS = 20000
-DECODING_STEP = 10
+CONSTRAINT_UPDATE = "geom"
+RESCALE = 0.95
+DECODING_STEP = 500
+NUMB_STEPS = DECODING_STEP ** 2
 BATCH_SIZE = 10
 
-N_RUNS = 1
+# extreme run settings
+LOSS_UPDATE_THRESHOLD = 10.0
 
 
 def execute(settings, attack_fn, batch_gen):
@@ -141,8 +140,7 @@ def anti_ctc_dense_adaptive_kappa_run(master_settings):
 
         return attack
 
-    outdir = os.path.join(OUTDIR, "antictc/")
-    outdir = os.path.join(outdir, "adaptive_kappa/")
+    outdir = os.path.join(OUTDIR, "adaptive_kappa/")
     outdir = os.path.join(outdir, "dense/")
 
     settings = {
@@ -229,8 +227,7 @@ def anti_ctc_sparse_adaptive_kappa_run(master_settings):
 
         return attack
 
-    outdir = os.path.join(OUTDIR, "antictc/")
-    outdir = os.path.join(outdir, "adaptive_kappa/")
+    outdir = os.path.join(OUTDIR, "adaptive_kappa/")
     outdir = os.path.join(outdir, "sparse/")
 
     settings = {
@@ -325,8 +322,7 @@ def anti_ctc_ctcalign_adaptive_kappa_run(master_settings):
 
         return attack
 
-    outdir = os.path.join(OUTDIR, "antictc/")
-    outdir = os.path.join(outdir, "adaptive_kappa/")
+    outdir = os.path.join(OUTDIR, "adaptive_kappa/")
     outdir = os.path.join(outdir, "ctcalign/")
 
     settings = {

@@ -12,7 +12,6 @@ from cleverspeech.graph import Outputs
 from cleverspeech.data import Feeds
 
 from cleverspeech.data.etl.batch_generators import get_standard_batch_generator
-from cleverspeech.data.etl.batch_generators import get_dense_batch_factory
 from cleverspeech.data.Results import SingleJsonDB, SingleFileWriter
 from cleverspeech.eval import PerceptualStatsBatch
 from cleverspeech.utils.RuntimeUtils import AttackSpawner
@@ -24,28 +23,26 @@ from SecEval import VictimAPI as Victim
 # custom definitions
 import CustomLosses
 
-GPU_DEVICE = 0
-MAX_PROCESSES = 4
-SPAWN_DELAY = 30
 
-TOKENS = " abcdefghijklmnopqrstuvwxyz'-"
-BEAM_WIDTH = 500
+GPU_DEVICE = 0
+MAX_PROCESSES = 1
+SPAWN_DELAY = 30
 
 AUDIOS_INDIR = "./samples/all/"
 TARGETS_PATH = "./samples/cv-valid-test.csv"
-OUTDIR = "./adv/baseline/"
+OUTDIR = "./adv/spectral-losses/"
 MAX_EXAMPLES = 100
 MAX_TARGETS = 1000
 MAX_AUDIO_LENGTH = 120000
 
-RESCALE = 0.95
-CONSTRAINT_UPDATE = "geom"
+TOKENS = " abcdefghijklmnopqrstuvwxyz'-"
+BEAM_WIDTH = 500
 LEARNING_RATE = 10
-NUMB_STEPS = 10000
-DECODING_STEP = 10
+CONSTRAINT_UPDATE = "geom"
+RESCALE = 0.95
+DECODING_STEP = 500
+NUMB_STEPS = DECODING_STEP ** 2
 BATCH_SIZE = 10
-
-N_RUNS = 5
 
 
 def execute(settings, attack_fn, batch_gen):

@@ -26,29 +26,27 @@ from SecEval import VictimAPI as DeepSpeech
 import custom_defs
 
 GPU_DEVICE = 0
-MAX_PROCESSES = 3
+MAX_PROCESSES = 1
 SPAWN_DELAY = 30
-
-TOKENS = " abcdefghijklmnopqrstuvwxyz'-"
-BEAM_WIDTH = 500
 
 AUDIOS_INDIR = "./samples/all/"
 TARGETS_PATH = "./samples/cv-valid-test.csv"
-OUTDIR = "./adv/ctc-alignments/"
-
-# targets search parameters
+OUTDIR = "./adv/adaptivekappa/"
 MAX_EXAMPLES = 100
 MAX_TARGETS = 1000
 MAX_AUDIO_LENGTH = 120000
 
-RESCALE = 0.95
-CONSTRAINT_UPDATE = "geom"
+TOKENS = " abcdefghijklmnopqrstuvwxyz'-"
+BEAM_WIDTH = 500
 LEARNING_RATE = 10
-NUMB_STEPS = 20000
-DECODING_STEP = 10
+CONSTRAINT_UPDATE = "geom"
+RESCALE = 0.95
+DECODING_STEP = 500
+NUMB_STEPS = DECODING_STEP ** 2
 BATCH_SIZE = 10
 
-N_RUNS = 1
+# extreme run settings
+LOSS_UPDATE_THRESHOLD = 10.0
 
 KAPPA_HYPERS = [
     [k/(10 ** l) for k in [np.exp2(x) for x in range(0, 4)]] for l in range(1, 3)
@@ -143,8 +141,7 @@ def ctc_dense_run(master_settings):
 
         return attack
 
-    outdir = os.path.join(OUTDIR, "adaptivekappa/")
-    outdir = os.path.join(outdir, "dense/")
+    outdir = os.path.join(OUTDIR, "dense/")
     outdir = os.path.join(outdir, "ctc/")
     outdir = os.path.join(outdir, "kappa_{}/".format(KAPPA))
 
@@ -233,8 +230,7 @@ def rctc_dense_run(master_settings):
 
         return attack
 
-    outdir = os.path.join(OUTDIR, "adaptivekappa/")
-    outdir = os.path.join(outdir, "dense/")
+    outdir = os.path.join(OUTDIR, "dense/")
     outdir = os.path.join(outdir, "rctc/")
     outdir = os.path.join(outdir, "kappa_{}/".format(KAPPA))
 
@@ -315,8 +311,7 @@ def dense_run(master_settings):
         attack.create_feeds()
         return attack
 
-    outdir = os.path.join(OUTDIR, "adaptivekappa/")
-    outdir = os.path.join(outdir, "dense/")
+    outdir = os.path.join(OUTDIR, "dense/")
     outdir = os.path.join(outdir, "maxdiffonly/")
     outdir = os.path.join(outdir, "kappa_{}/".format(KAPPA))
 
@@ -403,8 +398,7 @@ def ctc_sparse_run(master_settings):
 
         return attack
 
-    outdir = os.path.join(OUTDIR, "adaptivekappa/")
-    outdir = os.path.join(outdir, "sparse/")
+    outdir = os.path.join(OUTDIR, "sparse/")
     outdir = os.path.join(outdir, "ctc/")
     outdir = os.path.join(outdir, "kappa_{}/".format(KAPPA))
 
@@ -493,8 +487,7 @@ def rctc_sparse_run(master_settings):
 
         return attack
 
-    outdir = os.path.join(OUTDIR, "adaptivekappa/")
-    outdir = os.path.join(outdir, "sparse/")
+    outdir = os.path.join(OUTDIR, "sparse/")
     outdir = os.path.join(outdir, "rctc/")
     outdir = os.path.join(outdir, "kappa_{}/".format(KAPPA))
 
@@ -575,8 +568,7 @@ def sparse_run(master_settings):
         attack.create_feeds()
         return attack
 
-    outdir = os.path.join(OUTDIR, "adaptivekappa/")
-    outdir = os.path.join(outdir, "sparse/")
+    outdir = os.path.join(OUTDIR, "sparse/")
     outdir = os.path.join(outdir, "maxdiffonly/")
     outdir = os.path.join(outdir, "kappa_{}/".format(KAPPA))
 
@@ -675,8 +667,7 @@ def ctc_ctcalign_run(master_settings):
 
         return attack
 
-    outdir = os.path.join(OUTDIR, "adaptivekappa/")
-    outdir = os.path.join(outdir, "ctcalign/")
+    outdir = os.path.join(OUTDIR, "ctcalign/")
     outdir = os.path.join(outdir, "ctc/")
     outdir = os.path.join(outdir, "kappa_{}/".format(KAPPA))
 
@@ -777,8 +768,7 @@ def rctc_ctcalign_run(master_settings):
 
         return attack
 
-    outdir = os.path.join(OUTDIR, "adaptivekappa/")
-    outdir = os.path.join(outdir, "ctcalign/")
+    outdir = os.path.join(OUTDIR, "ctcalign/")
     outdir = os.path.join(outdir, "rctc/")
     outdir = os.path.join(outdir, "kappa_{}/".format(KAPPA))
 
@@ -868,8 +858,7 @@ def ctcalign_run(master_settings):
 
         return attack
 
-    outdir = os.path.join(OUTDIR, "adaptivekappa/")
-    outdir = os.path.join(outdir, "ctcalign/")
+    outdir = os.path.join(OUTDIR, "ctcalign/")
     outdir = os.path.join(outdir, "onlymaxdiff/")
     outdir = os.path.join(outdir, "kappa_{}/".format(KAPPA))
 

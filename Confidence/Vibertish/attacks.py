@@ -27,27 +27,24 @@ GPU_DEVICE = 0
 MAX_PROCESSES = 1
 SPAWN_DELAY = 30
 
-TOKENS = " abcdefghijklmnopqrstuvwxyz'-"
-BEAM_WIDTH = 500
-
 AUDIOS_INDIR = "./samples/all/"
 TARGETS_PATH = "./samples/cv-valid-test.csv"
 OUTDIR = "./adv/vibertish/"
-
-# targets search parameters
 MAX_EXAMPLES = 100
-MAX_TARGETS = 200
+MAX_TARGETS = 1000
 MAX_AUDIO_LENGTH = 120000
 
+TOKENS = " abcdefghijklmnopqrstuvwxyz'-"
+BEAM_WIDTH = 500
+LEARNING_RATE = 10
 CONSTRAINT_UPDATE = "geom"
-RESCALE = 0.85
-LEARNING_RATE = 100
-BATCH_SIZE = 1
+RESCALE = 0.95
 DECODING_STEP = 500
-QUERIES = 1e3
-NUMB_STEPS = QUERIES * DECODING_STEP
+NUMB_STEPS = DECODING_STEP ** 2
+BATCH_SIZE = 10
 
-N_RUNS = 1
+# extreme run settings
+LOSS_UPDATE_THRESHOLD = 10.0
 
 
 # VIBERT-ish

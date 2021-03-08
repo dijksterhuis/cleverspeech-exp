@@ -4,7 +4,7 @@ pipeline {
     agent { label "gpu" }
     environment {
         IMAGE = "dijksterhuis/cleverspeech:latest"
-        EXP_DIR = "./experiments/Confidence/InvertedCTC/"
+        EXP_DIR = "./experiments/Perceptual/Synthesis"
         CLEVERSPEECH_HOME = "/home/cleverspeech/cleverSpeech"
     }
     stages {
@@ -18,10 +18,10 @@ pipeline {
                 }
             }
         }
-        stage("Run Sparse Align experiments."){
+        stage("Run experiments."){
             steps {
                 script {
-                    def experiments = ['dense-adaptive-kappa', 'sparse-adaptive-kappa', 'ctcalign-adaptive-kappa']
+                    def experiments = ['freq_harmonic', 'full_harmonic', 'inharmonic', 'detnoise_freq_harmonic', 'detnoise_full_harmonic', 'detnoise_inharmonic', 'stft']
                     for (int i = 0; i < experiments.size(); ++i) {
                         echo "Running ${experiments[i]}"
                         sh """
