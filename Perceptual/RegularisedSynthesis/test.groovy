@@ -67,24 +67,26 @@ pipeline {
         }
         stage("Run STFT experiment") {
             agent { label "gpu" }
-            script {
-                sh """
-                    docker run \
-                        --gpus device=${GPU_N} \
-                        -t \
-                        --rm \
-                        --name stft \
-                        -v \$(pwd)/results/:${CLEVERSPEECH_HOME}/adv/ \
-                        -e LOCAL_UID=\$(id -u ${USER}) \
-                        -e LOCAL_GID=\$(id -g ${USER}) \
-                        ${IMAGE} \
-                        python3 ${EXP_DIR}/attacks.py stft \
-                            --max_spawns "${params.MAX_SPAWNS}" \
-                            --batch_size "${params.BATCH_SIZE}" \
-                            --decode_step "${params.DECODE_STEP}" \
-                            --nsteps "${params.N_STEPS}" \
-                            --max_examples "${params.MAX_EXAMPLES}"
-                """
+            steps {
+                script {
+                    sh """
+                        docker run \
+                            --gpus device=${GPU_N} \
+                            -t \
+                            --rm \
+                            --name stft \
+                            -v \$(pwd)/results/:${CLEVERSPEECH_HOME}/adv/ \
+                            -e LOCAL_UID=\$(id -u ${USER}) \
+                            -e LOCAL_GID=\$(id -g ${USER}) \
+                            ${IMAGE} \
+                            python3 ${EXP_DIR}/attacks.py stft \
+                                --max_spawns "${params.MAX_SPAWNS}" \
+                                --batch_size "${params.BATCH_SIZE}" \
+                                --decode_step "${params.DECODE_STEP}" \
+                                --nsteps "${params.N_STEPS}" \
+                                --max_examples "${params.MAX_EXAMPLES}"
+                    """
+                }
             }
         }
     }
