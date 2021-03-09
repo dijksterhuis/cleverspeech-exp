@@ -294,7 +294,7 @@ def f6_ctc_beam_search_decoder_run(master_settings):
 
         attack.add_loss(
             Losses.CWMaxDiff,
-            alignment.graph.raw_alignments,
+            alignment.graph.target_alignments,
             k=settings["kappa"]
         )
         attack.create_loss_fn()
@@ -392,7 +392,7 @@ def f6_ctc_greedy_search_decoder_run(master_settings):
 
         attack.add_loss(
             Losses.CWMaxDiff,
-            alignment.graph.raw_alignments,
+            alignment.graph.target_alignments,
             k=settings["kappa"]
         )
         attack.create_loss_fn()
