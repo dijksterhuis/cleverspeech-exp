@@ -4,7 +4,7 @@ pipeline {
     agent { label "build" }
     parameters {
             string(name: 'MAX_SPAWNS', defaultValue: '5', description: 'Number of attacks to spawn at once.')
-        }
+    }
     environment {
         IMAGE = "dijksterhuis/cleverspeech:latest"
         EXP_DIR = "./experiments/CTCBaselines/"
@@ -23,8 +23,10 @@ pipeline {
                 }
                 stages {
                     stage("Image pull") {
-                        script {
-                            sh "docker pull ${IMAGE}"
+                        steps {
+                            script {
+                                sh "docker pull ${IMAGE}"
+                            }
                         }
                     }
                     stage("Run experiment") {
