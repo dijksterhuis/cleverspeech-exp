@@ -314,6 +314,7 @@ def f6_ctc_beam_search_decoder_run(master_settings):
     # for run in range(0, N_RUNS * 2 + 1, 2):
 
     outdir = os.path.join(OUTDIR, "maxdiff/")
+    outdir = os.path.join(outdir, "beam/")
     outdir = os.path.join(outdir, "ctcalign/")
     outdir = os.path.join(outdir, "kappa_{}/".format(KAPPA))
 
@@ -409,6 +410,7 @@ def f6_ctc_greedy_search_decoder_run(master_settings):
     # for run in range(0, N_RUNS * 2 + 1, 2):
 
     outdir = os.path.join(OUTDIR, "maxdiff/")
+    outdir = os.path.join(outdir, "greedy/")
     outdir = os.path.join(outdir, "ctcalign/")
     outdir = os.path.join(outdir, "kappa_{}/".format(KAPPA))
 
