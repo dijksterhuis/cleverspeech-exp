@@ -81,60 +81,62 @@ def execute(settings, attack_fn, batch_gen):
     PerceptualStatsBatch.batch_generate_statistic_file(settings["outdir"])
 
 
-def anti_ctc_dense_adaptive_kappa_run(master_settings):
+def create_adaptive_kappa_attack_graph(sess, batch, settings):
+
+    feeds = Feeds.Attack(batch)
+    attack = Constructor(sess, batch, feeds)
+
+    attack.add_hard_constraint(
+        Constraints.L2,
+        r_constant=settings["rescale"],
+        update_method=settings["constraint_update"],
+    )
+
+    attack.add_graph(
+        Graphs.SimpleAttack
+    )
+
+    attack.add_victim(
+        DeepSpeech.Model,
+        tokens=settings["tokens"],
+        decoder=settings["decoder_type"],
+        beam_width=settings["beam_width"]
+    )
+
+    attack.add_loss(
+        Losses.AntiCTC,
+        alignment=attack.graph.placeholders.targets,
+        weight_settings=(1 / 100, 1 / 100)
+    )
+
+    attack.add_loss(
+        Losses.AdaptiveKappaMaxDiff,
+        attack.graph.placeholders.targets,
+        k=1.0,
+    )
+    attack.create_loss_fn()
+    attack.add_optimiser(
+        Optimisers.AdamOptimiser,
+        learning_rate=settings["learning_rate"]
+    )
+    attack.add_procedure(
+        Procedures.UpdateOnDecoding,
+        steps=settings["nsteps"],
+        decode_step=settings["decode_step"]
+    )
+    attack.add_outputs(
+        Outputs.Base,
+        settings["outdir"],
+    )
+
+    attack.create_feeds()
+
+    return attack
+
+
+def dense_adaptive_kappa_run(master_settings):
     """
     """
-    def create_attack_graph(sess, batch, settings):
-
-        feeds = Feeds.Attack(batch)
-        attack = Constructor(sess, batch, feeds)
-
-        attack.add_hard_constraint(
-            Constraints.L2,
-            r_constant=settings["rescale"],
-            update_method=settings["constraint_update"],
-        )
-
-        attack.add_graph(
-            Graphs.SimpleAttack
-        )
-
-        attack.add_victim(
-            DeepSpeech.Model,
-            tokens=settings["tokens"],
-            decoder=settings["decoder_type"],
-            beam_width=settings["beam_width"]
-        )
-
-        attack.add_loss(
-            Losses.AntiCTC,
-            alignment=attack.graph.placeholders.targets,
-            weight_settings=(1 / 100, 1 / 100)
-        )
-
-        attack.add_loss(
-            Losses.AdaptiveKappaMaxDiff,
-            attack.graph.placeholders.targets,
-            k=1.0,
-        )
-        attack.create_loss_fn()
-        attack.add_optimiser(
-            Optimisers.AdamOptimiser,
-            learning_rate=settings["learning_rate"]
-        )
-        attack.add_procedure(
-            Procedures.UpdateOnDecoding,
-            steps=settings["nsteps"],
-            decode_step=settings["decode_step"]
-        )
-        attack.add_outputs(
-            Outputs.Base,
-            settings["outdir"],
-        )
-
-        attack.create_feeds()
-
-        return attack
 
     outdir = os.path.join(OUTDIR, "adaptive_kappa/")
     outdir = os.path.join(outdir, "dense/")
@@ -162,67 +164,13 @@ def anti_ctc_dense_adaptive_kappa_run(master_settings):
 
     settings.update(master_settings)
     batch_gen = get_dense_batch_factory(settings)
-
-    execute(settings, create_attack_graph, batch_gen)
-
+    execute(settings, create_adaptive_kappa_attack_graph, batch_gen)
     log("Finished run.")
 
 
-def anti_ctc_sparse_adaptive_kappa_run(master_settings):
+def sparse_adaptive_kappa_run(master_settings):
     """
     """
-    def create_attack_graph(sess, batch, settings):
-
-        feeds = Feeds.Attack(batch)
-        attack = Constructor(sess, batch, feeds)
-
-        attack.add_hard_constraint(
-            Constraints.L2,
-            r_constant=settings["rescale"],
-            update_method=settings["constraint_update"],
-        )
-
-        attack.add_graph(
-            Graphs.SimpleAttack
-        )
-
-        attack.add_victim(
-            DeepSpeech.Model,
-            tokens=settings["tokens"],
-            decoder=settings["decoder_type"],
-            beam_width=settings["beam_width"]
-        )
-
-        attack.add_loss(
-            Losses.AntiCTC,
-            alignment=attack.graph.placeholders.targets,
-            weight_settings=(1 / 100, 1 / 100)
-        )
-
-        attack.add_loss(
-            Losses.AdaptiveKappaMaxDiff,
-            attack.graph.placeholders.targets,
-            k=1.0,
-        )
-        attack.create_loss_fn()
-        attack.add_optimiser(
-            Optimisers.AdamOptimiser,
-            learning_rate=settings["learning_rate"]
-        )
-        attack.add_procedure(
-            Procedures.UpdateOnDecoding,
-            steps=settings["nsteps"],
-            decode_step=settings["decode_step"]
-        )
-        attack.add_outputs(
-            Outputs.Base,
-            settings["outdir"],
-        )
-
-        attack.create_feeds()
-
-        return attack
-
     outdir = os.path.join(OUTDIR, "adaptive_kappa/")
     outdir = os.path.join(outdir, "sparse/")
 
@@ -249,13 +197,11 @@ def anti_ctc_sparse_adaptive_kappa_run(master_settings):
 
     settings.update(master_settings)
     batch_gen = get_sparse_batch_generator(settings)
-
-    execute(settings, create_attack_graph, batch_gen)
-
+    execute(settings, create_adaptive_kappa_attack_graph, batch_gen)
     log("Finished run.")
 
 
-def anti_ctc_ctcalign_adaptive_kappa_run(master_settings):
+def ctcalign_adaptive_kappa_run(master_settings):
     """
     """
     def create_attack_graph(sess, batch, settings):
@@ -340,18 +286,16 @@ def anti_ctc_ctcalign_adaptive_kappa_run(master_settings):
 
     settings.update(master_settings)
     batch_gen = get_standard_batch_generator(settings)
-
     execute(settings, create_attack_graph, batch_gen)
-
     log("Finished run.")
 
 
 if __name__ == '__main__':
 
     experiments = {
-        "dense-adaptive-kappa": anti_ctc_dense_adaptive_kappa_run,
-        "sparse-adaptive-kappa": anti_ctc_sparse_adaptive_kappa_run,
-        "ctcalign-adaptive-kappa": anti_ctc_ctcalign_adaptive_kappa_run,
+        "dense-adaptive-kappa": dense_adaptive_kappa_run,
+        "sparse-adaptive-kappa": sparse_adaptive_kappa_run,
+        "ctcalign-adaptive-kappa": ctcalign_adaptive_kappa_run,
     }
 
     args(experiments)

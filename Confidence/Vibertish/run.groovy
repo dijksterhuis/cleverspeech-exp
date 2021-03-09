@@ -4,7 +4,7 @@ pipeline {
     agent { label "build" }
     environment {
         IMAGE = "dijksterhuis/cleverspeech:latest"
-        EXP_DIR = "./experiments/Confidence/AdaptiveKappa/"
+        EXP_DIR = "./experiments/Confidence/Vibertish/"
         CLEVERSPEECH_HOME = "/home/cleverspeech/cleverSpeech"
     }
     stages {
@@ -14,20 +14,20 @@ pipeline {
                 agent { label "gpu" }
                 axes {
                     axis {
-                        name 'alignment_type'
-                        values 'dense', 'sparse', 'ctcalign'
+                        name 'alignment'
+                        values 'sparse', 'dense', 'ctcalign'
                     }
                     axis {
-                        name 'loss_type'
-                        values 'none', 'rctc', 'ctc'
+                        name 'loss'
+                        values 'fwd', 'back', 'fwdplusback', 'fwdmultback'
                     }
                 }
                 stages {
                     stage("Run experiment") {
                         steps {
                             script {
-                                echo "+=+=+=+=+=====> Running experiment: ${alignment_type}-${loss_type}"
-                                def exp = "${alignment_type}-${loss_type}"
+                                echo "+=+=+=+=+=====> Running experiment: ${alignment}-${loss}"
+                                def exp = "${alignment}-${loss}"
                                 sh """
                                     docker run \
                                         --gpus device=${GPU_N} \
@@ -44,9 +44,14 @@ pipeline {
                         }
                     }
                 }
+                /* post {
+                    always {
+                        sh "docker image prune -f"
+                        sh "docker container prune -f"
+                        sh "docker image rm ${IMAGE}"
+                    }
+                } */
             }
         }
     }
 }
-
-

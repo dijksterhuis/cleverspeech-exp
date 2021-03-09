@@ -19,15 +19,15 @@ pipeline {
                     }
                     axis {
                         name 'loss_type'
-                        values '-adaptive-kappa'
+                        values 'adaptive-kappa'
                     }
                 }
                 stages {
                     steps {
                         stage("Run experiment") {
                             script {
-                                echo "+=+=+=+=+=====> Running experiment: ${alignment_type}${loss_type}"
-                                def exp = "${alignment_type}${loss_type}"
+                                echo "+=+=+=+=+=====> Running experiment: ${alignment_type}-${loss_type}"
+                                def exp = "${alignment_type}-${loss_type}"
                                 sh """
                                     docker run \
                                         --gpus device=${GPU_N} \

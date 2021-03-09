@@ -19,15 +19,15 @@ pipeline {
                     }
                     axis {
                         name 'proc_type'
-                        values '', '-extreme'
+                        values 'std', 'extreme'
                     }
                 }
                 stages {
                     steps {
                         stage("Run experiment") {
                             script {
-                                echo "+=+=+=+=+=====> Running experiment: ${alignment_type}${proc_type}"
-                                def exp = "${alignment_type}${proc_type}"
+                                echo "+=+=+=+=+=====> Running experiment: ${alignment_type}-${proc_type}"
+                                def exp = "${alignment_type}-${proc_type}"
                                 sh """
                                     docker run \
                                         --gpus device=${GPU_N} \

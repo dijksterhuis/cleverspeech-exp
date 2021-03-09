@@ -130,163 +130,6 @@ def create_regular_attack_graph(sess, batch, settings):
     return attack
 
 
-def sparse_beam_search_run(master_settings):
-    # for run in range(0, N_RUNS * 2 + 1, 2):
-
-    outdir = os.path.join(OUTDIR, "maxdiff/")
-    outdir = os.path.join(outdir, "beam/")
-    outdir = os.path.join(outdir, "sparse/")
-    outdir = os.path.join(outdir, "kappa_{}/".format(KAPPA))
-
-    settings = {
-        "audio_indir": AUDIOS_INDIR,
-        "targets_path": TARGETS_PATH,
-        "outdir": outdir,
-        "batch_size": BATCH_SIZE,
-        "tokens": TOKENS,
-        "nsteps": NUMB_STEPS,
-        "decode_step": DECODING_STEP,
-        "beam_width": BEAM_WIDTH,
-        "constraint_update": CONSTRAINT_UPDATE,
-        "rescale": RESCALE,
-        "learning_rate": LEARNING_RATE,
-        "gpu_device": GPU_DEVICE,
-        "max_spawns": MAX_PROCESSES,
-        "spawn_delay": SPAWN_DELAY,
-        "kappa": float(KAPPA),
-        "decoder_type": "batch",
-        "max_examples": MAX_EXAMPLES,
-        "max_targets": MAX_TARGETS,
-        "max_audio_length": MAX_AUDIO_LENGTH,
-    }
-
-    settings.update(master_settings)
-
-    batch_gen = get_sparse_batch_generator(settings)
-
-    execute(settings, create_regular_attack_graph, batch_gen)
-
-    log("Finished run.") # {}.".format(run))
-
-
-def sparse_greedy_search_run(master_settings):
-    # for run in range(0, N_RUNS * 2 + 1, 2):
-
-    outdir = os.path.join(OUTDIR, "maxdiff/")
-    outdir = os.path.join(outdir, "greedy/")
-    outdir = os.path.join(outdir, "sparse/")
-    outdir = os.path.join(outdir, "kappa_{}/".format(KAPPA))
-
-    settings = {
-        "audio_indir": AUDIOS_INDIR,
-        "targets_path": TARGETS_PATH,
-        "outdir": outdir,
-        "batch_size": BATCH_SIZE,
-        "tokens": TOKENS,
-        "nsteps": NUMB_STEPS,
-        "decode_step": DECODING_STEP,
-        "beam_width": BEAM_WIDTH,
-        "constraint_update": CONSTRAINT_UPDATE,
-        "rescale": RESCALE,
-        "learning_rate": LEARNING_RATE,
-        "gpu_device": GPU_DEVICE,
-        "max_spawns": MAX_PROCESSES,
-        "spawn_delay": SPAWN_DELAY,
-        "kappa": float(KAPPA),
-        "decoder_type": "greedy",
-        "max_examples": MAX_EXAMPLES,
-        "max_targets": MAX_TARGETS,
-        "max_audio_length": MAX_AUDIO_LENGTH,
-    }
-
-    settings.update(master_settings)
-
-    batch_gen = get_sparse_batch_generator(settings)
-
-    execute(settings, create_regular_attack_graph, batch_gen)
-
-    log("Finished run.") # {}.".format(run))
-
-
-def dense_beam_search_run(master_settings):
-
-    # for run in range(0, N_RUNS * 2 + 1, 2):
-
-    outdir = os.path.join(OUTDIR, "maxdiff/")
-    outdir = os.path.join(outdir, "beam/")
-    outdir = os.path.join(outdir, "dense/")
-    outdir = os.path.join(outdir, "kappa_{}/".format(KAPPA))
-
-    settings = {
-        "audio_indir": AUDIOS_INDIR,
-        "targets_path": TARGETS_PATH,
-        "outdir": outdir,
-        "batch_size": BATCH_SIZE,
-        "tokens": TOKENS,
-        "nsteps": NUMB_STEPS,
-        "decode_step": DECODING_STEP,
-        "beam_width": BEAM_WIDTH,
-        "constraint_update": CONSTRAINT_UPDATE,
-        "rescale": RESCALE,
-        "learning_rate": LEARNING_RATE,
-        "gpu_device": GPU_DEVICE,
-        "max_spawns": MAX_PROCESSES,
-        "spawn_delay": SPAWN_DELAY,
-        "kappa": float(KAPPA),
-        "decoder_type": "batch",
-        "max_examples": MAX_EXAMPLES,
-        "max_targets": MAX_TARGETS,
-        "max_audio_length": MAX_AUDIO_LENGTH,
-    }
-
-    settings.update(master_settings)
-
-    batch_gen = get_dense_batch_factory(settings)
-
-    execute(settings, create_regular_attack_graph, batch_gen)
-
-    log("Finished run.") # {}.".format(run))
-
-
-def dense_greedy_search_run(master_settings):
-    # for run in range(0, N_RUNS * 2 + 1, 2):
-
-    outdir = os.path.join(OUTDIR, "maxdiff/")
-    outdir = os.path.join(outdir, "greedy/")
-    outdir = os.path.join(outdir, "dense/")
-    outdir = os.path.join(outdir, "kappa_{}/".format(KAPPA))
-
-    settings = {
-        "audio_indir": AUDIOS_INDIR,
-        "targets_path": TARGETS_PATH,
-        "outdir": outdir,
-        "batch_size": BATCH_SIZE,
-        "tokens": TOKENS,
-        "nsteps": NUMB_STEPS,
-        "decode_step": DECODING_STEP,
-        "beam_width": BEAM_WIDTH,
-        "constraint_update": CONSTRAINT_UPDATE,
-        "rescale": RESCALE,
-        "learning_rate": LEARNING_RATE,
-        "gpu_device": GPU_DEVICE,
-        "max_spawns": MAX_PROCESSES,
-        "spawn_delay": SPAWN_DELAY,
-        "kappa": float(KAPPA),
-        "decoder_type": "greedy",
-        "max_examples": MAX_EXAMPLES,
-        "max_targets": MAX_TARGETS,
-        "max_audio_length": MAX_AUDIO_LENGTH,
-    }
-
-    settings.update(master_settings)
-
-    batch_gen = get_dense_batch_factory(settings)
-
-    execute(settings, create_regular_attack_graph, batch_gen)
-
-    log("Finished run.") # {}.".format(run))
-
-
 def create_ctcalign_attack_graph(sess, batch, settings):
     feeds = Feeds.Attack(batch)
 
@@ -338,6 +181,151 @@ def create_ctcalign_attack_graph(sess, batch, settings):
     return attack
 
 
+def sparse_beam_search_run(master_settings):
+    # for run in range(0, N_RUNS * 2 + 1, 2):
+
+    outdir = os.path.join(OUTDIR, "maxdiff/")
+    outdir = os.path.join(outdir, "beam/")
+    outdir = os.path.join(outdir, "sparse/")
+    outdir = os.path.join(outdir, "kappa_{}/".format(KAPPA))
+
+    settings = {
+        "audio_indir": AUDIOS_INDIR,
+        "targets_path": TARGETS_PATH,
+        "outdir": outdir,
+        "batch_size": BATCH_SIZE,
+        "tokens": TOKENS,
+        "nsteps": NUMB_STEPS,
+        "decode_step": DECODING_STEP,
+        "beam_width": BEAM_WIDTH,
+        "constraint_update": CONSTRAINT_UPDATE,
+        "rescale": RESCALE,
+        "learning_rate": LEARNING_RATE,
+        "gpu_device": GPU_DEVICE,
+        "max_spawns": MAX_PROCESSES,
+        "spawn_delay": SPAWN_DELAY,
+        "kappa": float(KAPPA),
+        "decoder_type": "batch",
+        "max_examples": MAX_EXAMPLES,
+        "max_targets": MAX_TARGETS,
+        "max_audio_length": MAX_AUDIO_LENGTH,
+    }
+
+    settings.update(master_settings)
+    batch_gen = get_sparse_batch_generator(settings)
+    execute(settings, create_regular_attack_graph, batch_gen)
+    log("Finished run.") # {}.".format(run))
+
+
+def sparse_greedy_search_run(master_settings):
+    # for run in range(0, N_RUNS * 2 + 1, 2):
+
+    outdir = os.path.join(OUTDIR, "maxdiff/")
+    outdir = os.path.join(outdir, "greedy/")
+    outdir = os.path.join(outdir, "sparse/")
+    outdir = os.path.join(outdir, "kappa_{}/".format(KAPPA))
+
+    settings = {
+        "audio_indir": AUDIOS_INDIR,
+        "targets_path": TARGETS_PATH,
+        "outdir": outdir,
+        "batch_size": BATCH_SIZE,
+        "tokens": TOKENS,
+        "nsteps": NUMB_STEPS,
+        "decode_step": DECODING_STEP,
+        "beam_width": BEAM_WIDTH,
+        "constraint_update": CONSTRAINT_UPDATE,
+        "rescale": RESCALE,
+        "learning_rate": LEARNING_RATE,
+        "gpu_device": GPU_DEVICE,
+        "max_spawns": MAX_PROCESSES,
+        "spawn_delay": SPAWN_DELAY,
+        "kappa": float(KAPPA),
+        "decoder_type": "greedy",
+        "max_examples": MAX_EXAMPLES,
+        "max_targets": MAX_TARGETS,
+        "max_audio_length": MAX_AUDIO_LENGTH,
+    }
+
+    settings.update(master_settings)
+    batch_gen = get_sparse_batch_generator(settings)
+    execute(settings, create_regular_attack_graph, batch_gen)
+    log("Finished run.") # {}.".format(run))
+
+
+def dense_beam_search_run(master_settings):
+
+    # for run in range(0, N_RUNS * 2 + 1, 2):
+
+    outdir = os.path.join(OUTDIR, "maxdiff/")
+    outdir = os.path.join(outdir, "beam/")
+    outdir = os.path.join(outdir, "dense/")
+    outdir = os.path.join(outdir, "kappa_{}/".format(KAPPA))
+
+    settings = {
+        "audio_indir": AUDIOS_INDIR,
+        "targets_path": TARGETS_PATH,
+        "outdir": outdir,
+        "batch_size": BATCH_SIZE,
+        "tokens": TOKENS,
+        "nsteps": NUMB_STEPS,
+        "decode_step": DECODING_STEP,
+        "beam_width": BEAM_WIDTH,
+        "constraint_update": CONSTRAINT_UPDATE,
+        "rescale": RESCALE,
+        "learning_rate": LEARNING_RATE,
+        "gpu_device": GPU_DEVICE,
+        "max_spawns": MAX_PROCESSES,
+        "spawn_delay": SPAWN_DELAY,
+        "kappa": float(KAPPA),
+        "decoder_type": "batch",
+        "max_examples": MAX_EXAMPLES,
+        "max_targets": MAX_TARGETS,
+        "max_audio_length": MAX_AUDIO_LENGTH,
+    }
+
+    settings.update(master_settings)
+    batch_gen = get_dense_batch_factory(settings)
+    execute(settings, create_regular_attack_graph, batch_gen)
+    log("Finished run.") # {}.".format(run))
+
+
+def dense_greedy_search_run(master_settings):
+    # for run in range(0, N_RUNS * 2 + 1, 2):
+
+    outdir = os.path.join(OUTDIR, "maxdiff/")
+    outdir = os.path.join(outdir, "greedy/")
+    outdir = os.path.join(outdir, "dense/")
+    outdir = os.path.join(outdir, "kappa_{}/".format(KAPPA))
+
+    settings = {
+        "audio_indir": AUDIOS_INDIR,
+        "targets_path": TARGETS_PATH,
+        "outdir": outdir,
+        "batch_size": BATCH_SIZE,
+        "tokens": TOKENS,
+        "nsteps": NUMB_STEPS,
+        "decode_step": DECODING_STEP,
+        "beam_width": BEAM_WIDTH,
+        "constraint_update": CONSTRAINT_UPDATE,
+        "rescale": RESCALE,
+        "learning_rate": LEARNING_RATE,
+        "gpu_device": GPU_DEVICE,
+        "max_spawns": MAX_PROCESSES,
+        "spawn_delay": SPAWN_DELAY,
+        "kappa": float(KAPPA),
+        "decoder_type": "greedy",
+        "max_examples": MAX_EXAMPLES,
+        "max_targets": MAX_TARGETS,
+        "max_audio_length": MAX_AUDIO_LENGTH,
+    }
+
+    settings.update(master_settings)
+    batch_gen = get_dense_batch_factory(settings)
+    execute(settings, create_regular_attack_graph, batch_gen)
+    log("Finished run.") # {}.".format(run))
+
+
 def ctcalign_beam_search_run(master_settings):
     """
     Use CTC Loss to optimise some target logits for us. This is quick and simple
@@ -374,15 +362,12 @@ def ctcalign_beam_search_run(master_settings):
     }
 
     settings.update(master_settings)
-
     batch_gen = get_standard_batch_generator(settings)
-
     execute(
         settings,
         create_ctcalign_attack_graph,
         batch_gen,
     )
-
     log("Finished run.") # {}.".format(run))
 
 
@@ -423,15 +408,12 @@ def ctcalign_greedy_search_run(master_settings):
     }
 
     settings.update(master_settings)
-
     batch_gen = get_standard_batch_generator(settings)
-
     execute(
         settings,
         create_ctcalign_attack_graph,
         batch_gen,
     )
-
     log("Finished run.") # {}.".format(run))
 
 
