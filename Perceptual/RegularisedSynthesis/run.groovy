@@ -15,7 +15,7 @@ pipeline {
                 axes {
                     axis {
                         name 'synth'
-                        values 'freq_harmonic', 'full_harmonic', 'inharmonic',
+                        values 'freq_harmonic', 'full_harmonic', 'inharmonic'
                     }
                     axis {
                         name 'detnoise'
