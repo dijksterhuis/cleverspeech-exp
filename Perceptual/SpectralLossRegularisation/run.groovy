@@ -36,7 +36,6 @@ pipeline {
                                         ${IMAGE} \
                                         python3 ${EXP_DIR}/attacks.py ${exp} --max_spawns 5
                                 """
-                                }
                             }
                         }
                     }
