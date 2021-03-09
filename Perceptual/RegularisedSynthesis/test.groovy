@@ -38,26 +38,28 @@ pipeline {
                         }
                     }
                     stage("Run experiment") {
-                        script {
-                            echo "+=+=+=+=+=====> Running experiment: ${detnoise}${synth}"
-                            def exp = "${detnoise}${synth}"
-                            sh """
-                                docker run \
-                                    --gpus device=${GPU_N} \
-                                    -t \
-                                    --rm \
-                                    --name ${exp} \
-                                    -v \$(pwd)/results/:${CLEVERSPEECH_HOME}/adv/ \
-                                    -e LOCAL_UID=\$(id -u ${USER}) \
-                                    -e LOCAL_GID=\$(id -g ${USER}) \
-                                    ${IMAGE} \
-                                    python3 ${EXP_DIR}/attacks.py ${exp} \
-                                        --max_spawns "${params.MAX_SPAWNS}" \
-                                        --batch_size "${params.BATCH_SIZE}" \
-                                        --decode_step "${params.DECODE_STEP}" \
-                                        --nsteps "${params.N_STEPS}" \
-                                        --max_examples "${params.MAX_EXAMPLES}"
-                            """
+                        steps {
+                            script {
+                                echo "+=+=+=+=+=====> Running experiment: ${detnoise}${synth}"
+                                def exp = "${detnoise}${synth}"
+                                sh """
+                                    docker run \
+                                        --gpus device=${GPU_N} \
+                                        -t \
+                                        --rm \
+                                        --name ${exp} \
+                                        -v \$(pwd)/results/:${CLEVERSPEECH_HOME}/adv/ \
+                                        -e LOCAL_UID=\$(id -u ${USER}) \
+                                        -e LOCAL_GID=\$(id -g ${USER}) \
+                                        ${IMAGE} \
+                                        python3 ${EXP_DIR}/attacks.py ${exp} \
+                                            --max_spawns "${params.MAX_SPAWNS}" \
+                                            --batch_size "${params.BATCH_SIZE}" \
+                                            --decode_step "${params.DECODE_STEP}" \
+                                            --nsteps "${params.N_STEPS}" \
+                                            --max_examples "${params.MAX_EXAMPLES}"
+                                """
+                            }
                         }
                     }
                 }
