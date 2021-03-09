@@ -8,8 +8,9 @@ from cleverspeech.graph import Losses
 from cleverspeech.graph import Optimisers
 from cleverspeech.graph import Procedures
 from cleverspeech.graph import Outputs
-from cleverspeech.data import Feeds
+from cleverspeech.graph.CTCAlignmentSearch import create_tf_ctc_alignment_search_graph
 
+from cleverspeech.data import Feeds
 from cleverspeech.data.etl.batch_generators import get_standard_batch_generator
 from cleverspeech.data.etl.batch_generators import get_sparse_batch_generator
 from cleverspeech.data.etl.batch_generators import get_dense_batch_factory
@@ -21,9 +22,6 @@ from cleverspeech.utils.Utils import log, args
 
 # victim model
 from SecEval import VictimAPI as DeepSpeech
-
-# local attack classes
-import custom_defs
 
 
 GPU_DEVICE = 0
@@ -107,7 +105,7 @@ def dense_run(master_settings):
             beam_width=settings["beam_width"]
         )
 
-        attack.add_loss(custom_defs.RepeatsCTCLoss)
+        attack.add_loss(Losses.RepeatsCTCLoss)
 
         attack.create_loss_fn()
 
@@ -187,7 +185,7 @@ def dense_extreme_run(master_settings):
             beam_width=settings["beam_width"]
         )
 
-        attack.add_loss(custom_defs.RepeatsCTCLoss)
+        attack.add_loss(Losses.RepeatsCTCLoss)
 
         attack.create_loss_fn()
 
@@ -268,7 +266,7 @@ def sparse_run(master_settings):
         )
 
         attack.add_loss(
-            custom_defs.RepeatsCTCLoss,
+            Losses.RepeatsCTCLoss,
         )
 
         attack.create_loss_fn()
@@ -348,7 +346,7 @@ def sparse_extreme_run(master_settings):
         )
 
         attack.add_loss(
-            custom_defs.RepeatsCTCLoss,
+            Losses.RepeatsCTCLoss,
         )
 
         attack.create_loss_fn()
@@ -428,14 +426,10 @@ def ctcalign_run(master_settings):
             beam_width=settings["beam_width"]
         )
 
-        alignment = Constructor(attack.sess, batch, feeds)
-        alignment.add_graph(custom_defs.CTCSearchGraph, attack)
-        alignment.add_loss(custom_defs.AlignmentLoss)
-        alignment.create_loss_fn()
-        alignment.add_optimiser(custom_defs.CTCAlignmentOptimiser)
+        alignment = create_tf_ctc_alignment_search_graph(attack, batch, feeds)
 
         attack.add_loss(
-            custom_defs.RepeatsCTCLoss,
+            Losses.RepeatsCTCLoss,
             alignment=alignment.graph.target_alignments,
         )
 
@@ -447,7 +441,7 @@ def ctcalign_run(master_settings):
         )
 
         attack.add_procedure(
-            Procedures.UpdateOnDecoding,
+            Procedures.CTCAlignUpdateOnDecode,
             alignment_graph=alignment,
             steps=settings["nsteps"],
             decode_step=settings["decode_step"],
@@ -521,14 +515,10 @@ def ctcalign_extreme_run(master_settings):
             beam_width=settings["beam_width"]
         )
 
-        alignment = Constructor(attack.sess, batch, feeds)
-        alignment.add_graph(custom_defs.CTCSearchGraph, attack)
-        alignment.add_loss(custom_defs.AlignmentLoss)
-        alignment.create_loss_fn()
-        alignment.add_optimiser(custom_defs.CTCAlignmentOptimiser)
+        alignment = create_tf_ctc_alignment_search_graph(attack, batch, feeds)
 
         attack.add_loss(
-            custom_defs.RepeatsCTCLoss,
+            Losses.RepeatsCTCLoss,
             alignment=alignment.graph.target_alignments,
         )
 
@@ -540,7 +530,7 @@ def ctcalign_extreme_run(master_settings):
         )
 
         attack.add_procedure(
-            custom_defs.CTCAlignmentsUpdateOnLoss,
+            Procedures.CTCAlignUpdateOnLoss,
             alignment_graph=alignment,
             steps=settings["nsteps"],
             decode_step=settings["decode_step"],

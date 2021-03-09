@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 import os
-import random
-import numpy as np
 
 from cleverspeech.graph.GraphConstructor import Constructor
 from cleverspeech.graph import Constraints
@@ -10,8 +8,9 @@ from cleverspeech.graph import Losses
 from cleverspeech.graph import Optimisers
 from cleverspeech.graph import Procedures
 from cleverspeech.graph import Outputs
-from cleverspeech.data import Feeds
+from cleverspeech.graph.CTCAlignmentSearch import create_tf_ctc_alignment_search_graph
 
+from cleverspeech.data import Feeds
 from cleverspeech.data.etl.batch_generators import get_standard_batch_generator
 from cleverspeech.data.etl.batch_generators import get_dense_batch_factory
 from cleverspeech.data.etl.batch_generators import get_sparse_batch_generator
@@ -22,9 +21,6 @@ from cleverspeech.utils.Utils import log, args
 
 # Victim model import
 from SecEval import VictimAPI as DeepSpeech
-
-# local attack classes
-import custom_defs
 
 
 GPU_DEVICE = 0
@@ -111,13 +107,13 @@ def anti_ctc_dense_adaptive_kappa_run(master_settings):
         )
 
         attack.add_loss(
-            custom_defs.AntiCTC,
+            Losses.AntiCTC,
             alignment=attack.graph.placeholders.targets,
             weight_settings=(1 / 100, 1 / 100)
         )
 
         attack.add_loss(
-            Losses.AdaptiveKappaCWMaxDiff,
+            Losses.AdaptiveKappaMaxDiff,
             attack.graph.placeholders.targets,
             k=1.0,
         )
@@ -198,13 +194,13 @@ def anti_ctc_sparse_adaptive_kappa_run(master_settings):
         )
 
         attack.add_loss(
-            custom_defs.AntiCTC,
+            Losses.AntiCTC,
             alignment=attack.graph.placeholders.targets,
             weight_settings=(1 / 100, 1 / 100)
         )
 
         attack.add_loss(
-            Losses.AdaptiveKappaCWMaxDiff,
+            Losses.AdaptiveKappaMaxDiff,
             attack.graph.placeholders.targets,
             k=1.0,
         )
@@ -284,20 +280,16 @@ def anti_ctc_ctcalign_adaptive_kappa_run(master_settings):
             beam_width=settings["beam_width"]
         )
 
-        alignment = Constructor(attack.sess, batch, feeds)
-        alignment.add_graph(custom_defs.CTCSearchGraph, attack)
-        alignment.add_loss(custom_defs.AlignmentLoss)
-        alignment.create_loss_fn()
-        alignment.add_optimiser(custom_defs.CTCAlignmentOptimiser)
+        alignment = create_tf_ctc_alignment_search_graph(attack, batch, feeds)
 
         attack.add_loss(
-            custom_defs.AntiCTC,
+            Losses.AntiCTC,
             alignment=alignment.graph.target_alignments,
             weight_settings=(1/100, 1/100)
         )
 
         attack.add_loss(
-            Losses.AdaptiveKappaCWMaxDiff,
+            Losses.AdaptiveKappaMaxDiff,
             alignment.graph.target_alignments,
             k=1.0,
         )
@@ -308,7 +300,7 @@ def anti_ctc_ctcalign_adaptive_kappa_run(master_settings):
             learning_rate=settings["learning_rate"]
         )
         attack.add_procedure(
-            custom_defs.CTCAlignmentsUpdateOnDecode,
+            Procedures.CTCAlignUpdateOnDecode,
             alignment_graph=alignment,
             steps=settings["nsteps"],
             decode_step=settings["decode_step"]

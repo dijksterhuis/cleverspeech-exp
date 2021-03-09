@@ -8,9 +8,11 @@ from cleverspeech.graph import Losses
 from cleverspeech.graph import Optimisers
 from cleverspeech.graph import Procedures
 from cleverspeech.graph import Outputs
-from cleverspeech.data import Feeds
+from cleverspeech.graph.CTCAlignmentSearch import create_tf_ctc_alignment_search_graph
 
+from cleverspeech.data import Feeds
 from cleverspeech.data.etl.batch_generators import get_standard_batch_generator
+from cleverspeech.data.etl.batch_generators import get_sparse_batch_generator
 from cleverspeech.data.etl.batch_generators import get_dense_batch_factory
 from cleverspeech.data.Results import SingleJsonDB, SingleFileWriter
 from cleverspeech.eval import PerceptualStatsBatch
@@ -86,7 +88,7 @@ def execute(settings, attack_fn, batch_gen):
     PerceptualStatsBatch.batch_generate_statistic_file(settings["outdir"])
 
 
-def vibertish_fwd_only_dense_run(master_settings):
+def dense_fwd_only_run(master_settings):
     """
     """
     def create_attack_graph(sess, batch, settings):
@@ -166,7 +168,7 @@ def vibertish_fwd_only_dense_run(master_settings):
     log("Finished run.")
 
 
-def vibertish_back_only_dense_run(master_settings):
+def dense_back_only_run(master_settings):
     """
     """
     def create_attack_graph(sess, batch, settings):
@@ -246,7 +248,7 @@ def vibertish_back_only_dense_run(master_settings):
     log("Finished run.")
 
 
-def vibertish_fwd_plus_back_dense_run(master_settings):
+def dense_fwd_plus_back_run(master_settings):
     """
     """
     def create_attack_graph(sess, batch, settings):
@@ -326,7 +328,7 @@ def vibertish_fwd_plus_back_dense_run(master_settings):
     log("Finished run.")
 
 
-def vibertish_fwd_mult_back_dense_run(master_settings):
+def dense_fwd_mult_back_run(master_settings):
     """
     """
     def create_attack_graph(sess, batch, settings):
@@ -406,7 +408,7 @@ def vibertish_fwd_mult_back_dense_run(master_settings):
     log("Finished run.")
 
 
-def vibertish_fwd_only_sparse_run(master_settings):
+def sparse_fwd_only_run(master_settings):
     """
     """
     def create_attack_graph(sess, batch, settings):
@@ -431,25 +433,17 @@ def vibertish_fwd_only_sparse_run(master_settings):
             beam_width=settings["beam_width"]
         )
 
-        alignment = Constructor(attack.sess, batch, feeds)
-        alignment.add_graph(custom_defs.CTCSearchGraph, attack)
-        alignment.add_loss(custom_defs.AlignmentLoss)
-        alignment.create_loss_fn()
-        alignment.add_optimiser(custom_defs.CTCAlignmentOptimiser)
-
         attack.add_loss(
             custom_defs.FwdOnlyVibertish,
-            alignment.graph.target_alignments,
+            attack.graph.placeholders.targets,
         )
         attack.create_loss_fn()
-
         attack.add_optimiser(
             Optimisers.AdamOptimiser,
             learning_rate=settings["learning_rate"]
         )
         attack.add_procedure(
-            custom_defs.CTCAlignmentsUpdateOnDecode,
-            alignment_graph=alignment,
+            Procedures.UpdateOnDecoding,
             steps=settings["nsteps"],
             decode_step=settings["decode_step"]
         )
@@ -457,6 +451,7 @@ def vibertish_fwd_only_sparse_run(master_settings):
             Outputs.Base,
             settings["outdir"],
         )
+
         attack.create_feeds()
 
         return attack
@@ -486,14 +481,14 @@ def vibertish_fwd_only_sparse_run(master_settings):
     }
 
     settings.update(master_settings)
-    batch_gen = get_standard_batch_generator(settings)
+    batch_gen = get_sparse_batch_generator(settings)
 
     execute(settings, create_attack_graph, batch_gen)
 
     log("Finished run.")
 
 
-def vibertish_back_only_sparse_run(master_settings):
+def sparse_back_only_run(master_settings):
     """
     """
     def create_attack_graph(sess, batch, settings):
@@ -518,15 +513,9 @@ def vibertish_back_only_sparse_run(master_settings):
             beam_width=settings["beam_width"]
         )
 
-        alignment = Constructor(attack.sess, batch, feeds)
-        alignment.add_graph(custom_defs.CTCSearchGraph, attack)
-        alignment.add_loss(custom_defs.AlignmentLoss)
-        alignment.create_loss_fn()
-        alignment.add_optimiser(custom_defs.CTCAlignmentOptimiser)
-
         attack.add_loss(
             custom_defs.BackOnlyVibertish,
-            alignment.graph.target_alignments,
+            attack.graph.placeholders.targets,
         )
         attack.create_loss_fn()
         attack.add_optimiser(
@@ -534,8 +523,7 @@ def vibertish_back_only_sparse_run(master_settings):
             learning_rate=settings["learning_rate"]
         )
         attack.add_procedure(
-            custom_defs.CTCAlignmentsUpdateOnDecode,
-            alignment_graph=alignment,
+            Procedures.UpdateOnDecoding,
             steps=settings["nsteps"],
             decode_step=settings["decode_step"]
         )
@@ -573,14 +561,14 @@ def vibertish_back_only_sparse_run(master_settings):
     }
 
     settings.update(master_settings)
-    batch_gen = get_standard_batch_generator(settings)
+    batch_gen = get_sparse_batch_generator(settings)
 
     execute(settings, create_attack_graph, batch_gen)
 
     log("Finished run.")
 
 
-def vibertish_fwd_plus_back_sparse_run(master_settings):
+def sparse_fwd_plus_back_run(master_settings):
     """
     """
     def create_attack_graph(sess, batch, settings):
@@ -605,15 +593,9 @@ def vibertish_fwd_plus_back_sparse_run(master_settings):
             beam_width=settings["beam_width"]
         )
 
-        alignment = Constructor(attack.sess, batch, feeds)
-        alignment.add_graph(custom_defs.CTCSearchGraph, attack)
-        alignment.add_loss(custom_defs.AlignmentLoss)
-        alignment.create_loss_fn()
-        alignment.add_optimiser(custom_defs.CTCAlignmentOptimiser)
-
         attack.add_loss(
             custom_defs.FwdPlusBackVibertish,
-            alignment.graph.target_alignments,
+            attack.graph.placeholders.targets,
         )
         attack.create_loss_fn()
         attack.add_optimiser(
@@ -621,8 +603,7 @@ def vibertish_fwd_plus_back_sparse_run(master_settings):
             learning_rate=settings["learning_rate"]
         )
         attack.add_procedure(
-            custom_defs.CTCAlignmentsUpdateOnDecode,
-            alignment_graph=alignment,
+            Procedures.UpdateOnDecoding,
             steps=settings["nsteps"],
             decode_step=settings["decode_step"]
         )
@@ -660,14 +641,14 @@ def vibertish_fwd_plus_back_sparse_run(master_settings):
     }
 
     settings.update(master_settings)
-    batch_gen = get_standard_batch_generator(settings)
+    batch_gen = get_sparse_batch_generator(settings)
 
     execute(settings, create_attack_graph, batch_gen)
 
     log("Finished run.")
 
 
-def vibertish_fwd_mult_back_sparse_run(master_settings):
+def sparse_fwd_mult_back_run(master_settings):
     """
     """
     def create_attack_graph(sess, batch, settings):
@@ -692,11 +673,336 @@ def vibertish_fwd_mult_back_sparse_run(master_settings):
             beam_width=settings["beam_width"]
         )
 
-        alignment = Constructor(attack.sess, batch, feeds)
-        alignment.add_graph(custom_defs.CTCSearchGraph, attack)
-        alignment.add_loss(custom_defs.AlignmentLoss)
-        alignment.create_loss_fn()
-        alignment.add_optimiser(custom_defs.CTCAlignmentOptimiser)
+        attack.add_loss(
+            custom_defs.FwdMultBackVibertish,
+            attack.graph.placeholders.targets,
+        )
+        attack.create_loss_fn()
+        attack.add_optimiser(
+            Optimisers.AdamOptimiser,
+            learning_rate=settings["learning_rate"]
+        )
+        attack.add_procedure(
+            Procedures.UpdateOnDecoding,
+            steps=settings["nsteps"],
+            decode_step=settings["decode_step"]
+        )
+        attack.add_outputs(
+            Outputs.Base,
+            settings["outdir"],
+        )
+
+        attack.create_feeds()
+
+        return attack
+
+    outdir = os.path.join(OUTDIR, "fwd_mult_back/")
+    outdir = os.path.join(outdir, "sparse/")
+
+    settings = {
+        "audio_indir": AUDIOS_INDIR,
+        "targets_path": TARGETS_PATH,
+        "outdir": outdir,
+        "batch_size": BATCH_SIZE,
+        "tokens": TOKENS,
+        "nsteps": NUMB_STEPS,
+        "decode_step": DECODING_STEP,
+        "beam_width": BEAM_WIDTH,
+        "constraint_update": CONSTRAINT_UPDATE,
+        "rescale": RESCALE,
+        "learning_rate": LEARNING_RATE,
+        "gpu_device": GPU_DEVICE,
+        "max_spawns": MAX_PROCESSES,
+        "spawn_delay": SPAWN_DELAY,
+        "decoder_type": "batch",
+        "max_examples": MAX_EXAMPLES,
+        "max_targets": MAX_TARGETS,
+        "max_audio_length": MAX_AUDIO_LENGTH,
+    }
+
+    settings.update(master_settings)
+    batch_gen = get_sparse_batch_generator(settings)
+
+    execute(settings, create_attack_graph, batch_gen)
+
+    log("Finished run.")
+
+
+def ctcalign_fwd_only_run(master_settings):
+    """
+    """
+    def create_attack_graph(sess, batch, settings):
+
+        feeds = Feeds.Attack(batch)
+        attack = Constructor(sess, batch, feeds)
+
+        attack.add_hard_constraint(
+            Constraints.L2,
+            r_constant=settings["rescale"],
+            update_method=settings["constraint_update"],
+        )
+
+        attack.add_graph(
+            Graphs.SimpleAttack
+        )
+
+        attack.add_victim(
+            DeepSpeech.Model,
+            tokens=settings["tokens"],
+            decoder=settings["decoder_type"],
+            beam_width=settings["beam_width"]
+        )
+
+        alignment = create_tf_ctc_alignment_search_graph(attack, batch, feeds)
+
+        attack.add_loss(
+            custom_defs.FwdOnlyVibertish,
+            alignment.graph.target_alignments,
+        )
+        attack.create_loss_fn()
+
+        attack.add_optimiser(
+            Optimisers.AdamOptimiser,
+            learning_rate=settings["learning_rate"]
+        )
+        attack.add_procedure(
+            Procedures.CTCAlignUpdateOnDecode,
+            alignment_graph=alignment,
+            steps=settings["nsteps"],
+            decode_step=settings["decode_step"]
+        )
+        attack.add_outputs(
+            Outputs.Base,
+            settings["outdir"],
+        )
+        attack.create_feeds()
+
+        return attack
+
+    outdir = os.path.join(OUTDIR, "fwd_only/")
+    outdir = os.path.join(outdir, "ctcalign/")
+
+    settings = {
+        "audio_indir": AUDIOS_INDIR,
+        "targets_path": TARGETS_PATH,
+        "outdir": outdir,
+        "batch_size": BATCH_SIZE,
+        "tokens": TOKENS,
+        "nsteps": NUMB_STEPS,
+        "decode_step": DECODING_STEP,
+        "beam_width": BEAM_WIDTH,
+        "constraint_update": CONSTRAINT_UPDATE,
+        "rescale": RESCALE,
+        "learning_rate": LEARNING_RATE,
+        "gpu_device": GPU_DEVICE,
+        "max_spawns": MAX_PROCESSES,
+        "spawn_delay": SPAWN_DELAY,
+        "decoder_type": "batch",
+        "max_examples": MAX_EXAMPLES,
+        "max_targets": MAX_TARGETS,
+        "max_audio_length": MAX_AUDIO_LENGTH,
+    }
+
+    settings.update(master_settings)
+    batch_gen = get_standard_batch_generator(settings)
+
+    execute(settings, create_attack_graph, batch_gen)
+
+    log("Finished run.")
+
+
+def ctcalign_back_only_run(master_settings):
+    """
+    """
+    def create_attack_graph(sess, batch, settings):
+
+        feeds = Feeds.Attack(batch)
+        attack = Constructor(sess, batch, feeds)
+
+        attack.add_hard_constraint(
+            Constraints.L2,
+            r_constant=settings["rescale"],
+            update_method=settings["constraint_update"],
+        )
+
+        attack.add_graph(
+            Graphs.SimpleAttack
+        )
+
+        attack.add_victim(
+            DeepSpeech.Model,
+            tokens=settings["tokens"],
+            decoder=settings["decoder_type"],
+            beam_width=settings["beam_width"]
+        )
+
+        alignment = create_tf_ctc_alignment_search_graph(attack, batch, feeds)
+
+        attack.add_loss(
+            custom_defs.BackOnlyVibertish,
+            alignment.graph.target_alignments,
+        )
+        attack.create_loss_fn()
+        attack.add_optimiser(
+            Optimisers.AdamOptimiser,
+            learning_rate=settings["learning_rate"]
+        )
+        attack.add_procedure(
+            Procedures.CTCAlignUpdateOnDecode,
+            alignment_graph=alignment,
+            steps=settings["nsteps"],
+            decode_step=settings["decode_step"]
+        )
+        attack.add_outputs(
+            Outputs.Base,
+            settings["outdir"],
+        )
+
+        attack.create_feeds()
+
+        return attack
+
+    outdir = os.path.join(OUTDIR, "back_only/")
+    outdir = os.path.join(outdir, "ctcalign/")
+
+    settings = {
+        "audio_indir": AUDIOS_INDIR,
+        "targets_path": TARGETS_PATH,
+        "outdir": outdir,
+        "batch_size": BATCH_SIZE,
+        "tokens": TOKENS,
+        "nsteps": NUMB_STEPS,
+        "decode_step": DECODING_STEP,
+        "beam_width": BEAM_WIDTH,
+        "constraint_update": CONSTRAINT_UPDATE,
+        "rescale": RESCALE,
+        "learning_rate": LEARNING_RATE,
+        "gpu_device": GPU_DEVICE,
+        "max_spawns": MAX_PROCESSES,
+        "spawn_delay": SPAWN_DELAY,
+        "decoder_type": "batch",
+        "max_examples": MAX_EXAMPLES,
+        "max_targets": MAX_TARGETS,
+        "max_audio_length": MAX_AUDIO_LENGTH,
+    }
+
+    settings.update(master_settings)
+    batch_gen = get_standard_batch_generator(settings)
+
+    execute(settings, create_attack_graph, batch_gen)
+
+    log("Finished run.")
+
+
+def ctcalign_fwd_plus_back_run(master_settings):
+    """
+    """
+    def create_attack_graph(sess, batch, settings):
+
+        feeds = Feeds.Attack(batch)
+        attack = Constructor(sess, batch, feeds)
+
+        attack.add_hard_constraint(
+            Constraints.L2,
+            r_constant=settings["rescale"],
+            update_method=settings["constraint_update"],
+        )
+
+        attack.add_graph(
+            Graphs.SimpleAttack
+        )
+
+        attack.add_victim(
+            DeepSpeech.Model,
+            tokens=settings["tokens"],
+            decoder=settings["decoder_type"],
+            beam_width=settings["beam_width"]
+        )
+
+        alignment = create_tf_ctc_alignment_search_graph(attack, batch, feeds)
+
+        attack.add_loss(
+            custom_defs.FwdPlusBackVibertish,
+            alignment.graph.target_alignments,
+        )
+        attack.create_loss_fn()
+        attack.add_optimiser(
+            Optimisers.AdamOptimiser,
+            learning_rate=settings["learning_rate"]
+        )
+        attack.add_procedure(
+            Procedures.CTCAlignUpdateOnDecode,
+            alignment_graph=alignment,
+            steps=settings["nsteps"],
+            decode_step=settings["decode_step"]
+        )
+        attack.add_outputs(
+            Outputs.Base,
+            settings["outdir"],
+        )
+
+        attack.create_feeds()
+
+        return attack
+
+    outdir = os.path.join(OUTDIR, "fwd_plus_back/")
+    outdir = os.path.join(outdir, "ctcalign/")
+
+    settings = {
+        "audio_indir": AUDIOS_INDIR,
+        "targets_path": TARGETS_PATH,
+        "outdir": outdir,
+        "batch_size": BATCH_SIZE,
+        "tokens": TOKENS,
+        "nsteps": NUMB_STEPS,
+        "decode_step": DECODING_STEP,
+        "beam_width": BEAM_WIDTH,
+        "constraint_update": CONSTRAINT_UPDATE,
+        "rescale": RESCALE,
+        "learning_rate": LEARNING_RATE,
+        "gpu_device": GPU_DEVICE,
+        "max_spawns": MAX_PROCESSES,
+        "spawn_delay": SPAWN_DELAY,
+        "decoder_type": "batch",
+        "max_examples": MAX_EXAMPLES,
+        "max_targets": MAX_TARGETS,
+        "max_audio_length": MAX_AUDIO_LENGTH,
+    }
+
+    settings.update(master_settings)
+    batch_gen = get_standard_batch_generator(settings)
+
+    execute(settings, create_attack_graph, batch_gen)
+
+    log("Finished run.")
+
+
+def ctcalign_fwd_mult_back_run(master_settings):
+    """
+    """
+    def create_attack_graph(sess, batch, settings):
+
+        feeds = Feeds.Attack(batch)
+        attack = Constructor(sess, batch, feeds)
+
+        attack.add_hard_constraint(
+            Constraints.L2,
+            r_constant=settings["rescale"],
+            update_method=settings["constraint_update"],
+        )
+
+        attack.add_graph(
+            Graphs.SimpleAttack
+        )
+
+        attack.add_victim(
+            DeepSpeech.Model,
+            tokens=settings["tokens"],
+            decoder=settings["decoder_type"],
+            beam_width=settings["beam_width"]
+        )
+
+        alignment = create_tf_ctc_alignment_search_graph(attack, batch, feeds)
 
         attack.add_loss(
             custom_defs.FwdMultBackVibertish,
@@ -708,7 +1014,7 @@ def vibertish_fwd_mult_back_sparse_run(master_settings):
             learning_rate=settings["learning_rate"]
         )
         attack.add_procedure(
-            custom_defs.CTCAlignmentsUpdateOnDecode,
+            Procedures.CTCAlignUpdateOnDecode,
             alignment_graph=alignment,
             steps=settings["nsteps"],
             decode_step=settings["decode_step"]
@@ -722,7 +1028,7 @@ def vibertish_fwd_mult_back_sparse_run(master_settings):
         return attack
 
     outdir = os.path.join(OUTDIR, "fwd_mult_back/")
-    outdir = os.path.join(outdir, "sparse/")
+    outdir = os.path.join(outdir, "ctcalign/")
 
     settings = {
         "audio_indir": AUDIOS_INDIR,
@@ -756,14 +1062,18 @@ def vibertish_fwd_mult_back_sparse_run(master_settings):
 if __name__ == '__main__':
 
     experiments = {
-        "dense-fwd": vibertish_fwd_only_dense_run,
-        "dense-back": vibertish_back_only_sparse_run,
-        "dense-fwdplusback": vibertish_fwd_plus_back_dense_run,
-        "dense-fwdmultback": vibertish_fwd_mult_back_dense_run,
-        "sparse-fwd": vibertish_fwd_only_sparse_run,
-        "sparse-back": vibertish_back_only_sparse_run,
-        "sparse-fwdplusback": vibertish_fwd_plus_back_sparse_run,
-        "sparse-fwdmultback": vibertish_fwd_mult_back_sparse_run,
+        "dense-fwd": dense_fwd_only_run,
+        "dense-back": dense_back_only_run,
+        "dense-fwdplusback": dense_fwd_plus_back_run,
+        "dense-fwdmultback": dense_fwd_mult_back_run,
+        "sparse-fwd": sparse_fwd_only_run,
+        "sparse-back": sparse_back_only_run,
+        "sparse-fwdplusback": sparse_fwd_plus_back_run,
+        "sparse-fwdmultback": sparse_fwd_mult_back_run,
+        "ctcalign-fwd": ctcalign_fwd_only_run,
+        "ctcalign-back": ctcalign_back_only_run,
+        "ctcalign-fwdplusback": ctcalign_fwd_plus_back_run,
+        "ctcalign-fwdmultback": ctcalign_fwd_mult_back_run,
     }
 
     args(experiments)
