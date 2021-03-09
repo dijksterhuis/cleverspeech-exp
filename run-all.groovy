@@ -16,7 +16,7 @@ pipeline {
                     stage("Run experiment") {
                         steps {
                             echo "Starting ${DIR} build job..."
-                            build job: ${DIR}, wait: false
+                            build job: "${DIR}", wait: false
                         }
                     }
                 }
