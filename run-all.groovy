@@ -1,6 +1,7 @@
 #!/usr/bin/env groovy
 
 pipeline {
+    agent { label 'build' }
     stages {
         stage("Run all the experiments!"){
             failFast false
