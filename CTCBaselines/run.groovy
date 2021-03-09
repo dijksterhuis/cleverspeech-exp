@@ -4,7 +4,7 @@ pipeline {
     agent { label "build" }
     environment {
         IMAGE = "dijksterhuis/cleverspeech:latest"
-        EXP_DIR = "./experiments/Baselines/"
+        EXP_DIR = "./experiments/CTCBaselines/"
         CLEVERSPEECH_HOME = "/home/cleverspeech/cleverSpeech"
     }
     stages {
@@ -15,7 +15,7 @@ pipeline {
                 axes {
                     axis {
                         name 'experiment'
-                        values 'ctc', 'ctc_v2', 'ctcalign_maxdiff_greedy', 'ctcalign_maxdiff_beam'
+                        values 'ctc', 'ctc_v2'
                     }
                 }
                 stages {
