@@ -11,11 +11,10 @@ from cleverspeech.graph import Outputs
 from cleverspeech.data import Feeds
 
 from cleverspeech.data.etl.batch_generators import get_standard_batch_generator
-from cleverspeech.data.etl.batch_generators import get_dense_batch_factory
 from cleverspeech.data.Results import SingleJsonDB, SingleFileWriter
 from cleverspeech.eval import PerceptualStatsBatch
 from cleverspeech.utils.RuntimeUtils import AttackSpawner
-from cleverspeech.utils.Utils import log, args
+from cleverspeech.utils.Utils import log, args, lcomp
 
 from SecEval import VictimAPI as DeepSpeech
 
@@ -45,8 +44,15 @@ DECODING_STEP = 500
 NUMB_STEPS = DECODING_STEP ** 2
 BATCH_SIZE = 10
 
-N_OSC = 64
-N_RUNS = 5
+ADDITIVE_N_OSC = 16
+ADDITIVE_FRAME_LENGTH = 512
+ADDITIVE_FRAME_STEP = 512
+ADDITIVE_INITIAL_HZ = 1e-8
+
+SPECTRAL_FRAME_STEP = 256
+SPECTRAL_FRAME_LENGTH = 256
+SPECTRAL_FFT_LENGTH = 256
+SPECTRAL_CONSTANT = 64
 
 SYNTHS = {
     "inharmonic": Additive.InHarmonic,
@@ -145,7 +151,7 @@ def create_attack_graph(sess, batch, settings):
 def inharmonic_run(master_settings):
     synth_cls = "inharmonic"
 
-    for run in range(N_OSC, 1, -4):
+    for run in range(ADDITIVE_N_OSC, 1, -4):
 
         outdir = os.path.join(OUTDIR, synth_cls + "/")
         outdir = os.path.join(outdir, "osc_{}/".format(run))
@@ -164,7 +170,7 @@ def inharmonic_run(master_settings):
             "rescale": RESCALE,
             "learning_rate": LEARNING_RATE,
             "synth": {
-                "n_osc": N_OSC,
+                "n_osc": ADDITIVE_N_OSC,
                 "initial_hz": 1e-8,
                 "frame_length": 512,
                 "frame_step": 512,
@@ -190,7 +196,7 @@ def freq_harmonic_run(master_settings):
 
     synth_cls = "freqharmonic"
 
-    for run in range(N_OSC, 1, -4):
+    for run in range(ADDITIVE_N_OSC, 1, -4):
 
         outdir = os.path.join(OUTDIR, synth_cls + "/")
         outdir = os.path.join(outdir, "osc_{}/".format(run))
@@ -209,7 +215,7 @@ def freq_harmonic_run(master_settings):
             "rescale": RESCALE,
             "learning_rate": LEARNING_RATE,
             "synth": {
-                "n_osc": N_OSC,
+                "n_osc": ADDITIVE_N_OSC,
                 "initial_hz": 1e-8,
                 "frame_length": 512,
                 "frame_step": 512,
@@ -235,7 +241,7 @@ def full_harmonic_run(master_settings):
 
     synth_cls = "fullharmonic"
 
-    for run in range(N_OSC, 1, -4):
+    for run in range(ADDITIVE_N_OSC, 1, -4):
 
         outdir = os.path.join(OUTDIR, synth_cls + "/")
         outdir = os.path.join(outdir, "osc_{}/".format(run))
@@ -254,7 +260,7 @@ def full_harmonic_run(master_settings):
             "rescale": RESCALE,
             "learning_rate": LEARNING_RATE,
             "synth": {
-                "n_osc": N_OSC,
+                "n_osc": ADDITIVE_N_OSC,
                 "initial_hz": 1e-8,
                 "frame_length": 512,
                 "frame_step": 512,
@@ -280,7 +286,7 @@ def detnoise_inharmonic_run(master_settings):
 
     synth_cls = "dn_inharmonic"
 
-    for run in range(N_OSC, 1, -4):
+    for run in range(ADDITIVE_N_OSC, 1, -4):
 
         outdir = os.path.join(OUTDIR, synth_cls + "/")
         outdir = os.path.join(outdir, "osc_{}/".format(run))
@@ -299,7 +305,7 @@ def detnoise_inharmonic_run(master_settings):
             "rescale": RESCALE,
             "learning_rate": LEARNING_RATE,
             "synth": {
-                "n_osc": N_OSC,
+                "n_osc": ADDITIVE_N_OSC,
                 "initial_hz": 1e-8,
                 "frame_length": 512,
                 "frame_step": 512,
@@ -325,7 +331,7 @@ def detnoise_freq_harmonic_run(master_settings):
 
     synth_cls = "dn_freqharmonic"
 
-    for run in range(N_OSC, 1, -4):
+    for run in range(ADDITIVE_N_OSC, 1, -4):
 
         outdir = os.path.join(OUTDIR, synth_cls + "/")
         outdir = os.path.join(outdir, "osc_{}/".format(run))
@@ -344,7 +350,7 @@ def detnoise_freq_harmonic_run(master_settings):
             "rescale": RESCALE,
             "learning_rate": LEARNING_RATE,
             "synth": {
-                "n_osc": N_OSC,
+                "n_osc": ADDITIVE_N_OSC,
                 "initial_hz": 1e-8,
                 "frame_length": 512,
                 "frame_step": 512,
@@ -370,7 +376,7 @@ def detnoise_full_harmonic_run(master_settings):
 
     synth_cls = "dn_fullharmonic"
 
-    for run in range(N_OSC, 1, -4):
+    for run in range(ADDITIVE_N_OSC, 1, -4):
 
         outdir = os.path.join(OUTDIR, synth_cls + "/")
         outdir = os.path.join(outdir, "osc_{}/".format(run))
@@ -389,7 +395,7 @@ def detnoise_full_harmonic_run(master_settings):
             "rescale": RESCALE,
             "learning_rate": LEARNING_RATE,
             "synth": {
-                "n_osc": N_OSC,
+                "n_osc": ADDITIVE_N_OSC,
                 "initial_hz": 1e-8,
                 "frame_length": 512,
                 "frame_step": 512,
@@ -409,55 +415,6 @@ def detnoise_full_harmonic_run(master_settings):
         execute(settings, create_attack_graph, batch_gen)
 
         log("Finished run {}.".format(run))
-
-
-def spectral_run(master_settings):
-    """
-    CTC Loss attack modified from the original Carlini & Wagner work.
-
-    Using a hard constraint is better for security evaluations, so we ignore the
-    L2 distance regularisation term in the optimisation goal.
-
-    TODO: I could probably remove `Base.add_loss()` method...?
-
-    :return: None
-    """
-
-    synth_cls = "stft"
-    outdir = os.path.join(OUTDIR, "spectral/")
-
-    settings = {
-        "synth_cls": synth_cls,
-        "audio_indir": AUDIOS_INDIR,
-        "targets_path": TARGETS_PATH,
-        "outdir": outdir,
-        "batch_size": BATCH_SIZE,
-        "tokens": TOKENS,
-        "nsteps": NUMB_STEPS,
-        "decode_step": DECODING_STEP,
-        "beam_width": BEAM_WIDTH,
-        "constraint_update": CONSTRAINT_UPDATE,
-        "rescale": RESCALE,
-        "learning_rate": LEARNING_RATE,
-        "synth": {
-            "frame_step": 256,
-            "frame_length": 512,
-            "fft_length": 512,
-        },
-        "gpu_device": GPU_DEVICE,
-        "max_spawns": MAX_PROCESSES,
-        "spawn_delay": SPAWN_DELAY,
-        "max_examples": MAX_EXAMPLES,
-        "max_targets": MAX_TARGETS,
-        "max_audio_length": MAX_AUDIO_LENGTH,
-    }
-
-    settings.update(master_settings)
-    batch_gen = get_standard_batch_generator(settings)
-
-    execute(settings, create_attack_graph, batch_gen)
-
-    log("Finished run.")  # {}.".format(run))
 
 
 def spectral_regularised_run(master_settings):
@@ -520,41 +477,55 @@ def spectral_regularised_run(master_settings):
 
         return attack
 
-    synth_cls = "stft"
-    outdir = os.path.join(OUTDIR, "spectral/")
+    def run_generator(x, n):
+        for i in range(1, n+1):
+            if i == 0:
+                yield x
+            else:
+                yield x
+                x *= 2
 
-    settings = {
-        "synth_cls": synth_cls,
-        "audio_indir": AUDIOS_INDIR,
-        "targets_path": TARGETS_PATH,
-        "outdir": outdir,
-        "batch_size": BATCH_SIZE,
-        "tokens": TOKENS,
-        "nsteps": NUMB_STEPS,
-        "decode_step": DECODING_STEP,
-        "beam_width": BEAM_WIDTH,
-        "constraint_update": CONSTRAINT_UPDATE,
-        "rescale": RESCALE,
-        "learning_rate": LEARNING_RATE,
-        "synth": {
-            "frame_step": 256,
-            "frame_length": 512,
-            "fft_length": 512,
-        },
-        "gpu_device": GPU_DEVICE,
-        "max_spawns": MAX_PROCESSES,
-        "spawn_delay": SPAWN_DELAY,
-        "max_examples": MAX_EXAMPLES,
-        "max_targets": MAX_TARGETS,
-        "max_audio_length": MAX_AUDIO_LENGTH,
-    }
+    runs = lcomp(run_generator(SPECTRAL_CONSTANT, 8))
 
-    settings.update(master_settings)
-    batch_gen = get_standard_batch_generator(settings)
+    synth = "stft"
 
-    execute(settings, create_attack_graph, batch_gen)
+    for run in runs:
 
-    log("Finished run.")  # {}.".format(run))
+        outdir = os.path.join(OUTDIR, synth + "/")
+        outdir = os.path.join(outdir, "run_{}/".format(run))
+
+        settings = {
+            "synth_cls": synth,
+            "audio_indir": AUDIOS_INDIR,
+            "targets_path": TARGETS_PATH,
+            "outdir": outdir,
+            "batch_size": BATCH_SIZE,
+            "tokens": TOKENS,
+            "nsteps": NUMB_STEPS,
+            "decode_step": DECODING_STEP,
+            "beam_width": BEAM_WIDTH,
+            "constraint_update": CONSTRAINT_UPDATE,
+            "rescale": RESCALE,
+            "learning_rate": LEARNING_RATE,
+            "synth": {
+                "frame_step": run,
+                "frame_length": run,
+                "fft_length": run * 2,
+            },
+            "gpu_device": GPU_DEVICE,
+            "max_spawns": MAX_PROCESSES,
+            "spawn_delay": SPAWN_DELAY,
+            "max_examples": MAX_EXAMPLES,
+            "max_targets": MAX_TARGETS,
+            "max_audio_length": MAX_AUDIO_LENGTH,
+        }
+
+        settings.update(master_settings)
+        batch_gen = get_standard_batch_generator(settings)
+
+        execute(settings, create_attack_graph, batch_gen)
+
+        log("Finished run.")  # {}.".format(run))
 
 
 if __name__ == '__main__':
@@ -562,8 +533,7 @@ if __name__ == '__main__':
     log("", wrap=True)
 
     experiments = {
-        "stft": spectral_run,
-        "stft-reg": spectral_regularised_run,
+        "stft": spectral_regularised_run,
         "inharmonic": inharmonic_run,
         "freq_harmonic": freq_harmonic_run,
         "full_harmonic": full_harmonic_run,
