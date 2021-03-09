@@ -27,8 +27,10 @@ pipeline {
                 }
                 stages {
                     stage("Image pull") {
-                        script {
-                            sh "docker pull ${IMAGE}"
+                        steps {
+                            script {
+                                sh "docker pull ${IMAGE}"
+                            }
                         }
                     }
                     stage("Run experiment") {
