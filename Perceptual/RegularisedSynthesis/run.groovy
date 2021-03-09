@@ -24,6 +24,11 @@ pipeline {
                 }
                 stages {
                     steps {
+                        stage("Image pull") {
+                            script {
+                                sh "docker pull ${IMAGE}"
+                            }
+                        }
                         stage("Run experiment") {
                             script {
                                 echo "+=+=+=+=+=====> Running experiment: ${detnoise}${synth}"

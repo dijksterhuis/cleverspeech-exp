@@ -19,8 +19,13 @@ pipeline {
                     }
                 }
                 stages {
-                    stage("Run experiment") {
-                        steps {
+                    steps {
+                        stage("Image pull") {
+                            script {
+                                sh "docker pull ${IMAGE}"
+                            }
+                        }
+                        stage("Run experiment") {
                             script {
                                 echo "+=+=+=+=+=====> Running experiment: ${experiment}"
                                 def exp = "${experiment}"
