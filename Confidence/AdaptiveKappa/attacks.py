@@ -206,6 +206,7 @@ def create_ctcalign_attack_graph(sess, batch, settings):
     )
     attack.add_procedure(
         Procedures.CTCAlignUpdateOnDecode,
+        alignment,
         steps=settings["nsteps"],
         decode_step=settings["decode_step"],
         loss_update_idx=0,
