@@ -9,7 +9,6 @@ from cleverspeech.graph import Losses
 from cleverspeech.graph import Optimisers
 from cleverspeech.graph import Procedures
 from cleverspeech.graph import Outputs
-from cleverspeech.graph.CTCAlignmentSearch import create_tf_ctc_alignment_search_graph
 
 from cleverspeech.data import Feeds
 from cleverspeech.data.etl.batch_generators import get_standard_batch_generator
