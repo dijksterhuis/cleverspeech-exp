@@ -21,7 +21,7 @@ from cleverspeech.utils.Utils import log, args
 from SecEval import VictimAPI as Victim
 
 # custom definitions
-import CustomLosses
+import custom_defs
 
 
 GPU_DEVICE = 0
@@ -105,7 +105,7 @@ def spectral_run(master_settings):
         )
 
         attack.add_loss(Losses.CTCLoss)
-        attack.add_loss(CustomLosses.SpectralLoss)
+        attack.add_loss(custom_defs.SpectralLoss)
         attack.create_loss_fn()
 
         attack.add_optimiser(
@@ -181,7 +181,7 @@ def multi_scale_l1_spectral_run(master_settings):
         )
 
         attack.add_loss(Losses.CTCLoss)
-        attack.add_loss(CustomLosses.MultiScaleSpectralLoss, norm=1)
+        attack.add_loss(custom_defs.MultiScaleSpectralLoss, norm=1)
         attack.create_loss_fn()
 
         attack.add_optimiser(
@@ -257,7 +257,7 @@ def multi_scale_l2_spectral_run(master_settings):
         )
 
         attack.add_loss(Losses.CTCLoss)
-        attack.add_loss(CustomLosses.MultiScaleSpectralLoss, norm=2)
+        attack.add_loss(custom_defs.MultiScaleSpectralLoss, norm=2)
         attack.create_loss_fn()
 
         attack.add_optimiser(
