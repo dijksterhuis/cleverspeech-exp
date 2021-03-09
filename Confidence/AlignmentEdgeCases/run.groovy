@@ -23,8 +23,8 @@ pipeline {
                     }
                 }
                 stages {
-                    steps {
-                        stage("Run experiment") {
+                    stage("Run experiment") {
+                        steps {
                             script {
                                 echo "+=+=+=+=+=====> Running experiment: ${alignment_type}-${proc_type}"
                                 def exp = "${alignment_type}-${proc_type}"
