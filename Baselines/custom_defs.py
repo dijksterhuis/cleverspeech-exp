@@ -1,14 +1,15 @@
 import tensorflow as tf
+import numpy as np
 
 from abc import ABC
 
 from cleverspeech.graph import Procedures
-from cleverspeech.utils.Utils import lcomp
+from cleverspeech.utils.Utils import lcomp, log
 
 
 class AlignmentLoss(object):
     def __init__(self, alignment_graph):
-        feat_lens = alignment_graph.batch.audios["ds_feats"]
+        seq_lens = alignment_graph.batch.audios["real_feats"]
 
         self.ctc_target = tf.keras.backend.ctc_label_dense_to_sparse(
             alignment_graph.graph.targets,
@@ -18,22 +19,38 @@ class AlignmentLoss(object):
         self.loss_fn = tf.nn.ctc_loss(
             labels=self.ctc_target,
             inputs=alignment_graph.graph.raw_alignments,
-            sequence_length=feat_lens
+            sequence_length=seq_lens,
         )
 
 
 class CTCSearchGraph:
     def __init__(self, sess, batch, attack_graph):
-        alignment_shape = attack_graph.victim.raw_logits.shape.as_list()
+        batched_alignment_shape = attack_graph.victim.logits.shape.as_list()
 
-        self.raw_alignments = tf.Variable(
-            tf.ones(alignment_shape) * 20,
+        self.initial_alignments = tf.Variable(
+            tf.zeros(batched_alignment_shape),
             dtype=tf.float32,
             trainable=True,
             name='qq_alignment'
         )
 
-        self.logits_alignments = tf.transpose(self.raw_alignments, [1, 0, 2])
+        # mask is *added* to force decoder to see the logits for those frames as
+        # repeat characters. CTC-Loss outputs zero valued vectors for those
+        # character classes (as they're beyond the actual alignment length)
+        # This messes with decoder output.
+
+        # --> N.B. This is legacy problem with tensorflow/numpy not being able
+        # to handle ragged inputs for tf.Variables etc.
+
+        self.mask = tf.Variable(
+            tf.ones(batched_alignment_shape),
+            dtype=tf.float32,
+            trainable=False,
+            name='qq_alignment_mask'
+        )
+
+        self.logits_alignments = self.initial_alignments + self.mask
+        self.raw_alignments = tf.transpose(self.logits_alignments, [1, 0, 2])
         self.softmax_alignments = tf.nn.softmax(self.logits_alignments)
         self.target_alignments = tf.argmax(self.softmax_alignments, axis=2)
 
@@ -41,23 +58,50 @@ class CTCSearchGraph:
         self.targets = attack_graph.graph.placeholders.targets
         self.target_lengths = attack_graph.graph.placeholders.target_lengths
 
+        per_logit_lengths = batch.audios["real_feats"]
+        maxlen = batched_alignment_shape[1]
+
+        initial_masks = np.asarray(
+            [m for m in self.gen_mask(per_logit_lengths, maxlen)],
+            dtype=np.float32
+        )
+
+        sess.run(self.mask.assign(initial_masks))
+
+    @staticmethod
+    def gen_mask(per_logit_len, maxlen):
+        # per actual frame
+        for l in per_logit_len:
+            # per possible frame
+            masks = []
+            for f in range(maxlen):
+                if l > f:
+                    # if should be optimised
+                    mask = np.zeros([29])
+                else:
+                    # shouldn't be optimised
+                    mask = np.zeros([29])
+                    mask[28] = 30.0
+                masks.append(mask)
+            yield np.asarray(masks)
+
 
 class CTCAlignmentOptimiser:
     def __init__(self, graph):
 
         self.graph = graph
-        self.loss = self.graph.loss_fn
+        self.loss = self.graph.adversarial_loss
 
         self.train_alignment = None
         self.variables = None
 
     def create_optimiser(self):
 
-        optimizer = tf.train.AdamOptimizer(10)
+        optimizer = tf.train.AdamOptimizer(1)
 
         grad_var = optimizer.compute_gradients(
             self.graph.loss_fn,
-            self.graph.graph.raw_alignments
+            self.graph.graph.initial_alignments
         )
         assert None not in lcomp(grad_var, i=0)
 
@@ -74,13 +118,14 @@ class CTCAlignmentOptimiser:
         while True:
 
             train_ops = [
-                    g.loss_fn,
-                    g.graph.softmax_alignments,
-                    g.graph.logits_alignments,
-                    self.train_alignment
-                ]
+                self.graph.loss_fn,
+                g.graph.softmax_alignments,
+                g.graph.logits_alignments,
+                g.graph.mask,
+                self.train_alignment
+            ]
 
-            ctc_limit, softmax, raw, _ = g.sess.run(
+            ctc_limit, softmax, raw, m, _ = g.sess.run(
                 train_ops,
                 feed_dict=g.feeds.alignments
             )
@@ -92,7 +137,17 @@ class CTCAlignmentOptimiser:
                 top_five=False
             )
 
-            if all([d == b.targets["phrases"][0] for d in decodings]):
+            target_phrases = b.targets["phrases"]
+
+            if all([d == target_phrases[0] for d in decodings]) and all(c < 0.1 for c in ctc_limit):
+                s = "Found an alignment for each example:"
+                for d, p, t in zip(decodings, probs, target_phrases):
+                    s += "\nTarget: {t} | Decoding: {d} | Probs: {p:.3f}".format(
+                        t=t,
+                        d=d,
+                        p=p,
+                    )
+                log(s, wrap=True)
                 break
 
 
@@ -143,3 +198,4 @@ class CTCAlignmentsUpdateOnLoss(Procedures.UpdateOnLoss, CTCAlignmentsMixIn):
 
 class CTCAlignmentsHardcoreMode(Procedures.HardcoreMode, CTCAlignmentsMixIn):
     pass
+
