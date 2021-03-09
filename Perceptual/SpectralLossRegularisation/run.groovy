@@ -19,7 +19,7 @@ pipeline {
                     }
                 }
                 stages {
-                    stage("Run ${experiment} experiment") {
+                    stage("Run experiment") {
                         steps {
                             script {
                                 echo "+=+=+=+=+=====> Running experiment: ${experiment}"
