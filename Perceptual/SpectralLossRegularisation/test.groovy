@@ -23,7 +23,7 @@ pipeline {
                 axes {
                     axis {
                         name 'experiment'
-                        values 'multi_scale', 'spectral'
+                        values 'multiscale-L1', 'multiscale-L2', 'spectral'
                     }
                 }
                 stages {
