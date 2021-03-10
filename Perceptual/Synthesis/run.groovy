@@ -23,7 +23,7 @@ pipeline {
                     }
                     axis {
                         name 'detnoise'
-                        values '', 'detnoise_'
+                        values 'additive', 'detnoise'
                     }
                 }
                 stages {
@@ -44,8 +44,8 @@ pipeline {
                     }
                     stage("Run experiment") {
                         script {
-                            echo "+=+=+=+=+=====> Running experiment: ${detnoise}${synth}"
-                            def exp = "${detnoise}${synth}"
+                            echo "+=+=+=+=+=====> Running experiment: ${detnoise}-${synth}"
+                            def exp = "${detnoise}-${synth}"
                             sh """
                                 docker run \
                                     --gpus device=${GPU_N} \

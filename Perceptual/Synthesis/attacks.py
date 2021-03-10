@@ -482,12 +482,12 @@ if __name__ == '__main__':
 
     experiments = {
         "stft": spectral_run,
-        "inharmonic": inharmonic_run,
-        "freq_harmonic": freq_harmonic_run,
-        "full_harmonic": full_harmonic_run,
-        "detnoise_inharmonic": detnoise_inharmonic_run,
-        "detnoise_freq_harmonic": detnoise_freq_harmonic_run,
-        "detnoise_full_harmonic": detnoise_full_harmonic_run,
+        "additive-inharmonic": inharmonic_run,
+        "additive-freq_harmonic": freq_harmonic_run,
+        "additive-full_harmonic": full_harmonic_run,
+        "detnoise-inharmonic": detnoise_inharmonic_run,
+        "detnoise-freq_harmonic": detnoise_freq_harmonic_run,
+        "detnoise-full_harmonic": detnoise_full_harmonic_run,
     }
 
     args(experiments)
