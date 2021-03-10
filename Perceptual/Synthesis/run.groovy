@@ -2,6 +2,7 @@
 
 pipeline {
     agent { label "build" }
+    options { skipDefaultCheckout() }
     parameters {
             string(name: 'MAX_SPAWNS', defaultValue: '5', description: 'Number of attacks to spawn at once.')
         }
@@ -26,6 +27,14 @@ pipeline {
                     }
                 }
                 stages {
+                    stage("Locked SCM checkout") {
+                        steps {
+                            lock("dummy") {
+                                sleep 5
+                                checkout scm
+                            }
+                        }
+                    }
                     stage("Image pull") {
                         steps {
                             script {
