@@ -50,7 +50,7 @@ LOSS_UPDATE_THRESHOLD = 10.0
 KAPPA_HYPERS = [
     [k/(10 ** l) for k in [np.exp2(x) for x in range(0, 4)]] for l in range(1, 3)
 ]
-KAPPA = 0.02
+KAPPA = 0.5
 
 
 def execute(settings, attack_fn, batch_gen):
