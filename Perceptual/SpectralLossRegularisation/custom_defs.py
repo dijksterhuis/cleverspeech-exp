@@ -1,12 +1,14 @@
 import tensorflow as tf
-import numpy as np
 
 
 class SpectralLoss(object):
     def __init__(self, attack_graph, frame_size: int = 512, norm: int = 2, loss_weight: float = 10.0e-7):
 
+        x = attack_graph.graph.placeholders.audios
+        d = attack_graph.graph.final_deltas
+
         self.spectrogram_diff = tf.signal.stft(
-            signals=attack_graph.placeholders.audios - attack_graph.bounded_deltas,
+            signals=x - d,
             frame_length=int(frame_size),
             frame_step=int(frame_size * 2),
             fft_length=int(frame_size),
@@ -23,8 +25,11 @@ class SpectralLoss(object):
 class NormalisedSpectralLoss(object):
     def __init__(self, attack_graph, frame_size: int = 128, overlap: float = 0.75, norm: int = 2, loss_weight: float = 100.0):
 
+        x = attack_graph.graph.placeholders.audios
+        d = attack_graph.graph.final_deltas
+
         self.spectrogram_orig = tf.signal.stft(
-            signals=attack_graph.placeholders.audios,
+            signals=x,
             frame_length=int(frame_size),
             frame_step=int(frame_size * 2),
             fft_length=int(frame_size),
@@ -32,7 +37,7 @@ class NormalisedSpectralLoss(object):
         )
 
         self.spectrogram_delta = tf.signal.stft(
-            signals=attack_graph.bounded_deltas,
+            signals=d,
             frame_length=int(frame_size),
             frame_step=int(frame_size * 2 * overlap),
             fft_length=int(frame_size),
@@ -54,8 +59,11 @@ class NormalisedSpectralLoss(object):
 class MultiScaleSpectralLoss(object):
     def __init__(self, attack_graph, frame_size=512, norm=1, loss_weight=1.0):
 
+        x = attack_graph.graph.placeholders.audios
+        d = attack_graph.graph.final_deltas
+
         self.spectrogram_diff = tf.signal.stft(
-            signals=attack_graph.placeholders.audios - attack_graph.bounded_deltas,
+            signals=x - d,
             frame_length=int(frame_size),
             frame_step=int(frame_size * 2),
             fft_length=int(frame_size),
