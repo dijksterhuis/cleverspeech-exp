@@ -145,6 +145,9 @@ def spectral_run(master_settings):
         "gpu_device": GPU_DEVICE,
         "max_spawns": MAX_PROCESSES,
         "spawn_delay": SPAWN_DELAY,
+        "max_examples": MAX_EXAMPLES,
+        "max_targets": MAX_TARGETS,
+        "max_audio_length": MAX_AUDIO_LENGTH,
     }
 
     settings.update(master_settings)
@@ -221,6 +224,9 @@ def multi_scale_l1_spectral_run(master_settings):
         "gpu_device": GPU_DEVICE,
         "max_spawns": MAX_PROCESSES,
         "spawn_delay": SPAWN_DELAY,
+        "max_examples": MAX_EXAMPLES,
+        "max_targets": MAX_TARGETS,
+        "max_audio_length": MAX_AUDIO_LENGTH,
     }
 
     settings.update(master_settings)
@@ -297,6 +303,9 @@ def multi_scale_l2_spectral_run(master_settings):
         "gpu_device": GPU_DEVICE,
         "max_spawns": MAX_PROCESSES,
         "spawn_delay": SPAWN_DELAY,
+        "max_examples": MAX_EXAMPLES,
+        "max_targets": MAX_TARGETS,
+        "max_audio_length": MAX_AUDIO_LENGTH,
     }
 
     settings.update(master_settings)
