@@ -33,7 +33,17 @@ pipeline {
                     exclude {
                         axis {
                            name 'alignment_type'
-                            values 'dense', 'sparse'
+                            values 'dense'
+                        }
+                        axis {
+                            name 'loss_type'
+                            values 'ctc'
+                        }
+                    }
+                    exclude {
+                        axis {
+                           name 'alignment_type'
+                            values 'sparse'
                         }
                         axis {
                             name 'loss_type'
