@@ -16,9 +16,7 @@ class SpectralLoss(object):
         )
 
         self.magnitude_diff = tf.cast(tf.abs(self.spectrogram_diff), tf.float32)
-
-        self.mag_loss_fn = tf.reduce_mean(self.magnitude_diff ** norm)
-
+        self.mag_loss_fn = tf.reduce_mean(self.magnitude_diff ** norm, axis=[1, 2])
         self.loss_fn = loss_weight * self.mag_loss_fn
 
 
@@ -47,8 +45,8 @@ class NormalisedSpectralLoss(object):
         self.magnitude_orig = tf.cast(tf.abs(self.spectrogram_orig), tf.float32)
         self.magnitude_delta = tf.cast(tf.abs(self.spectrogram_delta), tf.float32)
 
-        self.mag_norm_delta = tf.reduce_mean(self.magnitude_delta ** norm, axis=1)
-        self.mag_norm_orig = tf.reduce_mean(self.magnitude_orig ** norm, axis=1)
+        self.mag_norm_delta = tf.reduce_mean(self.magnitude_delta ** norm, axis=[1, 2])
+        self.mag_norm_orig = tf.reduce_mean(self.magnitude_orig ** norm, axis=[1, 2])
         # dividing at the reduced mean stage avoids us accidentally dividing by
         # zero if we were to have a zero valued original frame.
         self.mag_loss_fn = self.mag_norm_delta / self.mag_norm_orig
@@ -73,8 +71,8 @@ class MultiScaleSpectralLoss(object):
         self.magnitude_diff = tf.cast(tf.abs(self.spectrogram_diff), tf.float32)
         self.log_magnitude_diff = tf.log(self.magnitude_diff + 10.0e-10)
 
-        self.mag_loss_fn = tf.reduce_mean(self.magnitude_diff ** norm)
-        self.log_mag_loss_fn = tf.reduce_mean(self.log_magnitude_diff ** norm)
+        self.mag_loss_fn = tf.reduce_mean(self.magnitude_diff ** norm, axis=[1, 2])
+        self.log_mag_loss_fn = tf.reduce_mean(self.log_magnitude_diff ** norm, axis=[1, 2])
 
         self.loss_fn = loss_weight * self.mag_loss_fn
 
