@@ -34,13 +34,15 @@ pipeline {
                 Do not test `dense-ctc` or `sparse-ctc` as they're known to be broken.
                 */
                 excludes {
-                    axis {
-                        name 'alignment_type'
-                        values 'dense', 'sparse'
-                    }
-                    axis {
-                        name 'loss_type'
-                        values 'ctc'
+                    exclude {
+                        axis {
+                           name 'alignment_type'
+                            values 'dense', 'sparse'
+                        }
+                        axis {
+                            name 'loss_type'
+                            values 'ctc'
+                        }
                     }
                 }
                 stages {
