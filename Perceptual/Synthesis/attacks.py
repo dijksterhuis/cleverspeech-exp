@@ -201,7 +201,7 @@ def inharmonic_run(master_settings):
 
 def freq_harmonic_run(master_settings):
 
-    synth = "freqinharmonic"
+    synth = "freqharmonic"
 
     for run in range(ADDITIVE_N_OSC, 1, -4):
 
