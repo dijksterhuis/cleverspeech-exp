@@ -2,7 +2,7 @@ import tensorflow as tf
 
 
 class SpectralLoss(object):
-    def __init__(self, attack_graph, frame_size: int = 512, norm: int = 2, loss_weight: float = 10.0e-7):
+    def __init__(self, attack_graph, frame_size=512, norm=2, loss_weight=10.0e-7):
 
         x = attack_graph.graph.placeholders.audios
         d = attack_graph.graph.final_deltas
@@ -23,7 +23,7 @@ class SpectralLoss(object):
 
 
 class NormalisedSpectralLoss(object):
-    def __init__(self, attack_graph, frame_size: int = 128, overlap: float = 0.75, norm: int = 2, loss_weight: float = 100.0):
+    def __init__(self, attack_graph, frame_size=128, overlap=0.75, norm=2, loss_weight=100.0):
 
         x = attack_graph.graph.placeholders.audios
         d = attack_graph.graph.final_deltas
