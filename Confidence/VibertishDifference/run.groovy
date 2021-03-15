@@ -8,7 +8,7 @@ pipeline {
         }
     environment {
         IMAGE = "dijksterhuis/cleverspeech:latest"
-        EXP_DIR = "./experiments/Confidence/Vibertish/"
+        EXP_DIR = "./experiments/Confidence/VibertishDifference/"
         CLEVERSPEECH_HOME = "/home/cleverspeech/cleverSpeech"
     }
     stages {
