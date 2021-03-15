@@ -1,23 +1,27 @@
 #!/usr/bin/env python3
 import os
 
+from collections import OrderedDict
+
 from cleverspeech.graph.GraphConstructor import Constructor
 from cleverspeech.graph import Constraints
 from cleverspeech.graph import Graphs
 from cleverspeech.graph import Losses
 from cleverspeech.graph import Optimisers
 from cleverspeech.graph import Procedures
-from cleverspeech.graph import Outputs
-from cleverspeech.graph.CTCAlignmentSearch import create_tf_ctc_alignment_search_graph
+from cleverspeech.graph.Outputs import Base as Outputs
 
-from cleverspeech.data import Feeds
+from cleverspeech.graph.CTCAlignmentSearch import create_tf_ctc_alignment_search_graph
 from cleverspeech.data.etl.batch_generators import get_standard_batch_generator
 from cleverspeech.data.etl.batch_generators import get_sparse_batch_generator
 from cleverspeech.data.etl.batch_generators import get_dense_batch_factory
+
+from cleverspeech.data import Feeds
 from cleverspeech.data.Results import SingleJsonDB, SingleFileWriter
+
 from cleverspeech.eval import PerceptualStatsBatch
 from cleverspeech.utils.RuntimeUtils import AttackSpawner
-from cleverspeech.utils.Utils import log, args
+from cleverspeech.utils.Utils import log, args, lcomp
 
 # victim model import
 from SecEval import VictimAPI as DeepSpeech
@@ -34,7 +38,7 @@ TARGETS_PATH = "./samples/cv-valid-test.csv"
 OUTDIR = "./adv/vibertish/"
 MAX_EXAMPLES = 100
 MAX_TARGETS = 1000
-MAX_AUDIO_LENGTH = 120000
+MAX_AUDIO_LENGTH = 70000
 
 TOKENS = " abcdefghijklmnopqrstuvwxyz'-"
 BEAM_WIDTH = 500
@@ -95,6 +99,68 @@ def execute(settings, attack_fn, batch_gen):
     PerceptualStatsBatch.batch_generate_statistic_file(settings["outdir"])
 
 
+class LogProbOutputs(Outputs):
+    def custom_logging_modifications(self, log_output, batch_idx):
+
+        # Display in log files the current target alignment#s forward log
+        # probability and the log probability of the most likely alignment
+        # calculated by viberti
+
+        target_log_probs = self.attack.loss[0].fwd_target_log_probs
+        most_likely_log_probs = self.attack.loss[0].fwd_current_log_probs
+
+        target_log_probs, most_likely_log_probs = self.attack.procedure.tf_run(
+            [target_log_probs, most_likely_log_probs]
+        )
+
+        additional = OrderedDict(
+            [
+                ("t_alpha", target_log_probs[batch_idx]),
+                ("ml_alpha", most_likely_log_probs[batch_idx])
+            ]
+        )
+
+        log_output.update(additional)
+
+        return log_output
+
+    def custom_success_modifications(self, db_output, batch_idx):
+
+        # As above, except write to disk in the result json file
+
+        target_log_probs = self.attack.loss[0].fwd_target_log_probs
+        most_likely_log_probs = self.attack.loss[0].fwd_current_log_probs
+
+        t_alpha, ml_alpha = self.attack.procedure.tf_run(
+            [target_log_probs, most_likely_log_probs]
+        )
+
+        additional = OrderedDict(
+            [
+                ("target_alignment_alpha_log_prob", t_alpha[batch_idx]),
+                ("most_likely_alignment_alpha_log_prob", ml_alpha[batch_idx])
+            ]
+        )
+
+        db_output.update(additional)
+
+        return db_output
+
+
+class AdamOptimiserWithGrads(Optimisers.AdamOptimiser):
+    def create_optimiser(self):
+
+        grad_var = self.optimizer.compute_gradients(
+            self.attack.loss_fn,
+            self.attack.graph.opt_vars,
+            colocate_gradients_with_ops=True,
+            grad_loss=self.attack.loss[0].grads,
+        )
+        assert None not in lcomp(grad_var, i=0)
+        self.train = self.optimizer.apply_gradients(grad_var)
+        self.variables = self.optimizer.variables()
+
+
 def create_attack_graph(sess, batch, settings):
 
     feeds = Feeds.Attack(batch)
@@ -134,7 +200,7 @@ def create_attack_graph(sess, batch, settings):
         decode_step=settings["decode_step"]
     )
     attack.add_outputs(
-        Outputs.Base,
+        LogProbOutputs,
         settings["outdir"],
     )
 
@@ -175,17 +241,17 @@ def create_ctcalign_attack_graph(sess, batch, settings):
     attack.create_loss_fn()
 
     attack.add_optimiser(
-        Optimisers.AdamOptimiser,
+        custom_defs.AdamOptimiserWithGrads,
         learning_rate=settings["learning_rate"]
     )
     attack.add_procedure(
         Procedures.CTCAlignUpdateOnDecode,
         alignment,
         steps=settings["nsteps"],
-        decode_step=settings["decode_step"]
+        decode_step=settings["decode_step"],
     )
     attack.add_outputs(
-        Outputs.Base,
+        LogProbOutputs,
         settings["outdir"],
     )
 
