@@ -35,10 +35,10 @@ SPAWN_DELAY = 30
 
 AUDIOS_INDIR = "./samples/all/"
 TARGETS_PATH = "./samples/cv-valid-test.csv"
-OUTDIR = "./adv/vibertish/"
+OUTDIR = "./adv/confidence/logprobs/"
 MAX_EXAMPLES = 100
 MAX_TARGETS = 1000
-MAX_AUDIO_LENGTH = 70000
+MAX_AUDIO_LENGTH = 120000
 
 TOKENS = " abcdefghijklmnopqrstuvwxyz'-"
 BEAM_WIDTH = 500
