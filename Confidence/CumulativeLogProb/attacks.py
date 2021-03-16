@@ -53,10 +53,10 @@ BATCH_SIZE = 10
 LOSS_UPDATE_THRESHOLD = 10.0
 
 LOSSES = {
-    "fwd_only": custom_defs.FwdOnlyVibertish,
-    "back_only": custom_defs.BackOnlyVibertish,
-    "fwd_plus_back": custom_defs.FwdPlusBackVibertish,
-    "fwd_mult_back": custom_defs.FwdMultBackVibertish,
+    "fwd_only": custom_defs.FwdOnlyLogProbsLoss,
+    "back_only": custom_defs.BackOnlyLogProbsLoss,
+    "fwd_plus_back": custom_defs.FwdPlusBackLogProbsLoss,
+    "fwd_mult_back": custom_defs.FwdMultBackLogProbsLoss,
 }
 
 # VIBERT-ish

@@ -37,7 +37,7 @@ class BaseLogProbsLoss(BaseLogitDiffLoss):
 
 
 class FwdOnlyLogProbsLoss(BaseLogProbsLoss):
-    def __init__(self, attack_graph, target_argmax, weight_settings=(-1.0, -1.0)):
+    def __init__(self, attack_graph, target_argmax, weight_settings=(1.0, 1.0)):
         """
         """
 
@@ -48,13 +48,11 @@ class FwdOnlyLogProbsLoss(BaseLogProbsLoss):
         )
 
         self.loss_fn = self.fwd_target_log_probs
-        self.loss_fn *= self.weights
-
-        self.grads = self.back_target_log_probs
+        self.loss_fn *= -self.weights
 
 
 class BackOnlyLogProbsLoss(BaseLogProbsLoss):
-    def __init__(self, attack_graph, target_argmax, weight_settings=(-1.0, -1.0)):
+    def __init__(self, attack_graph, target_argmax, weight_settings=(1.0, 1.0)):
         """
         """
 
@@ -65,11 +63,11 @@ class BackOnlyLogProbsLoss(BaseLogProbsLoss):
         )
 
         self.loss_fn = self.back_target_log_probs
-        self.loss_fn *= self.weights
+        self.loss_fn *= -self.weights
 
 
 class FwdPlusBackLogProbsLoss(BaseLogProbsLoss):
-    def __init__(self, attack_graph, target_argmax, weight_settings=(-1.0, -1.0)):
+    def __init__(self, attack_graph, target_argmax, weight_settings=(1.0, 1.0)):
         """
         """
 
@@ -80,11 +78,11 @@ class FwdPlusBackLogProbsLoss(BaseLogProbsLoss):
         )
 
         self.loss_fn = self.fwd_target_log_probs + self.back_target_log_probs
-        self.loss_fn *= self.weights
+        self.loss_fn *= -self.weights
 
 
 class FwdMultBackLogProbsLoss(BaseLogProbsLoss):
-    def __init__(self, attack_graph, target_argmax, weight_settings=(-1.0, -1.0)):
+    def __init__(self, attack_graph, target_argmax, weight_settings=(1.0, 1.0)):
         """
         """
 
@@ -95,7 +93,7 @@ class FwdMultBackLogProbsLoss(BaseLogProbsLoss):
         )
 
         self.loss_fn = self.fwd_target_log_probs * self.back_target_log_probs
-        self.loss_fn *= self.weights
+        self.loss_fn *= -self.weights
 
 
 class AdamOptimiserWithGrads(AdamOptimiser):

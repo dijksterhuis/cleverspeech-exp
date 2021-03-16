@@ -3,7 +3,7 @@ import tensorflow as tf
 from cleverspeech.graph.Losses import BaseLoss, BaseLogitDiffLoss
 
 
-class BaseVibertishLoss(BaseLogitDiffLoss):
+class BaseVibertishDifferenceLoss(BaseLogitDiffLoss):
     def __init__(self, attack_graph, target_argmax, weight_settings=(None, None)):
 
         super().__init__(
@@ -17,74 +17,30 @@ class BaseVibertishLoss(BaseLogitDiffLoss):
         fwd_target = self.target_probs(log_smax_target)
         back_target = self.target_probs(log_smax_target, backward_pass=True)
 
-        log_smax_current = tf.log(self.current + 1e-8)
-        fwd_current = self.viberti_probs(log_smax_current)
-        back_current = self.viberti_probs(log_smax_current, backward_pass=True)
+        # viberti basically does greedy search anyway... so we may as well use
+        # the argmax of the current softmax
+        log_smax_current = tf.log(tf.reduce_max(self.current, axis=-1))
+        fwd_current = self.target_probs(log_smax_current)
+        back_current = self.target_probs(log_smax_current, backward_pass=True)
 
         # comparison log probabilities to calcalute loss.
         self.fwd_target_log_probs = fwd_target[:, -1]
         self.back_target_log_probs = back_target[:, -1]
-
         self.fwd_current_log_probs = fwd_current[:, -1]
         self.back_current_log_probs = back_current[:, -1]
 
     @staticmethod
     def target_probs(x_t, backward_pass=False):
-        return tf.cumsum(
+        probability_vector = tf.cumsum(
             x_t,
             exclusive=False,
             reverse=backward_pass,
             axis=1
         )
-
-    def viberti_probs(self, log_softmax, backward_pass=False):
-        """
-        Calculate the most likely alignment based on the Viberti forward pass
-
-        :param log_softmax: negative value tensor [batch size, n_frames, tokens]
-        :return: vector of alpha log probability estimates [n_frames]
-        """
-
         if backward_pass:
-            log_softmax = tf.reverse(log_softmax, axis=[1])
+            probability_vector = tf.reverse(probability_vector, axis=[1])
 
-        frames = tf.unstack(log_softmax, axis=1)
-        batch_size = log_softmax.get_shape().as_list()[0]
-
-        log_probs = tf.stack(self.__viberti(frames, batch_size), axis=1)
-
-        return log_probs
-
-    @staticmethod
-    def __viberti(frames, batch_size):
-        """
-        Run the viberti algorithm on the log softmax outputs.
-
-        TODO: Handle the batch dimension.
-
-        :param frames: unstacked list of tensors of size [batch, tokens]
-        :return: vector of cumulative log probabilities [n_frames]
-        """
-
-        res = list()
-        best_alpha = tf.zeros([batch_size, 1], tf.float32)
-
-        for current_log_probs in frames:
-            # at first step, max of current because previous = 0
-            # at second step, max of current + previous
-            # at third step, max of current + previous
-            # ...
-            # at time = t, max of current + previous
-
-            # for each time we want to find the best alpha (cumulative log prob)
-            # we can then just keep that one and ignore all others
-
-            alpha_log_probs = current_log_probs + best_alpha
-            best_alpha = tf.reduce_max(alpha_log_probs, axis=-1)
-
-            res.append(best_alpha)
-
-        return res
+        return probability_vector
 
 
 class VibertiMostLikely(BaseLoss):
@@ -140,10 +96,12 @@ class VibertiMostLikely(BaseLoss):
         return tf.stack(res)
 
 
-class FwdOnlyVibertish(BaseVibertishLoss):
-    def __init__(self, attack_graph, target_argmax, kappa=2.0, weight_settings=(-1.0, -1.0)):
+class FwdOnlyVibertish(BaseVibertishDifferenceLoss):
+    def __init__(self, attack_graph, target_argmax, kappa=1.1, weight_settings=(1.0, 1.0)):
         """
         """
+
+        assert kappa > 1.0
 
         super().__init__(
             attack_graph,
@@ -151,16 +109,18 @@ class FwdOnlyVibertish(BaseVibertishLoss):
             weight_settings=weight_settings,
         )
 
-        self.loss_fn = self.fwd_target_log_probs
-        self.loss_fn *= kappa
-        self.loss_fn -= self.fwd_current_log_probs
+        target = kappa * self.fwd_target_log_probs
+        current = self.fwd_current_log_probs
+
+        self.loss_fn = current - target
         self.loss_fn *= self.weights
 
 
-class BackOnlyVibertish(BaseVibertishLoss):
-    def __init__(self, attack_graph, target_argmax, kappa=2.0, weight_settings=(-1.0, -1.0)):
+class BackOnlyVibertish(BaseVibertishDifferenceLoss):
+    def __init__(self, attack_graph, target_argmax, kappa=1.1, weight_settings=(1.0, 1.0)):
         """
         """
+        assert kappa > 1.0
 
         super().__init__(
             attack_graph,
@@ -168,16 +128,18 @@ class BackOnlyVibertish(BaseVibertishLoss):
             weight_settings=weight_settings,
         )
 
-        self.loss_fn = self.back_target_log_probs
-        self.loss_fn *= kappa
-        self.loss_fn -= self.back_current_log_probs
+        target = kappa * self.back_target_log_probs
+        current = self.back_current_log_probs
+
+        self.loss_fn = current - target
         self.loss_fn *= self.weights
 
 
-class FwdPlusBackVibertish(BaseVibertishLoss):
-    def __init__(self, attack_graph, target_argmax, kappa=2.0, weight_settings=(-1.0, -1.0)):
+class FwdPlusBackVibertish(BaseVibertishDifferenceLoss):
+    def __init__(self, attack_graph, target_argmax, kappa=1.1, weight_settings=(1.0, 1.0)):
         """
         """
+        assert kappa > 1.0
 
         super().__init__(
             attack_graph,
@@ -185,16 +147,18 @@ class FwdPlusBackVibertish(BaseVibertishLoss):
             weight_settings=weight_settings,
         )
 
-        self.loss_fn = self.fwd_target_log_probs + self.back_target_log_probs
-        self.loss_fn *= kappa
-        self.loss_fn -= self.fwd_current_log_probs + self.back_current_log_probs
+        target = kappa * self.fwd_target_log_probs + self.back_target_log_probs
+        current = self.fwd_current_log_probs + self.back_current_log_probs
+
+        self.loss_fn = current - target
         self.loss_fn *= self.weights
 
 
-class FwdMultBackVibertish(BaseVibertishLoss):
-    def __init__(self, attack_graph, target_argmax, kappa=2.0, weight_settings=(-1.0, -1.0)):
+class FwdMultBackVibertish(BaseVibertishDifferenceLoss):
+    def __init__(self, attack_graph, target_argmax, kappa=1.1, weight_settings=(1.0, 1.0)):
         """
         """
+        assert kappa > 1.0
 
         super().__init__(
             attack_graph,
@@ -202,12 +166,11 @@ class FwdMultBackVibertish(BaseVibertishLoss):
             weight_settings=weight_settings,
         )
 
-        self.loss_fn = self.fwd_target_log_probs * self.back_target_log_probs
-        self.loss_fn *= kappa
-        self.loss_fn -= self.fwd_current_log_probs * self.back_current_log_probs
+        target = kappa * self.fwd_target_log_probs * self.back_target_log_probs
+        current = self.fwd_current_log_probs * self.back_current_log_probs
+
+        self.loss_fn = target - current
         self.loss_fn *= self.weights
-
-
 
 
 

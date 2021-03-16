@@ -106,17 +106,26 @@ class LogProbOutputs(Outputs):
         # probability and the log probability of the most likely alignment
         # calculated by viberti
 
-        target_log_probs = self.attack.loss[0].fwd_target_log_probs
-        most_likely_log_probs = self.attack.loss[0].fwd_current_log_probs
+        f_target_log_probs = self.attack.loss[0].fwd_target_log_probs
+        b_target_log_probs = self.attack.loss[0].back_target_log_probs
+        f_most_likely_log_probs = self.attack.loss[0].fwd_current_log_probs
+        b_most_likely_log_probs = self.attack.loss[0].back_current_log_probs
 
-        target_log_probs, most_likely_log_probs = self.attack.procedure.tf_run(
-            [target_log_probs, most_likely_log_probs]
+        t_alpha, ml_alpha, t_beta, ml_beta = self.attack.procedure.tf_run(
+            [
+                f_target_log_probs,
+                f_most_likely_log_probs,
+                b_target_log_probs,
+                b_most_likely_log_probs,
+            ]
         )
 
         additional = OrderedDict(
             [
-                ("t_alpha", target_log_probs[batch_idx]),
-                ("ml_alpha", most_likely_log_probs[batch_idx])
+                ("t_alpha", t_alpha[batch_idx]),
+                ("ml_alpha", ml_alpha[batch_idx]),
+                ("t_beta", t_beta[batch_idx]),
+                ("ml_beta", ml_beta[batch_idx]),
             ]
         )
 
