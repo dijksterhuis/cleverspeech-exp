@@ -100,48 +100,45 @@ def execute(settings, attack_fn, batch_gen):
 
 
 class LogProbOutputs(Outputs):
-    def custom_logging_modifications(self, log_output, batch_idx):
 
-        # Display in log files the current target alignment#s forward log
-        # probability and the log probability of the most likely alignment
-        # calculated by viberti
+    def get_log_probs(self, batch_idx):
 
-        target_log_probs = self.attack.loss[0].fwd_target_log_probs
-        most_likely_log_probs = self.attack.loss[0].fwd_current_log_probs
+        # Get the target alignment's forward and backward log probability
 
-        target_log_probs, most_likely_log_probs = self.attack.procedure.tf_run(
-            [target_log_probs, most_likely_log_probs]
+        target_alpha = self.attack.loss[0].fwd_target_log_probs
+        target_beta = self.attack.loss[0].back_target_log_probs
+
+        alpha, beta = self.attack.procedure.tf_run(
+            [target_alpha, target_beta]
         )
 
-        additional = OrderedDict(
+        logs = OrderedDict(
             [
-                ("t_alpha", target_log_probs[batch_idx]),
-                ("ml_alpha", most_likely_log_probs[batch_idx])
+                ("alpha", alpha[batch_idx]),
             ]
         )
 
+        full = OrderedDict(
+            [
+                ("alpha", alpha[batch_idx]),
+                ("beta", beta[batch_idx])
+            ]
+        )
+
+        return logs, full
+
+    def custom_logging_modifications(self, log_output, batch_idx):
+
+        # Display in log files
+        additional, _ = self.get_log_probs(batch_idx)
         log_output.update(additional)
 
         return log_output
 
     def custom_success_modifications(self, db_output, batch_idx):
 
-        # As above, except write it to disk in the result json file
-
-        target_log_probs = self.attack.loss[0].fwd_target_log_probs
-        most_likely_log_probs = self.attack.loss[0].fwd_current_log_probs
-
-        t_alpha, ml_alpha = self.attack.procedure.tf_run(
-            [target_log_probs, most_likely_log_probs]
-        )
-
-        additional = OrderedDict(
-            [
-                ("target_alignment_alpha_log_prob", t_alpha[batch_idx]),
-                ("most_likely_alignment_alpha_log_prob", ml_alpha[batch_idx])
-            ]
-        )
-
+        # Write to disk in the result json file
+        _, additional = self.get_log_probs(batch_idx)
         db_output.update(additional)
 
         return db_output
@@ -191,7 +188,7 @@ def create_attack_graph(sess, batch, settings):
     attack.create_loss_fn()
 
     attack.add_optimiser(
-        custom_defs.AdamOptimiserWithGrads,
+        Optimisers.AdamOptimiser,
         learning_rate=settings["learning_rate"]
     )
     attack.add_procedure(
@@ -241,7 +238,7 @@ def create_ctcalign_attack_graph(sess, batch, settings):
     attack.create_loss_fn()
 
     attack.add_optimiser(
-        custom_defs.AdamOptimiserWithGrads,
+        Optimisers.AdamOptimiser,
         learning_rate=settings["learning_rate"]
     )
     attack.add_procedure(
