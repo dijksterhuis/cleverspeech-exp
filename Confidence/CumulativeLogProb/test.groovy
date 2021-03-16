@@ -5,8 +5,9 @@ pipeline {
     options { skipDefaultCheckout() }
     parameters {
             string(name: 'MAX_SPAWNS', defaultValue: '2', description: '')
-            string(name: 'N_STEPS', defaultValue: '10', description: '')
-            string(name: 'DECODE_STEP', defaultValue: '2', description: '')
+            string(name: 'N_STEPS', defaultValue: '100', description: '')
+            string(name: 'DECODE_STEP', defaultValue: '10', description: '')
+            string(name: 'SPAWN_DELAY', defaultValue: '5', description: '')
             string(name: 'BATCH_SIZE', defaultValue: '2', description: '')
             string(name: 'MAX_EXAMPLES', defaultValue: '4', description: '')
     }
@@ -63,6 +64,7 @@ pipeline {
                                         ${IMAGE} \
                                         python3 ${EXP_DIR}/attacks.py ${exp} \
                                             --max_spawns "${params.MAX_SPAWNS}" \
+                                            --spawn_delay "${params.SPAWN_DELAY}" \
                                             --batch_size "${params.BATCH_SIZE}" \
                                             --decode_step "${params.DECODE_STEP}" \
                                             --nsteps "${params.N_STEPS}" \
