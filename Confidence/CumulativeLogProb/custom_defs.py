@@ -28,12 +28,16 @@ class BaseLogProbsLoss(BaseLogitDiffLoss):
 
     @staticmethod
     def target_probs(x_t, backward_pass=False):
-        return tf.cumsum(
+        probability_vector = tf.cumsum(
             x_t,
             exclusive=False,
             reverse=backward_pass,
             axis=1
         )
+        if backward_pass:
+            probability_vector = tf.reverse(probability_vector, axis=[1])
+
+        return probability_vector
 
 
 class FwdOnlyLogProbsLoss(BaseLogProbsLoss):
