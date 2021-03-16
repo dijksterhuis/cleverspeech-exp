@@ -35,7 +35,7 @@ SPAWN_DELAY = 30
 
 AUDIOS_INDIR = "./samples/all/"
 TARGETS_PATH = "./samples/cv-valid-test.csv"
-OUTDIR = "./adv/confidence/vibertish_diff/"
+OUTDIR = "./adv/confidence/logprobs_greedy_diff/"
 MAX_EXAMPLES = 100
 MAX_TARGETS = 1000
 MAX_AUDIO_LENGTH = 120000
@@ -137,17 +137,26 @@ class LogProbOutputs(Outputs):
 
         # As above, except write to disk in the result json file
 
-        target_log_probs = self.attack.loss[0].fwd_target_log_probs
-        most_likely_log_probs = self.attack.loss[0].fwd_current_log_probs
+        f_target_log_probs = self.attack.loss[0].fwd_target_log_probs
+        b_target_log_probs = self.attack.loss[0].back_target_log_probs
+        f_most_likely_log_probs = self.attack.loss[0].fwd_current_log_probs
+        b_most_likely_log_probs = self.attack.loss[0].back_current_log_probs
 
-        t_alpha, ml_alpha = self.attack.procedure.tf_run(
-            [target_log_probs, most_likely_log_probs]
+        t_alpha, ml_alpha, t_beta, ml_beta = self.attack.procedure.tf_run(
+            [
+                f_target_log_probs,
+                f_most_likely_log_probs,
+                b_target_log_probs,
+                b_most_likely_log_probs,
+            ]
         )
 
         additional = OrderedDict(
             [
                 ("target_alignment_alpha_log_prob", t_alpha[batch_idx]),
-                ("most_likely_alignment_alpha_log_prob", ml_alpha[batch_idx])
+                ("target_alignment_alpha_log_prob", t_beta[batch_idx]),
+                ("forward_current_argmax_beta", ml_alpha[batch_idx]),
+                ("backward_current_argmax_beta", ml_beta[batch_idx]),
             ]
         )
 
