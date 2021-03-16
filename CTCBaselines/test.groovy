@@ -24,7 +24,7 @@ pipeline {
                 axes {
                     axis {
                         name 'experiment'
-                        values 'ctc', 'ctc_v2'
+                        values 'ctc', 'ctc2'
                     }
                 }
                 stages {

@@ -5,6 +5,7 @@ pipeline {
     options { skipDefaultCheckout() }
     parameters {
             string(name: 'MAX_SPAWNS', defaultValue: '5', description: 'Number of attacks to spawn at once.')
+            string(name: 'N_STEPS', defaultValue: '10000', description: '')
         }
     environment {
         IMAGE = "dijksterhuis/cleverspeech:latest"
@@ -23,13 +24,13 @@ pipeline {
                     }
                     axis {
                         name 'loss_type'
-                        values 'none', 'rctc', 'ctc'
+                        values 'none' /*, 'rctc', 'ctc' */
                     }
                 }
                 /*
                 Do not run `dense-ctc` or `sparse-ctc` as they're known to be broken.
                 */
-                excludes {
+                /* excludes {
                     exclude {
                         axis {
                            name 'alignment_type'
@@ -50,7 +51,7 @@ pipeline {
                             values 'ctc'
                         }
                     }
-                }
+                } */
                 stages {
                     stage("Locked SCM checkout") {
                         steps {
@@ -82,7 +83,9 @@ pipeline {
                                         -e LOCAL_UID=\$(id -u ${USER}) \
                                         -e LOCAL_GID=\$(id -g ${USER}) \
                                         ${IMAGE} \
-                                        python3 ${EXP_DIR}/attacks.py ${exp} --max_spawns "${params.MAX_SPAWNS}"
+                                        python3 ${EXP_DIR}/attacks.py ${exp} \
+                                            --max_spawns "${params.MAX_SPAWNS}" \
+                                            --nsteps "${params.N_STEPS}"
                                 """
                             }
                         }

@@ -5,6 +5,7 @@ pipeline {
     options { skipDefaultCheckout() }
     parameters {
             string(name: 'MAX_SPAWNS', defaultValue: '5', description: 'Number of attacks to spawn at once.')
+            string(name: 'N_STEPS', defaultValue: '10000', description: '')
     }
     environment {
         IMAGE = "dijksterhuis/cleverspeech:latest"
@@ -53,7 +54,9 @@ pipeline {
                                         -e LOCAL_UID=\$(id -u ${USER}) \
                                         -e LOCAL_GID=\$(id -g ${USER}) \
                                         ${IMAGE} \
-                                        python3 ${EXP_DIR}/attacks.py ${exp} --max_spawns "${params.MAX_SPAWNS}"
+                                        python3 ${EXP_DIR}/attacks.py ${exp} \
+                                            --max_spawns "${params.MAX_SPAWNS}" \
+                                            --nsteps "${params.N_STEPS}"
                                 """
                             }
                         }

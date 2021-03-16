@@ -205,7 +205,7 @@ def ctc_v2_run(master_settings):
 if __name__ == '__main__':
 
     log("", wrap=True)
-    experiments = {"ctc": ctc_run, "ctc_v2": ctc_v2_run }
+    experiments = {"ctc": ctc_run, "ctc2": ctc_v2_run}
     args(experiments)
 
 
