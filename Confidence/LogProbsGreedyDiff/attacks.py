@@ -668,7 +668,7 @@ def ctcalign_fwd_mult_back_run(master_settings):
     }
 
     settings.update(master_settings)
-    batch_gen = get_standard_batch_generator(settings)
+    batch_gen = batch_generators.standard(settings)
     execute(settings, create_ctcalign_attack_graph, batch_gen)
     log("Finished run.")
 
