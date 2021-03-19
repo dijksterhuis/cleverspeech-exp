@@ -17,8 +17,9 @@ from cleverspeech.data.egress.Transforms import Standard
 from cleverspeech.data.egress.Writers import SingleFileWriter
 from cleverspeech.data.egress.eval import PerceptualStatsBatch
 
-from cleverspeech.utils.Utils import log, args
-from cleverspeech.utils.RuntimeUtils import AttackSpawner
+from cleverspeech.utils.Utils import log
+from cleverspeech.utils.runtime.AttackSpawner import AttackSpawner
+from cleverspeech.utils.runtime.ExperimentArguments import args
 
 # victim model
 from SecEval import VictimAPI as Victim
