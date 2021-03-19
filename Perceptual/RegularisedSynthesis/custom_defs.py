@@ -147,93 +147,19 @@ class SpectralLoss(object):
 
 
 class UpdateOnDecodingSynth(UpdateOnDecoding):
-
     def decode_step_logic(self):
-
-        # we can't do the rounding for synthesis attack unfortunately.
-        # (at least I don't think so? maybe it's just slightly more complex?)
-
-        # deltas = self.attack.sess.run(self.attack.graph.raw_deltas)
-        # self.attack.sess.run(
-        #     self.attack.graph.raw_deltas.assign(tf.round(deltas))
-        # )
-
-        # can use either tf or deepspeech decodings ("ds" or "batch")
-        # "batch" is prefered as it's what the actual model would use.
-        # It does mean switching to CPU every time we want to do
-        # inference but it's not a major hit to performance
-
-        # keep the top 5 scoring decodings and their probabilities as that might
-        # be useful come analysis time...
-
-        top_5_decodings, top_5_probs = self.attack.victim.inference(
-            self.attack.batch,
-            feed=self.attack.feeds.attack,
-            decoder="batch",
-            top_five=True,
-        )
-
-        decodings, probs = self.attack.victim.inference(
-            self.attack.batch,
-            feed=self.attack.feeds.attack,
-            decoder="batch",
-            top_five=False,
-        )
-
-        targets = self.attack.batch.targets["phrases"]
-
-        return {
-            "step": self.current_step,
-            "data": [
-                {
-                    "idx": idx,
-                    "success": success,
-                    "decodings": decodings[idx],
-                    "target_phrase": targets[idx],
-                    "probs": probs[idx],
-                    "top_five_decodings": top_5_decodings[idx],
-                    "top_five_probs": top_5_probs[idx],
-                }
-                for idx, success in self.check_for_success(decodings, targets)
-            ]
-        }
+        """
+        Don't do the reassignment of the the rounded graph delta variables as
+        that'll screw with synthesis.
+        """
+        pass
 
 
 class UpdateOnLossSynth(UpdateOnLoss):
-
     def decode_step_logic(self):
+        """
+        Don't do the reassignment of the the rounded graph delta variables as
+        that'll screw with synthesis.
+        """
+        pass
 
-        loss = self.tf_run(self.attack.loss_fn)
-
-        top_5_decodings, top_5_probs = self.attack.victim.inference(
-            self.attack.batch,
-            feed=self.attack.feeds.attack,
-            decoder="batch",
-            top_five=True,
-        )
-
-        decodings, probs = self.attack.victim.inference(
-            self.attack.batch,
-            feed=self.attack.feeds.attack,
-            decoder="batch",
-            top_five=False,
-        )
-
-        target_loss = [self.loss_bound for _ in range(self.attack.batch.size)]
-        targets = self.attack.batch.targets["phrases"]
-
-        return {
-            "step": self.current_step,
-            "data": [
-                {
-                    "idx": idx,
-                    "success": success,
-                    "decodings": decodings[idx],
-                    "target_phrase": targets[idx],
-                    "top_five_decodings": top_5_decodings[idx],
-                    "top_five_probs": top_5_probs[idx],
-                    "probs": probs[idx]
-                }
-                for idx, success in self.check_for_success(loss, target_loss)
-            ]
-        }

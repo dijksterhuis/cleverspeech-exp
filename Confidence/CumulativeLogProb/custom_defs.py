@@ -1,11 +1,8 @@
-from collections import OrderedDict
-
 import tensorflow as tf
 
 from cleverspeech.graph.Losses import BaseLogitDiffLoss
 from cleverspeech.graph.Optimisers import AdamOptimiser
 from cleverspeech.utils.Utils import lcomp
-from cleverspeech.graph.Outputs import Base as Outputs
 
 
 class BaseLogProbsLoss(BaseLogitDiffLoss):
@@ -119,52 +116,4 @@ class AdamOptimiserWithGrads(AdamOptimiser):
         assert None not in lcomp(grad_var, i=0)
         self.train = adv_optimizer.apply_gradients(grad_var)
         self.variables = adv_optimizer.variables()
-
-
-class LogProbOutputs(Outputs):
-    def custom_logging_modifications(self, log_output, batch_idx):
-
-        # Display in log files the current target alignment#s forward log
-        # probability and the log probability of the most likely alignment
-        # calculated by viberti
-
-        target_log_probs = self.attack.loss[0].fwd_target_log_probs
-        most_likely_log_probs = self.attack.loss[0].fwd_other_log_probs
-
-        target_log_probs, most_likely_log_probs = self.attack.procedure.tf_run(
-            [target_log_probs, most_likely_log_probs]
-        )
-
-        additional = OrderedDict(
-            [
-                ("t_alpha", target_log_probs[batch_idx]),
-                ("ml_alpha", most_likely_log_probs[batch_idx])
-            ]
-        )
-
-        log_output.update(additional)
-
-        return log_output
-
-    def custom_success_modifications(self, db_output, batch_idx):
-
-        # As above, except write it to disk in the result json file
-
-        target_log_probs = self.attack.loss[0].fwd_target_log_probs
-        most_likely_log_probs = self.attack.loss[0].fwd_other_log_probs
-
-        target_log_probs, most_likely_log_probs = self.attack.procedure.tf_run(
-            [target_log_probs, most_likely_log_probs]
-        )
-
-        additional = OrderedDict(
-            [
-                ("target_alignment_alpha_log_prob", target_log_probs[batch_idx]),
-                ("most_likely_alignment_alpha_log_prob", most_likely_log_probs[batch_idx])
-            ]
-        )
-
-        db_output.update(additional)
-
-        return db_output
 

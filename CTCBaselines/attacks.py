@@ -8,12 +8,14 @@ from cleverspeech.graph import Graphs
 from cleverspeech.graph import Losses
 from cleverspeech.graph import Optimisers
 from cleverspeech.graph import Procedures
-from cleverspeech.graph import Outputs
 
-from cleverspeech.data import Feeds
-from cleverspeech.data.etl.batch_generators import get_standard_batch_generator
-from cleverspeech.data.Results import SingleFileWriter, SingleJsonDB
-from cleverspeech.eval import PerceptualStatsBatch
+from cleverspeech.data.ingress.etl import batch_generators
+from cleverspeech.data.ingress import Feeds
+from cleverspeech.data.egress.Databases import SingleJsonDB
+from cleverspeech.data.egress.Transforms import Standard
+from cleverspeech.data.egress.Writers import SingleFileWriter
+from cleverspeech.data.egress.eval import PerceptualStatsBatch
+
 from cleverspeech.utils.Utils import log, args
 from cleverspeech.utils.RuntimeUtils import AttackSpawner
 
@@ -57,7 +59,8 @@ def execute(settings, attack_fn, batch_gen):
     if not os.path.exists(settings["outdir"]):
         os.makedirs(settings["outdir"], exist_ok=True)
 
-    file_writer = SingleFileWriter(settings["outdir"])
+    results_extracter = Standard()
+    file_writer = SingleFileWriter(settings["outdir"], results_extracter)
 
     # Write the current settings to "settings.json" file.
 
@@ -122,11 +125,6 @@ def create_attack_graph(sess, batch, settings):
         decode_step=settings["decode_step"]
     )
 
-    attack.add_outputs(
-        Outputs.Base,
-        settings["outdir"],
-    )
-
     attack.create_feeds()
 
     return attack
@@ -162,7 +160,7 @@ def ctc_run(master_settings):
     }
 
     settings.update(master_settings)
-    batch_gen = get_standard_batch_generator(settings)
+    batch_gen = batch_generators.standard(settings)
     execute(settings, create_attack_graph, batch_gen)
     log("Finished run.")  # {}.".format(run))
 
@@ -197,7 +195,7 @@ def ctc_v2_run(master_settings):
     }
 
     settings.update(master_settings)
-    batch_gen = get_standard_batch_generator(settings)
+    batch_gen = batch_generators.standard(settings)
     execute(settings, create_attack_graph, batch_gen)
     log("Finished run.")  # {}.".format(run))
 

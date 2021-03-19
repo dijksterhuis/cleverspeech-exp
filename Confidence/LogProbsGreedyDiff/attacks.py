@@ -9,17 +9,15 @@ from cleverspeech.graph import Graphs
 from cleverspeech.graph import Losses
 from cleverspeech.graph import Optimisers
 from cleverspeech.graph import Procedures
-from cleverspeech.graph.Outputs import Base as Outputs
-
 from cleverspeech.graph.CTCAlignmentSearch import create_tf_ctc_alignment_search_graph
-from cleverspeech.data.etl.batch_generators import get_standard_batch_generator
-from cleverspeech.data.etl.batch_generators import get_sparse_batch_generator
-from cleverspeech.data.etl.batch_generators import get_dense_batch_factory
 
-from cleverspeech.data import Feeds
-from cleverspeech.data.Results import SingleJsonDB, SingleFileWriter
+from cleverspeech.data.ingress.etl import batch_generators
+from cleverspeech.data.ingress import Feeds
+from cleverspeech.data.egress.Databases import SingleJsonDB
+from cleverspeech.data.egress.Transforms import Standard
+from cleverspeech.data.egress.Writers import SingleFileWriter
+from cleverspeech.data.egress.eval import PerceptualStatsBatch
 
-from cleverspeech.eval import PerceptualStatsBatch
 from cleverspeech.utils.RuntimeUtils import AttackSpawner
 from cleverspeech.utils.Utils import log, args, lcomp
 
@@ -72,7 +70,8 @@ def execute(settings, attack_fn, batch_gen):
     if not os.path.exists(settings["outdir"]):
         os.makedirs(settings["outdir"], exist_ok=True)
 
-    file_writer = SingleFileWriter(settings["outdir"])
+    results_extracter = Standard(extra_logging_keys=["alpha", "beta"])
+    file_writer = SingleFileWriter(settings["outdir"], results_extracter)
 
     # Write the current settings to "settings.json" file.
 
@@ -99,61 +98,54 @@ def execute(settings, attack_fn, batch_gen):
     PerceptualStatsBatch.batch_generate_statistic_file(settings["outdir"])
 
 
-class LogProbOutputs(Outputs):
+class CustomCTCProcedure(Procedures.CTCAlignUpdateOnDecode):
 
-    def get_log_probs(self, batch_idx):
+    def get_current_attack_state(self):
 
-        # Get the forward and backward log probabilities for both the target
-        # alignment and the greedy search alignment
+        batched_results = super().get_current_attack_state()
 
-        f_target_log_probs = self.attack.loss[0].fwd_target_log_probs
-        b_target_log_probs = self.attack.loss[0].back_target_log_probs
-        f_most_likely_log_probs = self.attack.loss[0].fwd_current_log_probs
-        b_most_likely_log_probs = self.attack.loss[0].back_current_log_probs
+        # Get the target alignment's forward and backward log probability
 
-        t_alpha, ml_alpha, t_beta, ml_beta = self.attack.procedure.tf_run(
-            [
-                f_target_log_probs,
-                f_most_likely_log_probs,
-                b_target_log_probs,
-                b_most_likely_log_probs,
-            ]
+        target_alpha = self.attack.loss[0].fwd_target_log_probs
+        target_beta = self.attack.loss[0].back_target_log_probs
+
+        alpha, beta = self.attack.procedure.tf_run(
+            [target_alpha, target_beta]
         )
 
-        logs = OrderedDict(
-            [
-                ("t_alpha", t_alpha[batch_idx]),
-                ("ml_alpha", ml_alpha[batch_idx]),
-            ]
+        batched_results.update(
+            {
+                "alpha": alpha,
+                "beta": beta,
+            }
         )
 
-        success = OrderedDict(
-            [
-                ("t_alpha", t_alpha[batch_idx]),
-                ("ml_alpha", ml_alpha[batch_idx]),
-                ("t_beta", t_beta[batch_idx]),
-                ("ml_beta", ml_beta[batch_idx]),
-            ]
+        return batched_results
+
+
+class CustomProcedure(Procedures.UpdateOnDecoding):
+
+    def get_current_attack_state(self):
+
+        batched_results = super().get_current_attack_state()
+
+        # Get the target alignment's forward and backward log probability
+
+        target_alpha = self.attack.loss[0].fwd_target_log_probs
+        target_beta = self.attack.loss[0].back_target_log_probs
+
+        alpha, beta = self.attack.procedure.tf_run(
+            [target_alpha, target_beta]
         )
 
-        return logs, success
+        batched_results.update(
+            {
+                "alpha": alpha,
+                "beta": beta,
+            }
+        )
 
-    def custom_logging_modifications(self, log_output, batch_idx):
-
-        # Display in log files
-        additional, _ = self.get_log_probs(batch_idx)
-        log_output.update(additional)
-
-        return log_output
-
-    def custom_success_modifications(self, db_output, batch_idx):
-
-        # As above, except write to disk in the result json file
-
-        _, additional = self.get_log_probs(batch_idx)
-        db_output.update(additional)
-
-        return db_output
+        return batched_results
 
 
 class AdamOptimiserWithGrads(Optimisers.AdamOptimiser):
@@ -204,13 +196,9 @@ def create_attack_graph(sess, batch, settings):
         learning_rate=settings["learning_rate"]
     )
     attack.add_procedure(
-        Procedures.UpdateOnDecoding,
+        CustomProcedure,
         steps=settings["nsteps"],
         decode_step=settings["decode_step"]
-    )
-    attack.add_outputs(
-        LogProbOutputs,
-        settings["outdir"],
     )
 
     attack.create_feeds()
@@ -254,16 +242,11 @@ def create_ctcalign_attack_graph(sess, batch, settings):
         learning_rate=settings["learning_rate"]
     )
     attack.add_procedure(
-        Procedures.CTCAlignUpdateOnDecode,
+        CustomCTCProcedure,
         alignment,
         steps=settings["nsteps"],
         decode_step=settings["decode_step"],
     )
-    attack.add_outputs(
-        LogProbOutputs,
-        settings["outdir"],
-    )
-
     attack.create_feeds()
 
     return attack
@@ -299,7 +282,7 @@ def dense_fwd_only_run(master_settings):
     }
 
     settings.update(master_settings)
-    batch_gen = get_dense_batch_factory(settings)
+    batch_gen = batch_generators.dense(settings)
     execute(settings, create_attack_graph, batch_gen)
     log("Finished run.")
 
@@ -334,7 +317,7 @@ def dense_back_only_run(master_settings):
     }
 
     settings.update(master_settings)
-    batch_gen = get_dense_batch_factory(settings)
+    batch_gen = batch_generators.dense(settings)
     execute(settings, create_attack_graph, batch_gen)
     log("Finished run.")
 
@@ -369,7 +352,7 @@ def dense_fwd_plus_back_run(master_settings):
     }
 
     settings.update(master_settings)
-    batch_gen = get_dense_batch_factory(settings)
+    batch_gen = batch_generators.dense(settings)
     execute(settings, create_attack_graph, batch_gen)
     log("Finished run.")
 
@@ -404,7 +387,7 @@ def dense_fwd_mult_back_run(master_settings):
     }
 
     settings.update(master_settings)
-    batch_gen = get_dense_batch_factory(settings)
+    batch_gen = batch_generators.dense(settings)
     execute(settings, create_attack_graph, batch_gen)
     log("Finished run.")
 
@@ -439,7 +422,7 @@ def sparse_fwd_only_run(master_settings):
     }
 
     settings.update(master_settings)
-    batch_gen = get_sparse_batch_generator(settings)
+    batch_gen = batch_generators.sparse(settings)
     execute(settings, create_attack_graph, batch_gen)
     log("Finished run.")
 
@@ -474,7 +457,7 @@ def sparse_back_only_run(master_settings):
     }
 
     settings.update(master_settings)
-    batch_gen = get_sparse_batch_generator(settings)
+    batch_gen = batch_generators.sparse(settings)
     execute(settings, create_attack_graph, batch_gen)
     log("Finished run.")
 
@@ -509,7 +492,7 @@ def sparse_fwd_plus_back_run(master_settings):
     }
 
     settings.update(master_settings)
-    batch_gen = get_sparse_batch_generator(settings)
+    batch_gen = batch_generators.sparse(settings)
     execute(settings, create_attack_graph, batch_gen)
     log("Finished run.")
 
@@ -544,7 +527,7 @@ def sparse_fwd_mult_back_run(master_settings):
     }
 
     settings.update(master_settings)
-    batch_gen = get_sparse_batch_generator(settings)
+    batch_gen = batch_generators.sparse(settings)
     execute(settings, create_attack_graph, batch_gen)
     log("Finished run.")
 
@@ -579,7 +562,7 @@ def ctcalign_fwd_only_run(master_settings):
     }
 
     settings.update(master_settings)
-    batch_gen = get_standard_batch_generator(settings)
+    batch_gen = batch_generators.standard(settings)
     execute(settings, create_ctcalign_attack_graph, batch_gen)
     log("Finished run.")
 
@@ -614,7 +597,7 @@ def ctcalign_back_only_run(master_settings):
     }
 
     settings.update(master_settings)
-    batch_gen = get_standard_batch_generator(settings)
+    batch_gen = batch_generators.standard(settings)
     execute(settings, create_ctcalign_attack_graph, batch_gen)
     log("Finished run.")
 
@@ -649,7 +632,7 @@ def ctcalign_fwd_plus_back_run(master_settings):
     }
 
     settings.update(master_settings)
-    batch_gen = get_standard_batch_generator(settings)
+    batch_gen = batch_generators.standard(settings)
     execute(settings, create_ctcalign_attack_graph, batch_gen)
     log("Finished run.")
 

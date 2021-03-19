@@ -8,16 +8,15 @@ from cleverspeech.graph import Graphs
 from cleverspeech.graph import Losses
 from cleverspeech.graph import Optimisers
 from cleverspeech.graph import Procedures
-from cleverspeech.graph import Outputs
 from cleverspeech.graph.CTCAlignmentSearch import create_tf_ctc_alignment_search_graph
 
-from cleverspeech.data import Feeds
-from cleverspeech.data.etl.batch_generators import get_standard_batch_generator
-from cleverspeech.data.etl.batch_generators import get_dense_batch_factory
-from cleverspeech.data.etl.batch_generators import get_sparse_batch_generator
-from cleverspeech.data.Results import SingleFileWriter, SingleJsonDB
+from cleverspeech.data.ingress.etl import batch_generators
+from cleverspeech.data.ingress import Feeds
+from cleverspeech.data.egress.Databases import SingleJsonDB
+from cleverspeech.data.egress.Transforms import Standard
+from cleverspeech.data.egress.Writers import SingleFileWriter
+from cleverspeech.data.egress.eval import PerceptualStatsBatch
 
-from cleverspeech.eval import PerceptualStatsBatch
 from cleverspeech.utils.Utils import log, args
 from cleverspeech.utils.RuntimeUtils import AttackSpawner
 
@@ -56,7 +55,8 @@ def execute(settings, attack_fn, batch_gen):
     if not os.path.exists(settings["outdir"]):
         os.makedirs(settings["outdir"], exist_ok=True)
 
-    file_writer = SingleFileWriter(settings["outdir"])
+    results_extracter = Standard()
+    file_writer = SingleFileWriter(settings["outdir"], results_extracter)
 
     # Write the current settings to "settings.json" file.
 
@@ -120,10 +120,6 @@ def create_regular_attack_graph(sess, batch, settings):
         steps=settings["nsteps"],
         decode_step=settings["decode_step"]
     )
-    attack.add_outputs(
-        Outputs.Base,
-        settings["outdir"],
-    )
 
     attack.create_feeds()
 
@@ -171,11 +167,6 @@ def create_ctcalign_attack_graph(sess, batch, settings):
         decode_step=settings["decode_step"]
     )
 
-    attack.add_outputs(
-        Outputs.Base,
-        settings["outdir"],
-    )
-
     attack.create_feeds()
 
     return attack
@@ -212,7 +203,7 @@ def sparse_beam_search_run(master_settings):
     }
 
     settings.update(master_settings)
-    batch_gen = get_sparse_batch_generator(settings)
+    batch_gen = batch_generators.sparse(settings)
     execute(settings, create_regular_attack_graph, batch_gen)
     log("Finished run.") # {}.".format(run))
 
@@ -248,7 +239,7 @@ def sparse_greedy_search_run(master_settings):
     }
 
     settings.update(master_settings)
-    batch_gen = get_sparse_batch_generator(settings)
+    batch_gen = batch_generators.sparse(settings)
     execute(settings, create_regular_attack_graph, batch_gen)
     log("Finished run.") # {}.".format(run))
 
@@ -285,7 +276,7 @@ def dense_beam_search_run(master_settings):
     }
 
     settings.update(master_settings)
-    batch_gen = get_dense_batch_factory(settings)
+    batch_gen = batch_generators.dense(settings)
     execute(settings, create_regular_attack_graph, batch_gen)
     log("Finished run.") # {}.".format(run))
 
@@ -321,7 +312,7 @@ def dense_greedy_search_run(master_settings):
     }
 
     settings.update(master_settings)
-    batch_gen = get_dense_batch_factory(settings)
+    batch_gen = batch_generators.dense(settings)
     execute(settings, create_regular_attack_graph, batch_gen)
     log("Finished run.") # {}.".format(run))
 
@@ -362,7 +353,7 @@ def ctcalign_beam_search_run(master_settings):
     }
 
     settings.update(master_settings)
-    batch_gen = get_standard_batch_generator(settings)
+    batch_gen = batch_generators.standard(settings)
     execute(
         settings,
         create_ctcalign_attack_graph,
@@ -408,7 +399,7 @@ def ctcalign_greedy_search_run(master_settings):
     }
 
     settings.update(master_settings)
-    batch_gen = get_standard_batch_generator(settings)
+    batch_gen = batch_generators.standard(settings)
     execute(
         settings,
         create_ctcalign_attack_graph,
