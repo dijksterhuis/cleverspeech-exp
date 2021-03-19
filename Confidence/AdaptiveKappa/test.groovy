@@ -83,9 +83,8 @@ pipeline {
                                         -t \
                                         --rm \
                                         --name ${exp} \
-                                        -v \$(pwd)/results/:${CLEVERSPEECH_HOME}/adv/ \
-                                        -e LOCAL_UID=\$(id -u ${USER}) \
-                                        -e LOCAL_GID=\$(id -g ${USER}) \
+                                        -e LOCAL_UID=9999 \
+                                        -e LOCAL_GID=9999 \
                                         ${IMAGE} \
                                         python3 ${EXP_DIR}/attacks.py ${exp} \
                                             --max_spawns "${params.MAX_SPAWNS}" \
