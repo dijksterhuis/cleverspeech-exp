@@ -15,7 +15,7 @@ pipeline {
         stage("Archive and prune existing workspace."){
             steps {
                 script {
-                    sh "tar -cvz -f $(date +%y%m%d_%H%M%S).tar.gz ./*"
+                    sh "tar -cvz -f \$(date +%y%m%d_%H%M%S).tar.gz ./*"
                     sh "rm -rf ./*"
                 }
             }
