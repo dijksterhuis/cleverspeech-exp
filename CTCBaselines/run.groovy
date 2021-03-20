@@ -13,6 +13,14 @@ pipeline {
         CLEVERSPEECH_HOME = "/home/cleverspeech/cleverSpeech"
     }
     stages {
+        stage("Archive and prune existing workspace."){
+            steps {
+                script {
+                    sh "tar -cvz -f $(date +%y%m%d_%H%M%S).tar.gz ./*"
+                    sh "rm -rf ./*"
+                }
+            }
+        }
         stage("Run experiments in parallel."){
             failFast false
             matrix {
