@@ -66,13 +66,15 @@ pipeline {
                         }
                     }
                 }
-                /* post {
-                    always {
-                        sh "docker image prune -f"
-                        sh "docker container prune -f"
-                        sh "docker image rm ${IMAGE}"
+                post {
+                    success {
+                        sh "tar -cvz -f \$(date +%y%m%d_%H%M%S).tar.gz ./results/"
                     }
-                } */
+                    always {
+                        sh "docker container prune -f"
+                        sh "docker image prune -f"
+                    }
+                }
             }
         }
     }
