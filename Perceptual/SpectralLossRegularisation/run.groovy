@@ -12,14 +12,6 @@ pipeline {
         CLEVERSPEECH_HOME = "/home/cleverspeech/cleverSpeech"
     }
     stages {
-        stage("Archive and prune existing workspace."){
-            steps {
-                script {
-                    sh "tar -cvz -f \$(date +%y%m%d_%H%M%S).tar.gz ./*"
-                    sh "rm -rf ./*"
-                }
-            }
-        }
         stage("Run experiments."){
             failFast false
             matrix {
@@ -63,6 +55,15 @@ pipeline {
                                     python3 ${EXP_DIR}/attacks.py ${exp} --max_spawns "${params.MAX_SPAWNS}"
                             """
                         }
+                    }
+                }
+                post {
+                    success {
+                        sh "tar -cvz -f \$(date +%y%m%d_%H%M%S).tar.gz ./results/"
+                    }
+                    always {
+                        sh "docker container prune -f"
+                        sh "docker image prune -f"
                     }
                 }
             }
