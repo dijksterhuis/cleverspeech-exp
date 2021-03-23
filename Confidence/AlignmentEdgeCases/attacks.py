@@ -3,7 +3,7 @@ import os
 
 from cleverspeech.graph.GraphConstructor import Constructor
 from cleverspeech.graph import Constraints
-from cleverspeech.graph import Graphs
+from cleverspeech.graph import VariableGraphs
 from cleverspeech.graph import Losses
 from cleverspeech.graph import Optimisers
 from cleverspeech.graph import Procedures
@@ -96,7 +96,7 @@ def create_standard_attack_graph(sess, batch, settings):
     )
 
     attack.add_graph(
-        Graphs.SimpleAttack
+        VariableGraphs.Independent
     )
 
     attack.add_victim(
@@ -110,7 +110,7 @@ def create_standard_attack_graph(sess, batch, settings):
     attack.create_loss_fn()
 
     attack.add_optimiser(
-        Optimisers.AdamOptimiser,
+        Optimisers.AdamIndependentOptimiser,
         learning_rate=settings["learning_rate"]
     )
 
@@ -138,7 +138,7 @@ def create_extreme_attack_graph(sess, batch, settings):
     )
 
     attack.add_graph(
-        Graphs.SimpleAttack
+        VariableGraphs.Independent
     )
 
     attack.add_victim(
@@ -152,7 +152,7 @@ def create_extreme_attack_graph(sess, batch, settings):
     attack.create_loss_fn()
 
     attack.add_optimiser(
-        Optimisers.AdamOptimiser,
+        Optimisers.AdamIndependentOptimiser,
         learning_rate=settings["learning_rate"]
     )
 
@@ -305,8 +305,8 @@ def ctcalign_run(master_settings):
         )
 
         attack.add_graph(
-            Graphs.SimpleAttack
-        )
+        VariableGraphs.Independent
+    )
 
         attack.add_victim(
             DeepSpeech.Model,
@@ -324,7 +324,7 @@ def ctcalign_run(master_settings):
         attack.create_loss_fn()
 
         attack.add_optimiser(
-            Optimisers.AdamOptimiser,
+        Optimisers.AdamIndependentOptimiser,
             learning_rate=settings["learning_rate"]
         )
 
@@ -386,8 +386,8 @@ def ctcalign_extreme_run(master_settings):
         )
 
         attack.add_graph(
-            Graphs.SimpleAttack
-        )
+        VariableGraphs.Independent
+    )
 
         attack.add_victim(
             DeepSpeech.Model,
@@ -405,7 +405,7 @@ def ctcalign_extreme_run(master_settings):
         attack.create_loss_fn()
 
         attack.add_optimiser(
-            Optimisers.AdamOptimiser,
+        Optimisers.AdamIndependentOptimiser,
             learning_rate=settings["learning_rate"]
         )
 

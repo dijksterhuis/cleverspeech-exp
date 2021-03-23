@@ -5,7 +5,7 @@ from collections import OrderedDict
 
 from cleverspeech.graph.GraphConstructor import Constructor
 from cleverspeech.graph import Constraints
-from cleverspeech.graph import Graphs
+from cleverspeech.graph import VariableGraphs
 from cleverspeech.graph import Losses
 from cleverspeech.graph import Optimisers
 from cleverspeech.graph import Procedures
@@ -150,20 +150,6 @@ class CustomProcedure(Procedures.UpdateOnDecoding):
         return batched_results
 
 
-class AdamOptimiserWithGrads(Optimisers.AdamOptimiser):
-    def create_optimiser(self):
-
-        grad_var = self.optimizer.compute_gradients(
-            self.attack.loss_fn,
-            self.attack.graph.opt_vars,
-            colocate_gradients_with_ops=True,
-            grad_loss=self.attack.loss[0].grads,
-        )
-        assert None not in lcomp(grad_var, i=0)
-        self.train = self.optimizer.apply_gradients(grad_var)
-        self.variables = self.optimizer.variables()
-
-
 def create_attack_graph(sess, batch, settings):
 
     feeds = Feeds.Attack(batch)
@@ -176,7 +162,7 @@ def create_attack_graph(sess, batch, settings):
     )
 
     attack.add_graph(
-        Graphs.SimpleAttack
+        VariableGraphs.Independent
     )
 
     attack.add_victim(
@@ -194,7 +180,7 @@ def create_attack_graph(sess, batch, settings):
     attack.create_loss_fn()
 
     attack.add_optimiser(
-        Optimisers.AdamOptimiser,
+        Optimisers.AdamIndependentOptimiser,
         learning_rate=settings["learning_rate"]
     )
     attack.add_procedure(
@@ -220,7 +206,7 @@ def create_ctcalign_attack_graph(sess, batch, settings):
     )
 
     attack.add_graph(
-        Graphs.SimpleAttack
+        VariableGraphs.Independent
     )
 
     attack.add_victim(
@@ -240,7 +226,7 @@ def create_ctcalign_attack_graph(sess, batch, settings):
     attack.create_loss_fn()
 
     attack.add_optimiser(
-        Optimisers.AdamOptimiser,
+        Optimisers.AdamIndependentOptimiser,
         learning_rate=settings["learning_rate"]
     )
     attack.add_procedure(

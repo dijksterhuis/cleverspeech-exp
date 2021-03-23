@@ -5,6 +5,7 @@ import os
 from cleverspeech.graph.GraphConstructor import Constructor
 from cleverspeech.graph import Constraints
 from cleverspeech.graph.Losses import CTCLoss
+from cleverspeech.graph import VariableGraphs
 from cleverspeech.graph import Optimisers
 # from cleverspeech.graph import Procedures
 
@@ -118,7 +119,7 @@ def create_attack_graph(sess, batch, settings):
     )
 
     attack.add_graph(
-        custom_defs.SynthesisAttack,
+        VariableGraphs.Synthesis,
         synth
     )
 
@@ -132,7 +133,7 @@ def create_attack_graph(sess, batch, settings):
     attack.create_loss_fn()
 
     attack.add_optimiser(
-        Optimisers.AdamOptimiser,
+        Optimisers.AdamBatchwiseOptimiser,
         learning_rate=settings["learning_rate"]
     )
 
@@ -442,7 +443,7 @@ def spectral_regularised_run(master_settings):
         )
 
         attack.add_graph(
-            custom_defs.SynthesisAttack,
+            VariableGraphs.Synthesis,
             synth
         )
 
@@ -457,7 +458,7 @@ def spectral_regularised_run(master_settings):
         attack.create_loss_fn()
 
         attack.add_optimiser(
-            Optimisers.AdamOptimiser,
+            Optimisers.AdamBatchwiseOptimiser,
             learning_rate=settings["learning_rate"]
         )
 

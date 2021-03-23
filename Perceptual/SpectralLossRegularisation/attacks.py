@@ -4,7 +4,7 @@ import os
 # attack def imports
 from cleverspeech.graph.GraphConstructor import Constructor
 from cleverspeech.graph import Constraints
-from cleverspeech.graph import Graphs
+from cleverspeech.graph import VariableGraphs
 from cleverspeech.graph import Losses
 from cleverspeech.graph import Optimisers
 from cleverspeech.graph import Procedures
@@ -99,7 +99,7 @@ def spectral_run(master_settings):
         )
 
         attack.add_graph(
-            Graphs.SimpleAttack
+            VariableGraphs.Independent
         )
 
         attack.add_victim(
@@ -113,7 +113,7 @@ def spectral_run(master_settings):
         attack.create_loss_fn()
 
         attack.add_optimiser(
-            Optimisers.AdamOptimiser,
+            Optimisers.AdamIndependentOptimiser,
             learning_rate=settings["learning_rate"]
         )
 
@@ -173,7 +173,7 @@ def multi_scale_l1_spectral_run(master_settings):
         )
 
         attack.add_graph(
-            Graphs.SimpleAttack
+           VariableGraphs.Independent
         )
 
         attack.add_victim(
@@ -187,7 +187,7 @@ def multi_scale_l1_spectral_run(master_settings):
         attack.create_loss_fn()
 
         attack.add_optimiser(
-            Optimisers.AdamOptimiser,
+            Optimisers.AdamIndependentOptimiser,
             learning_rate=settings["learning_rate"]
         )
 
@@ -247,7 +247,7 @@ def multi_scale_l2_spectral_run(master_settings):
         )
 
         attack.add_graph(
-            Graphs.SimpleAttack
+            VariableGraphs.Independent
         )
 
         attack.add_victim(
@@ -261,7 +261,7 @@ def multi_scale_l2_spectral_run(master_settings):
         attack.create_loss_fn()
 
         attack.add_optimiser(
-            Optimisers.AdamOptimiser,
+            Optimisers.AdamIndependentOptimiser,
             learning_rate=settings["learning_rate"]
         )
 
