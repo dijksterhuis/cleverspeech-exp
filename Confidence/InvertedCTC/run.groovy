@@ -63,14 +63,12 @@ pipeline {
                                             --max_spawns "${params.MAX_SPAWNS}" \
                                             --nsteps "${params.N_STEPS}"
                                 """
+                                sh "tar -cvz -f ${exp}_\$(date +%y%m%d_%H%M%S).tar.gz ./results/
                             }
                         }
                     }
                 }
                 post {
-                    success {
-                        sh "tar -cvz -f \$(date +%y%m%d_%H%M%S).tar.gz ./results/"
-                    }
                     always {
                         sh "docker container prune -f"
                         sh "docker image prune -f"

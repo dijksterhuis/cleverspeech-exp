@@ -60,13 +60,11 @@ pipeline {
                                     ${IMAGE} \
                                     python3 ${EXP_DIR}/attacks.py ${exp} --max_spawns "${params.MAX_SPAWNS}"
                             """
+                            sh "tar -cvz -f ${exp}_\$(date +%y%m%d_%H%M%S).tar.gz ./results/"
                         }
                     }
                 }
                 post {
-                    success {
-                        sh "tar -cvz -f \$(date +%y%m%d_%H%M%S).tar.gz ./results/"
-                    }
                     always {
                         sh "docker container prune -f"
                         sh "docker image prune -f"
@@ -89,7 +87,7 @@ pipeline {
                         ${IMAGE} \
                         python3 ${EXP_DIR}/attacks.py stft --max_spawns "${params.MAX_SPAWNS}"
                 """
-                sh "tar -cvz -f \$(date +%y%m%d_%H%M%S).tar.gz ./results/"
+                sh "tar -cvz -f stft_\$(date +%y%m%d_%H%M%S).tar.gz ./results/"
                 sh "docker container prune -f"
                 sh "docker image prune -f"
             }
