@@ -53,6 +53,7 @@ pipeline {
                                         --gpus device=${GPU_N} \
                                         -t \
                                         --rm \
+                                        --shm-size=10g \
                                         --name ${exp} \
                                         -e LOCAL_UID=9999 \
                                         -e LOCAL_GID=9999 \
