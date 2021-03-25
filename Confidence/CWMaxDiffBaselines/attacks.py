@@ -15,7 +15,7 @@ from cleverspeech.data.ingress import Feeds
 from cleverspeech.data.egress.Databases import SingleJsonDB
 from cleverspeech.data.egress.Transforms import Standard
 from cleverspeech.data.egress.Writers import SingleFileWriter
-from cleverspeech.data.egress.eval import PerceptualStatsBatch
+from cleverspeech.data.egress import Reporting
 
 from cleverspeech.utils.Utils import log
 from cleverspeech.utils.runtime.AttackSpawner import AttackSpawner
@@ -81,7 +81,7 @@ def execute(settings, attack_fn, batch_gen):
 
     # Run the stats function on all successful examples once all attacks
     # are completed.
-    PerceptualStatsBatch.batch_generate_statistic_file(settings["outdir"])
+    Reporting.generate_stats_file(settings["outdir"])
 
 
 def create_regular_attack_graph(sess, batch, settings):
