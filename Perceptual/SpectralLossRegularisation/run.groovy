@@ -47,6 +47,8 @@ pipeline {
                                     --gpus device=${GPU_N} \
                                     -t \
                                     --rm \
+                                    --shm-size=10g \
+                                    --pid=host \
                                     --name ${exp} \
                                     -v \$(pwd)/results/:${CLEVERSPEECH_HOME}/adv/ \
                                     -e LOCAL_UID=\$(id -u ${USER}) \
