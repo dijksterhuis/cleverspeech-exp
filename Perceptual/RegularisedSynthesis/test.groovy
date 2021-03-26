@@ -86,7 +86,7 @@ pipeline {
                             --gpus device=${GPU_N} \
                             -t \
                             --rm \
-                            --name stft \
+                            --name stft-reg \
                             -v \$(pwd)/results/:${CLEVERSPEECH_HOME}/adv/ \
                             -e LOCAL_UID=\$(id -u ${USER}) \
                             -e LOCAL_GID=\$(id -g ${USER}) \
