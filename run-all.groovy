@@ -9,7 +9,7 @@ pipeline {
                 axes {
                     axis {
                         name 'DIR'
-                        values 'CTCBaselines', 'Confidence/CWMaxDiffBaselines', 'Confidence/AdaptiveKappa', 'Confidence/AlignmentEdgeCases', 'Confidence/InvertedCTC', 'Confidence/VibertiDifference', 'Confidence/LogProbsGreedyDiff', 'Perceptual/Synthesis', 'Perceptual/RegularisedSynthesis', 'Perceptual/SpectralLossRegularisation'
+                        values 'CTCBaselines', 'Confidence/CWMaxDiffBaselines', 'Confidence/AdaptiveKappa', 'Confidence/AlignmentEdgeCases', 'Confidence/InvertedCTC', 'Confidence/VibertiDifference', 'Confidence/LogProbsGreedyDiff', /*'Perceptual/Synthesis', 'Perceptual/RegularisedSynthesis', 'Perceptual/SpectralLossRegularisation'*/
                     }
                 }
                 stages {
