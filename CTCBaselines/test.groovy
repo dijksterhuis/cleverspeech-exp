@@ -54,6 +54,7 @@ pipeline {
                                         -t \
                                         --rm \
                                         --shm-size=10g \
+                                        --pid=host \
                                         --name ${exp} \
                                         -e LOCAL_UID=9999 \
                                         -e LOCAL_GID=9999 \
