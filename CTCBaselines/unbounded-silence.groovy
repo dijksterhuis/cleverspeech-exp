@@ -4,7 +4,7 @@ pipeline {
     agent { label "build" }
     options { skipDefaultCheckout() }
     parameters {
-            string(name: 'MAX_SPAWNS', defaultValue: '5', description: 'Number of attacks to spawn at once.')
+            string(name: 'MAX_SPAWNS', defaultValue: '3', description: 'Number of attacks to spawn at once.')
             string(name: 'N_STEPS', defaultValue: '10000', description: '')
     }
     environment {
