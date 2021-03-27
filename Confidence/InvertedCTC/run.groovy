@@ -64,7 +64,7 @@ pipeline {
                                             --max_spawns "${params.MAX_SPAWNS}" \
                                             --nsteps "${params.N_STEPS}"
                                 """
-                                sh "tar -cvz -f ${exp}_\$(date +%y%m%d_%H%M%S).tar.gz ./results/
+                                sh "tar -cvz -f ${exp}_\$(date +%y%m%d_%H%M%S).tar.gz ./results/"
                             }
                         }
                     }
