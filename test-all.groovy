@@ -5,15 +5,15 @@ pipeline {
     parameters {
 
         string name: 'MAX_SPAWNS',
-            defaultValue: '3',
+            defaultValue: '2',
             description: 'Number of attacks to allow to spawn at once.'
 
         string name: 'BATCH_SIZE',
-            defaultValue: '10',
+            defaultValue: '2',
             description: 'How many examples in a batch.'
 
         string name: 'N_STEPS',
-            defaultValue: '25000',
+            defaultValue: '100',
             description: 'How many iterations to run the attack for.'
 
         choice name: 'EXP_SCRIPT',
@@ -25,7 +25,7 @@ pipeline {
             description: 'Which dataset to use. default: ./samples'
 
         text   name: 'ADDITIONAL_ARGS',
-            defaultValue: '',
+            defaultValue: '--decode_step 10 --max_examples 4 --spawn_delay 2 ',
             description: 'Additional arguments to pass to the attack script e.g. --decode_step 10. default: none.'
 
     }

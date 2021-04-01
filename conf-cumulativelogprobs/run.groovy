@@ -1,15 +1,23 @@
 #!/usr/bin/env groovy
 
 pipeline {
+    /* Use jenkins build node to manage how many experiments to run at a time. */
     agent {
         label "build"
     }
     options {
+        /* Don't need to do a version control checkout -- everything is in the docker image! */
         skipDefaultCheckout()
         timestamps()
         disableResume()
         disableConcurrentBuilds()
     }
+    /*
+    triggers {
+        pollSCM('H H * * 1-5') }
+        upstream(upstreamProjects: './build/latest', threshold: hudson.model.Result.SUCCESS) }
+    }
+    */
     environment {
         EXP_BASE_NAME = "conf-cumulativelogprobs"
     }
@@ -33,10 +41,9 @@ pipeline {
                 description: 'How many examples in a batch.'
 
             /*
-            The next 3 parameters are used to determine how to run the attacks. These parameters are
+            The next 4 parameters are used to determine how to run the attacks. These parameters are
             generally sort-of hyper parameters (very sort of).
             */
-
             choice name: 'JOB_TYPE',
                 choices: ['run', 'test'],
                 description: 'Whether this is an experiment run or if we are just testing that everything works. default: run.'
@@ -55,10 +62,36 @@ pipeline {
     }
 
     stages {
-        stage("Run experiments in parallel."){
-            failFast false
+        stage("Modify jenkins build information") {
+            steps {
+                script {
+                    sh
+                    def desc = "type: ${params.JOB_TYPE} script: ${params.EXP_SCRIPT} data: ${params.DATA} steps: ${params.N_STEPS} spawns: ${params.MAX_SPAWNS} batch size: ${params.BATCH_SIZE} additional: ${params.ADDITIONAL_ARGS}"
+                    def name = "#${BUILD_ID}: type:${params.JOB_TYPE} script:${params.EXP_SCRIPT} data:${params.DATA} steps:${params.N_STEPS}"
+
+                    buildName "${name}"
+                    buildDescription "${desc}"
+                }
+            }
+        }
+        stage("Run combos in parallel."){
+            failFast false /* If one run fails, keep going! */
+            environment{
+                /*
+                Nasty way of not-really-but-sort-of simplifying the mess of our docker
+                run command
+                */
+                DOCKER_NAME="\${EXP_BASE_NAME}-\${ALIGNMENT}-\${PROCEDURE}-\${JOB_TYPE}"
+                DOCKER_MOUNT="\$(pwd)/\${BUILD_ID}:/home/cleverspeech/cleverSpeech/adv/"
+                DOCKER_UID="LOCAL_UID=\$(id -u \${USER})"
+                DOCKER_GID="LOCAL_GID=\$(id -g \${USER})"
+                PYTHON_EXP="python3 ./experiments/${EXP_BASE_NAME}/${params.EXP_SCRIPT}.py ${ALIGNMENT}-${PROCEDURE}"
+                PYTHON_ARG_1="--max_spawns ${params.MAX_SPAWNS}"
+                PYTHON_ARG_2="--nsteps ${params.N_STEPS}"
+                PYTHON_DATA_ARGS="--audio_indir ./${params.DATA}/all/ --targets_path ./${params.DATA}/cv-valid-test.csv"
+            }
             matrix {
-                agent { label "gpu" }
+                /* Run each of these combinations over all axes on the gpu machines. */
                 axes {
                     axis {
                         name 'ALIGNMENT'
@@ -70,24 +103,26 @@ pipeline {
                     }
                 }
                 stages {
+                    stage("Pull docker image") {
+                        steps {
+                            script {
+                                sh "docker pull dijksterhuis/cleverspeech:latest"
+                            }
+                        }
+                    }
                     stage("Run experiment") {
-                        environment{
-                            DOCKER_NAME="\${EXP_BASE_NAME}-\${ALIGNMENT}-\${LOSS}"
-                            DOCKER_MOUNT="\$(pwd)/\${BUILD_ID}:/home/cleverspeech/cleverSpeech/adv/"
-                            DOCKER_UID="LOCAL_UID=\$(id -u \${USER})"
-                            DOCKER_GID="LOCAL_GID=\$(id -g \${USER})"
-                            PYTHON_EXP="python3 ./experiments/${EXP_BASE_NAME}/${params.EXP_SCRIPT}.py ${ALIGNMENT}-${LOSS}"
-                            PYTHON_ARG_1="--max_spawns ${params.MAX_SPAWNS}"
-                            PYTHON_ARG_2="--nsteps ${params.N_STEPS}"
-                            PYTHON_DATA_ARGS="--audio_indir ./${params.DATA}/all/ --targets_path ./${params.DATA}/cv-valid-test.csv"
+                        when {
+                            expression { params.JOB_TYPE == 'run' }
                         }
                         steps {
                             script {
+                                /*
+                                Modify jenkins build description so we know what hyper params we
+                                used in the build number
+                                */
+                                def pythonArgs = "${PYTHON_EXP} ${PYTHON_ARG_1} ${PYTHON_ARG_2} ${PYTHON_DATA_ARGS} ${params.ADDITIONAL_ARGS}"
 
-                                def pythonArgs = "${PYTHON_EXP} ${PYTHON_ARG_1} ${PYTHON_ARG_2} ${params.ADDITIONAL_ARGS}"
-                                buildDescription: "${params.JOB_TYPE}: ${pythonArgs}"
-                                buildName: "#${BUILD_ID}-${params.JOB_TYPE}"
-
+                                /* Run the attacks! */
                                 sh  """
                                     docker run \
                                         --gpus device=\${GPU_N} -t --rm --shm-size=10g --pid=host \
@@ -96,9 +131,34 @@ pipeline {
                                         -e ${DOCKER_UID} \
                                         -e ${DOCKER_GID} \
                                         dijksterhuis/cleverspeech:latest \
-                                        ${PYTHON_EXP} \
-                                        ${PYTHON_ARG_1} \
-                                        ${PYTHON_ARG_2} \
+                                        ${pythonArgs}
+                                    """
+                            }
+                        }
+                        post {
+                            success {
+                                archiveArtifacts artifacts: './${BUILD_ID}/', followSymlinks: false
+                            }
+                        }
+                    }
+                    stage("Run test") {
+                        when {
+                            expression { params.JOB_TYPE == 'test' }
+                        }
+                        steps {
+                            script {
+                                /*
+                                Modify jenkins build description so we know what hyper params we
+                                used in the build number
+                                */
+                                def pythonArgs = "${PYTHON_EXP} ${PYTHON_ARG_1} ${PYTHON_ARG_2} ${PYTHON_DATA_ARGS} ${params.ADDITIONAL_ARGS}"
+
+                                /* Run the attacks! */
+                                sh  """
+                                    docker run \
+                                        --gpus device=\${GPU_N} -t --rm --shm-size=10g --pid=host \
+                                        --name ${DOCKER_NAME} \
+                                        dijksterhuis/cleverspeech:latest \
                                         ${pythonArgs}
                                     """
                             }
@@ -106,9 +166,6 @@ pipeline {
                     }
                 }
                 post {
-                    success {
-                        archiveArtifacts artifacts: './${BUILD_ID}/', followSymlinks: false
-                    }
                     always {
                         sh "docker container prune -f"
                         sh "docker image prune -f"

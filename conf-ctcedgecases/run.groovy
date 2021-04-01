@@ -19,7 +19,7 @@ pipeline {
     }
     */
     environment {
-        EXP_BASE_NAME = "conf-invertedctc"
+        EXP_BASE_NAME = "conf-ctcedgecases"
     }
     parameters {
 
@@ -81,11 +81,11 @@ pipeline {
                 Nasty way of not-really-but-sort-of simplifying the mess of our docker
                 run command
                 */
-                DOCKER_NAME="\${EXP_BASE_NAME}-\${ALIGNMENT}-\${LOSS}-\${JOB_TYPE}"
+                DOCKER_NAME="\${EXP_BASE_NAME}-\${ALIGNMENT}-\${PROCEDURE}-\${JOB_TYPE}"
                 DOCKER_MOUNT="\$(pwd)/\${BUILD_ID}:/home/cleverspeech/cleverSpeech/adv/"
                 DOCKER_UID="LOCAL_UID=\$(id -u \${USER})"
                 DOCKER_GID="LOCAL_GID=\$(id -g \${USER})"
-                PYTHON_EXP="python3 ./experiments/${EXP_BASE_NAME}/${params.EXP_SCRIPT}.py ${ALIGNMENT}-${LOSS}"
+                PYTHON_EXP="python3 ./experiments/${EXP_BASE_NAME}/${params.EXP_SCRIPT}.py ${ALIGNMENT}-${PROCEDURE}"
                 PYTHON_ARG_1="--max_spawns ${params.MAX_SPAWNS}"
                 PYTHON_ARG_2="--nsteps ${params.N_STEPS}"
                 PYTHON_DATA_ARGS="--audio_indir ./${params.DATA}/all/ --targets_path ./${params.DATA}/cv-valid-test.csv"
@@ -98,8 +98,8 @@ pipeline {
                         values 'dense', 'sparse', 'ctcalign'
                     }
                     axis {
-                        name 'LOSS'
-                        values 'adaptive-kappa'
+                        name 'PROCEDURE'
+                        values 'std' /*, 'extreme' */
                     }
                 }
                 stages {
