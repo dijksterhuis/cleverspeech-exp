@@ -19,7 +19,7 @@ pipeline {
     }
     */
     environment {
-        EXP_BASE_NAME = "conf-cwmaxdiff"
+        EXP_BASE_NAME = "baseline-cwmaxdiff"
         IMAGE = "dijksterhuis/cleverspeech:latest"
     }
     parameters {
