@@ -55,11 +55,6 @@ pipeline {
                     ]
             }
         }
-        post {
-            success {
-                echo "CTC successful!"
-            }
-        }
         stage("Test others."){
             failFast false
             matrix {
@@ -95,11 +90,6 @@ pipeline {
                                 ]
                         }
                     }
-                }
-            }
-            post {
-                success {
-                    echo "All others successful!"
                 }
             }
         }
