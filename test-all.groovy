@@ -61,9 +61,9 @@ pipeline {
                 axes {
                     axis {
                         name 'DIR'
-                        values 'baseline-cwmaxdff',
+                        values 'baseline-cwmaxdiff',
                             'conf-adaptivekappa',
-                            'conf-alignmentedgecases',
+                            'conf-ctcedgecases',
                             'conf-invertedctc',
                             'conf-logprobsgreedydiff',
                             'conf-sumlogprobs',
