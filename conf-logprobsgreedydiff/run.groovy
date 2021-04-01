@@ -82,10 +82,11 @@ pipeline {
                 DOCKER_UID="LOCAL_UID=\$(id -u ${USER})"
                 DOCKER_GID="LOCAL_GID=\$(id -g ${USER})"
                 PYTHON_EXP="python3 ./experiments/${EXP_BASE_NAME}/${params.EXP_SCRIPT}.py \${ALIGNMENT}-\${LOSS}"
-                PYTHON_ARG_1="--max_spawns ${params.MAX_SPAWNS}"
-                PYTHON_ARG_2="--nsteps ${params.N_STEPS}"
+                SPAWN_ARG="--max_spawns ${params.MAX_SPAWNS}"
+                STEPS_ARG="--nsteps ${params.N_STEPS}"
+                BATCH_ARG="--batch_size ${params.BATCH_SIZE}"
                 PYTHON_DATA_ARGS="--audio_indir ./${params.DATA}/all/ --targets_path ./${params.DATA}/cv-valid-test.csv"
-                PYTHON_CMD = "${PYTHON_EXP} ${PYTHON_ARG_1} ${PYTHON_ARG_2} ${PYTHON_DATA_ARGS} ${params.ADDITIONAL_ARGS}"
+                PYTHON_CMD = "${PYTHON_EXP} ${SPAWN_ARG} ${BATCH_ARG} ${STEPS_ARG} ${PYTHON_DATA_ARGS} ${params.ADDITIONAL_ARGS}"
             }
             matrix {
                 /* Run each of these combinations over all axes on the gpu machines. */
