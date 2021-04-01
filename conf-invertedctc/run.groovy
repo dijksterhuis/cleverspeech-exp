@@ -65,7 +65,6 @@ pipeline {
         stage("Modify jenkins build information") {
             steps {
                 script {
-                    sh
                     def desc = "type: ${params.JOB_TYPE} script: ${params.EXP_SCRIPT} data: ${params.DATA} steps: ${params.N_STEPS} spawns: ${params.MAX_SPAWNS} batch size: ${params.BATCH_SIZE} additional: ${params.ADDITIONAL_ARGS}"
                     def name = "#${BUILD_ID}: type:${params.JOB_TYPE} script:${params.EXP_SCRIPT} data:${params.DATA} steps:${params.N_STEPS}"
 
