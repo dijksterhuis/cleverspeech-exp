@@ -2,6 +2,13 @@
 
 pipeline {
     agent { label 'build' }
+    options {
+        /* Don't need to do a version control checkout -- everything is in the docker image! */
+        skipDefaultCheckout()
+        timestamps()
+        disableResume()
+        disableConcurrentBuilds()
+    }
     parameters {
 
         string name: 'MAX_SPAWNS',
