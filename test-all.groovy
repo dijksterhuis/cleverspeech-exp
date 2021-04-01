@@ -2,6 +2,16 @@
 
 pipeline {
     agent { label 'build' }
+    options {
+        /* Don't need to do a version control checkout -- everything is in the docker image! */
+        skipDefaultCheckout()
+        timestamps()
+        disableResume()
+        disableConcurrentBuilds()
+    }
+    triggers {
+        upstream(upstreamProjects: './build/latest', threshold: hudson.model.Result.SUCCESS) }
+    }
     parameters {
 
         string name: 'MAX_SPAWNS',
