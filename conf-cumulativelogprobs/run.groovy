@@ -20,6 +20,7 @@ pipeline {
     */
     environment {
         EXP_BASE_NAME = "conf-cumulativelogprobs"
+        IMAGE = "dijksterhuis/cleverspeech:latest"
     }
     parameters {
 
@@ -65,11 +66,8 @@ pipeline {
         stage("Modify jenkins build information") {
             steps {
                 script {
-                    def desc = "type: ${params.JOB_TYPE} script: ${params.EXP_SCRIPT} data: ${params.DATA} steps: ${params.N_STEPS} spawns: ${params.MAX_SPAWNS} batch size: ${params.BATCH_SIZE} additional: ${params.ADDITIONAL_ARGS}"
                     def name = "#${BUILD_ID}: type:${params.JOB_TYPE} script:${params.EXP_SCRIPT} data:${params.DATA} steps:${params.N_STEPS}"
-
                     buildName "${name}"
-                    buildDescription "${desc}"
                 }
             }
         }
@@ -77,20 +75,23 @@ pipeline {
             failFast false /* If one run fails, keep going! */
             environment{
                 /*
-                Nasty way of not-really-but-sort-of simplifying the mess of our docker
-                run command
+                Nasty way of not-really-but-sort-of simplifying the mess of our docker run command
                 */
-                DOCKER_NAME="\${EXP_BASE_NAME}-\${ALIGNMENT}-\${PROCEDURE}-\${JOB_TYPE}"
-                DOCKER_MOUNT="\$(pwd)/\${BUILD_ID}:/home/cleverspeech/cleverSpeech/adv/"
-                DOCKER_UID="LOCAL_UID=\$(id -u \${USER})"
-                DOCKER_GID="LOCAL_GID=\$(id -g \${USER})"
-                PYTHON_EXP="python3 ./experiments/${EXP_BASE_NAME}/${params.EXP_SCRIPT}.py ${ALIGNMENT}-${PROCEDURE}"
+                DOCKER_NAME="${EXP_BASE_NAME}-\${ALIGNMENT}-\${LOSS}-${JOB_TYPE}"
+                DOCKER_MOUNT="\$(pwd)/${BUILD_ID}:/home/cleverspeech/cleverSpeech/adv/"
+                DOCKER_UID="LOCAL_UID=\$(id -u ${USER})"
+                DOCKER_GID="LOCAL_GID=\$(id -g ${USER})"
+                PYTHON_EXP="python3 ./experiments/${EXP_BASE_NAME}/${params.EXP_SCRIPT}.py \${ALIGNMENT}-\${LOSS}"
                 PYTHON_ARG_1="--max_spawns ${params.MAX_SPAWNS}"
                 PYTHON_ARG_2="--nsteps ${params.N_STEPS}"
                 PYTHON_DATA_ARGS="--audio_indir ./${params.DATA}/all/ --targets_path ./${params.DATA}/cv-valid-test.csv"
+                PYTHON_CMD = "${PYTHON_EXP} ${PYTHON_ARG_1} ${PYTHON_ARG_2} ${PYTHON_DATA_ARGS} ${params.ADDITIONAL_ARGS}"
             }
             matrix {
                 /* Run each of these combinations over all axes on the gpu machines. */
+                agent {
+                    label "gpu"
+                }
                 axes {
                     axis {
                         name 'ALIGNMENT'
@@ -104,35 +105,26 @@ pipeline {
                 stages {
                     stage("Pull docker image") {
                         steps {
-                            script {
-                                sh "docker pull dijksterhuis/cleverspeech:latest"
-                            }
+                                sh "docker pull ${IMAGE}"
                         }
                     }
+
                     stage("Run experiment") {
                         when {
                             expression { params.JOB_TYPE == 'run' }
                         }
                         steps {
-                            script {
-                                /*
-                                Modify jenkins build description so we know what hyper params we
-                                used in the build number
-                                */
-                                def pythonArgs = "${PYTHON_EXP} ${PYTHON_ARG_1} ${PYTHON_ARG_2} ${PYTHON_DATA_ARGS} ${params.ADDITIONAL_ARGS}"
-
-                                /* Run the attacks! */
-                                sh  """
-                                    docker run \
-                                        --gpus device=\${GPU_N} -t --rm --shm-size=10g --pid=host \
-                                        --name ${DOCKER_NAME} \
-                                        -v ${DOCKER_MOUNT} \
-                                        -e ${DOCKER_UID} \
-                                        -e ${DOCKER_GID} \
-                                        dijksterhuis/cleverspeech:latest \
-                                        ${pythonArgs}
-                                    """
-                            }
+                            /* Run the attacks! */
+                            sh  """
+                                docker run \
+                                    --gpus device=\${GPU_N} -t --rm --shm-size=10g --pid=host \
+                                    --name ${DOCKER_NAME} \
+                                    -v ${DOCKER_MOUNT} \
+                                    -e ${DOCKER_UID} \
+                                    -e ${DOCKER_GID} \
+                                    ${IMAGE} \
+                                    ${PYTHON_CMD}
+                                """
                         }
                         post {
                             success {
@@ -145,22 +137,13 @@ pipeline {
                             expression { params.JOB_TYPE == 'test' }
                         }
                         steps {
-                            script {
-                                /*
-                                Modify jenkins build description so we know what hyper params we
-                                used in the build number
-                                */
-                                def pythonArgs = "${PYTHON_EXP} ${PYTHON_ARG_1} ${PYTHON_ARG_2} ${PYTHON_DATA_ARGS} ${params.ADDITIONAL_ARGS}"
-
-                                /* Run the attacks! */
-                                sh  """
-                                    docker run \
-                                        --gpus device=\${GPU_N} -t --rm --shm-size=10g --pid=host \
-                                        --name ${DOCKER_NAME} \
-                                        dijksterhuis/cleverspeech:latest \
-                                        ${pythonArgs}
-                                    """
-                            }
+                            sh  """
+                                docker run \
+                                    --gpus device=\${GPU_N} -t --rm --shm-size=10g --pid=host \
+                                    --name ${DOCKER_NAME} \
+                                    ${IMAGE} \
+                                    ${PYTHON_CMD}
+                                """
                         }
                     }
                 }
