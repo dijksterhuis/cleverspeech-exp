@@ -127,11 +127,6 @@ pipeline {
                                     ${PYTHON_CMD}
                                 """
                         }
-                        post {
-                            success {
-                                archiveArtifacts artifacts: './${BUILD_ID}/', followSymlinks: false
-                            }
-                        }
                     }
                     stage("Run test") {
                         when {
