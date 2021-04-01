@@ -10,7 +10,7 @@ pipeline {
         disableConcurrentBuilds()
     }
     triggers {
-        upstream(upstreamProjects: './build/latest', threshold: hudson.model.Result.SUCCESS) }
+        upstream(upstreamProjects: './build/latest', threshold: hudson.model.Result.SUCCESS)
     }
     parameters {
 
