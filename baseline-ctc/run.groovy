@@ -35,7 +35,7 @@ pipeline {
                 description: 'How many examples in a batch.'
 
             /*
-            The next 3 parameters are used to determine how to run the attacks. These parameters are
+            The next 4 parameters are used to determine how to run the attacks. These parameters are
             generally sort-of hyper parameters (very sort of).
             */
             choice name: 'JOB_TYPE',
@@ -56,8 +56,22 @@ pipeline {
     }
 
     stages {
-        stage("Run experiments in parallel."){
+        stage("Run combos in parallel."){
             failFast false /* If one run fails, keep going! */
+            environment{
+                /*
+                Nasty way of not-really-but-sort-of simplifying the mess of our docker
+                run command
+                */
+                DOCKER_NAME="\${EXP_BASE_NAME}-\${LOSS}-\${JOB_TYPE}"
+                DOCKER_MOUNT="\$(pwd)/\${BUILD_ID}:/home/cleverspeech/cleverSpeech/adv/"
+                DOCKER_UID="LOCAL_UID=\$(id -u \${USER})"
+                DOCKER_GID="LOCAL_GID=\$(id -g \${USER})"
+                PYTHON_EXP="python3 ./experiments/${EXP_BASE_NAME}/${params.EXP_SCRIPT}.py ${LOSS}"
+                PYTHON_ARG_1="--max_spawns ${params.MAX_SPAWNS}"
+                PYTHON_ARG_2="--nsteps ${params.N_STEPS}"
+                PYTHON_DATA_ARGS="--audio_indir ./${params.DATA}/all/ --targets_path ./${params.DATA}/cv-valid-test.csv"
+            }
             matrix {
                 /* Run each of these combinations over all axes on the gpu machines. */
                 agent { label "gpu" }
@@ -69,15 +83,47 @@ pipeline {
                 }
                 stages {
                     stage("Run experiment") {
+                        when {
+                            expression { params.JOB_TYPE == 'run' }
+                        }
+
+                        steps {
+                            script {
+                                /*
+                                Modify jenkins build description so we know what hyper params we
+                                used in the build number
+                                */
+                                def pythonArgs = "${PYTHON_EXP} ${PYTHON_ARG_1} ${PYTHON_ARG_2} ${PYTHON_DATA_ARGS} ${params.ADDITIONAL_ARGS}"
+
+                                /* Run the attacks! */
+                                sh  """
+                                    docker run \
+                                        --gpus device=\${GPU_N} -t --rm --shm-size=10g --pid=host \
+                                        --name ${DOCKER_NAME} \
+                                        -v ${DOCKER_MOUNT} \
+                                        -e ${DOCKER_UID} \
+                                        -e ${DOCKER_GID} \
+                                        dijksterhuis/cleverspeech:latest \
+                                        ${pythonArgs}
+                                    """
+                            }
+                        }
+                        post {
+                            success {
+                                archiveArtifacts artifacts: './${BUILD_ID}/', followSymlinks: false
+                            }
+                        }
+                    }
+                    stage("Run test") {
+                        when {
+                            expression { params.JOB_TYPE == 'test' }
+                        }
                         environment{
                             /*
                             Nasty way of not-really-but-sort-of simplifying the mess of our docker
                             run command
                             */
-                            DOCKER_NAME="\${EXP_BASE_NAME}-\${LOSS}"
-                            DOCKER_MOUNT="\$(pwd)/\${BUILD_ID}:/home/cleverspeech/cleverSpeech/adv/"
-                            DOCKER_UID="LOCAL_UID=\$(id -u \${USER})"
-                            DOCKER_GID="LOCAL_GID=\$(id -g \${USER})"
+                            DOCKER_NAME="\${EXP_BASE_NAME}-\${LOSS}-test"
                             PYTHON_EXP="python3 ./experiments/${EXP_BASE_NAME}/${params.EXP_SCRIPT}.py ${LOSS}"
                             PYTHON_ARG_1="--max_spawns ${params.MAX_SPAWNS}"
                             PYTHON_ARG_2="--nsteps ${params.N_STEPS}"
@@ -89,22 +135,14 @@ pipeline {
                                 Modify jenkins build description so we know what hyper params we
                                 used in the build number
                                 */
-                                def pythonArgs = "${PYTHON_EXP} ${PYTHON_ARG_1} ${PYTHON_ARG_2} ${params.ADDITIONAL_ARGS}"
-                                buildDescription: "${params.JOB_TYPE}: ${pythonArgs}"
-                                buildName: "#${BUILD_ID}-${params.JOB_TYPE}"
+                                def pythonArgs = "${PYTHON_EXP} ${PYTHON_ARG_1} ${PYTHON_ARG_2} ${PYTHON_DATA_ARGS} ${params.ADDITIONAL_ARGS}"
 
                                 /* Run the attacks! */
                                 sh  """
                                     docker run \
                                         --gpus device=\${GPU_N} -t --rm --shm-size=10g --pid=host \
                                         --name ${DOCKER_NAME} \
-                                        -v ${DOCKER_MOUNT} \
-                                        -e ${DOCKER_UID} \
-                                        -e ${DOCKER_GID} \
                                         dijksterhuis/cleverspeech:latest \
-                                        ${PYTHON_EXP} \
-                                        ${PYTHON_ARG_1} \
-                                        ${PYTHON_ARG_2} \
                                         ${pythonArgs}
                                     """
                             }
@@ -112,10 +150,14 @@ pipeline {
                     }
                 }
                 post {
-                    success {
-                        archiveArtifacts artifacts: './${BUILD_ID}/', followSymlinks: false
-                    }
                     always {
+
+                        def desc = "spawns: ${params.MAX_SPAWNS} batch size: ${params.BATCH_SIZE} steps: ${params.N_STEPS} additional: ${params.ADDITIONAL_ARGS}"
+                        def name = "${EXP_BASE_NAME}:#${BUILD_ID} -- ${params.JOB_TYPE}-${params.EXP_SCRIPT}-${params.DATA}"
+
+                        buildDescription: "${params.JOB_TYPE}: ${desc}"
+                        buildName: "${name}"
+
                         sh "docker container prune -f"
                         sh "docker image prune -f"
                     }
