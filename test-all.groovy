@@ -42,7 +42,7 @@ pipeline {
     stages {
         stage("Test one."){
             steps{
-                echo "Starting ${DIR} build job..."
+                echo "Starting baseline-ctc build job as an initial test..."
                 build job: "baseline-ctc",
                     wait: true,
                     parameters: [
@@ -55,7 +55,12 @@ pipeline {
                     ]
             }
         }
-        stage("Run all the other experiments!"){
+        post {
+            success {
+                echo "CTC successful!"
+            }
+        }
+        stage("Test others."){
             failFast false
             matrix {
                 axes {
@@ -90,6 +95,11 @@ pipeline {
                                 ]
                         }
                     }
+                }
+            }
+            post {
+                success {
+                    echo "All others successful!"
                 }
             }
         }
