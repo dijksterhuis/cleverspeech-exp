@@ -74,6 +74,7 @@ pipeline {
                                     stringParam(name: 'ADDITIONAL_ARGS', value: "${params.ADDITIONAL_ARGS}"),
                                     stringParam(name: 'EXP_SCRIPT', value: "${MATRIX_EXP_SCRIPT}"),
                                     stringParam(name: 'MAX_SPAWNS', value: "${params.MAX_SPAWNS}"),
+                                    stringParam(name: 'BATCH_SIZE', value: "${params.BATCH_SIZE}"),
                                     stringParam(name: 'N_STEPS', value: "${params.N_STEPS}"),
                                     stringParam(name: 'DATA', value: "${MATRIX_DATA}"),
                                     stringParam(name: 'JOB_TYPE', value: "run"),
