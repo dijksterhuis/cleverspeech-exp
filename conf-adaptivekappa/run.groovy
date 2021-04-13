@@ -6,6 +6,7 @@ pipeline {
         label "build"
     }
     options {
+        skipDefaultCheckout()
         timestamps()
         disableResume()
         disableConcurrentBuilds()
@@ -66,6 +67,14 @@ pipeline {
                 script {
                     def name = "#${BUILD_ID}: type:${params.JOB_TYPE} script:${params.EXP_SCRIPT} data:${params.DATA} steps:${params.N_STEPS}"
                     buildName "${name}"
+                }
+            }
+        }
+        stage("Locked SCM checkout") {
+            steps {
+                lock("dummy") {
+                    sleep 5
+                    checkout scm
                 }
             }
         }
