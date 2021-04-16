@@ -105,7 +105,7 @@ def create_standard_attack_graph(sess, batch, settings):
         beam_width=settings["beam_width"]
     )
 
-    attack.add_loss(Losses.RepeatsCTCLoss)
+    attack.add_loss(Losses.AlignmentsCTCLoss)
 
     attack.create_loss_fn()
 
@@ -147,7 +147,7 @@ def create_extreme_attack_graph(sess, batch, settings):
         beam_width=settings["beam_width"]
     )
 
-    attack.add_loss(Losses.RepeatsCTCLoss)
+    attack.add_loss(Losses.AlignmentsCTCLoss)
 
     attack.create_loss_fn()
 
@@ -317,7 +317,7 @@ def ctcalign_run(master_settings):
         alignment = create_tf_ctc_alignment_search_graph(attack, batch, feeds)
 
         attack.add_loss(
-            Losses.RepeatsCTCLoss,
+            Losses.AlignmentsCTCLoss,
             alignment=alignment.graph.target_alignments,
         )
 
@@ -398,7 +398,7 @@ def ctcalign_extreme_run(master_settings):
         alignment = create_tf_ctc_alignment_search_graph(attack, batch, feeds)
 
         attack.add_loss(
-            Losses.RepeatsCTCLoss,
+            Losses.AlignmentsCTCLoss,
             alignment=alignment.graph.target_alignments,
         )
 

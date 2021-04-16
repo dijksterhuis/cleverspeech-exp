@@ -124,7 +124,7 @@ def create_standard_attack_graph(sess, batch, settings):
 
     elif settings["additional_loss"] == "rctc":
         attack.add_loss(
-            Losses.RepeatsCTCLoss,
+            Losses.AlignmentsCTCLoss,
             alignment=attack.graph.placeholders.targets,
         )
 
@@ -187,7 +187,7 @@ def create_ctcalign_attack_graph(sess, batch, settings):
 
     elif settings["additional_loss"] == "rctc":
         attack.add_loss(
-            Losses.RepeatsCTCLoss,
+            Losses.AlignmentsCTCLoss,
             alignment=alignment.graph.target_alignments,
         )
 
