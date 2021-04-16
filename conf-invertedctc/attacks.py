@@ -106,7 +106,7 @@ def create_adaptive_kappa_attack_graph(sess, batch, settings):
     )
 
     attack.add_loss(
-        Losses.AntiCTC,
+        Losses.GreedyOtherAlignmentsCTCLoss,
         alignment=attack.graph.placeholders.targets,
         weight_settings=(1 / 100, 1 / 100)
     )
@@ -227,7 +227,7 @@ def ctcalign_adaptive_kappa_run(master_settings):
         alignment = create_tf_ctc_alignment_search_graph(attack, batch, feeds)
 
         attack.add_loss(
-            Losses.AntiCTC,
+            Losses.GreedyOtherAlignmentsCTCLoss,
             alignment=alignment.graph.target_alignments,
             weight_settings=(1/100, 1/100)
         )
