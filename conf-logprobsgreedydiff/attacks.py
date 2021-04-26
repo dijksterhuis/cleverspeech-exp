@@ -105,7 +105,7 @@ def execute(settings, attack_fn, batch_gen):
     Reporting.generate_stats_file(settings["outdir"])
 
 
-class CustomCTCProcedure(Procedures.CTCAlignUpdateOnDecode):
+class CustomCTCProcedure(Procedures.StandardCTCAlignProcedure):
 
     def get_current_attack_state(self):
 

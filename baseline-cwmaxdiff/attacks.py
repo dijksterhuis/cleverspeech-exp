@@ -125,7 +125,7 @@ def create_regular_attack_graph(sess, batch, settings):
         learning_rate=settings["learning_rate"]
     )
     attack.add_procedure(
-        Procedures.UpdateOnDecoding,
+        Procedures.StandardProcedure,
         steps=settings["nsteps"],
         update_step=settings["decode_step"]
     )
@@ -170,7 +170,7 @@ def create_ctcalign_attack_graph(sess, batch, settings):
         learning_rate=settings["learning_rate"]
     )
     attack.add_procedure(
-        Procedures.CTCAlignUpdateOnDecode,
+        Procedures.StandardCTCAlignProcedure,
         alignment_graph=alignment,
         steps=settings["nsteps"],
         update_step=settings["decode_step"]

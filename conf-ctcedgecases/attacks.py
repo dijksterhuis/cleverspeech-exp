@@ -123,7 +123,7 @@ def create_standard_attack_graph(sess, batch, settings):
     )
 
     attack.add_procedure(
-        Procedures.UpdateOnDecoding,
+        Procedures.StandardProcedure,
         steps=settings["nsteps"],
         update_step=settings["decode_step"]
     )
@@ -167,7 +167,7 @@ def create_extreme_attack_graph(sess, batch, settings):
     )
 
     attack.add_procedure(
-        Procedures.UpdateOnDecoding,
+        Procedures.StandardProcedure,
         steps=settings["nsteps"],
         update_step=settings["decode_step"]
     )
@@ -339,7 +339,7 @@ def ctcalign_run(master_settings):
         )
 
         attack.add_procedure(
-            Procedures.CTCAlignUpdateOnDecode,
+            Procedures.StandardCTCAlignProcedure,
             alignment_graph=alignment,
             steps=settings["nsteps"],
             update_step=settings["decode_step"],

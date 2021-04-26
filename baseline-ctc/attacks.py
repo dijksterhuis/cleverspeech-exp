@@ -129,7 +129,7 @@ def create_attack_graph(sess, batch, settings):
     )
 
     attack.add_procedure(
-        Procedures.UpdateOnDecoding,
+        Procedures.StandardProcedure,
         steps=settings["nsteps"],
         update_step=settings["decode_step"]
     )
