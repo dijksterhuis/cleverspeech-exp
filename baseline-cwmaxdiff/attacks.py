@@ -2,7 +2,7 @@
 import os
 
 # attack def imports
-from cleverspeech.graph.GraphConstructor import Constructor
+from cleverspeech.graph.AttackConstructors import EvasionAttackConstructor
 from cleverspeech.graph import Constraints
 from cleverspeech.graph import PerturbationSubGraphs
 from cleverspeech.graph import Losses
@@ -14,7 +14,7 @@ from cleverspeech.graph.CTCAlignmentSearch import create_tf_ctc_alignment_search
 from cleverspeech.data.ingress.etl import batch_generators
 from cleverspeech.data.ingress import Feeds
 from cleverspeech.data.egress.Databases import SingleJsonDB
-from cleverspeech.data.egress import Transforms
+from cleverspeech.data.egress import AttackETLs
 from cleverspeech.data.egress.Writers import SingleFileWriter
 from cleverspeech.data.egress import Reporting
 
@@ -57,8 +57,8 @@ def execute(settings, attack_fn, batch_gen):
     if not os.path.exists(settings["outdir"]):
         os.makedirs(settings["outdir"], exist_ok=True)
 
-    results_extractor = Transforms.get_current_attack_state
-    results_transformer = Transforms.Standard()
+    results_extractor = AttackETLs.convert_evasion_attack_state_to_dict
+    results_transformer = AttackETLs.EvasionResults()
     file_writer = SingleFileWriter(settings["outdir"], results_transformer)
 
     # Write the current settings to "settings.json" file.
@@ -93,7 +93,7 @@ def execute(settings, attack_fn, batch_gen):
 def create_regular_attack_graph(sess, batch, settings):
     feeds = Feeds.Attack(batch)
 
-    attack = Constructor(sess, batch, feeds)
+    attack = EvasionAttackConstructor(sess, batch, feeds)
 
     attack.add_placeholders(Placeholders.Placeholders)
 
@@ -127,7 +127,7 @@ def create_regular_attack_graph(sess, batch, settings):
     attack.add_procedure(
         Procedures.UpdateOnDecoding,
         steps=settings["nsteps"],
-        decode_step=settings["decode_step"]
+        update_step=settings["decode_step"]
     )
 
     return attack
@@ -136,7 +136,7 @@ def create_regular_attack_graph(sess, batch, settings):
 def create_ctcalign_attack_graph(sess, batch, settings):
     feeds = Feeds.Attack(batch)
 
-    attack = Constructor(sess, batch, feeds)
+    attack = EvasionAttackConstructor(sess, batch, feeds)
 
     attack.add_placeholders(Placeholders.Placeholders)
 
@@ -173,7 +173,7 @@ def create_ctcalign_attack_graph(sess, batch, settings):
         Procedures.CTCAlignUpdateOnDecode,
         alignment_graph=alignment,
         steps=settings["nsteps"],
-        decode_step=settings["decode_step"]
+        update_step=settings["decode_step"]
     )
 
     return attack
