@@ -14,7 +14,7 @@ from cleverspeech.graph.CTCAlignmentSearch import create_tf_ctc_alignment_search
 from cleverspeech.data.ingress.etl import batch_generators
 from cleverspeech.data.ingress import Feeds
 from cleverspeech.data.egress.Databases import SingleJsonDB
-from cleverspeech.data.egress.Transforms import Standard
+from cleverspeech.data.egress import Transforms
 from cleverspeech.data.egress.Writers import SingleFileWriter
 from cleverspeech.data.egress import Reporting
 
@@ -91,8 +91,12 @@ def execute(settings, attack_fn, batch_gen):
 
     with attack_spawner as spawner:
         for b_id, batch in batch_gen:
+
             log("Running for Batch Number: {}".format(b_id), wrap=True)
-            spawner.spawn(settings, attack_fn, batch)
+
+            attack_args = (settings, attack_fn, batch, results_extractor)
+
+            spawner.spawn(attack_args)
 
     # Run the stats function on all successful examples once all attacks
     # are completed.

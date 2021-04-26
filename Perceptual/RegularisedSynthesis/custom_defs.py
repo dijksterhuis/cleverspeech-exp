@@ -147,7 +147,7 @@ class SpectralLoss(object):
 
 
 class UpdateOnDecodingSynth(UpdateOnDecoding):
-    def decode_step_logic(self):
+    def post_optimisation_hook(self):
         """
         Don't do the reassignment of the the rounded graph delta variables as
         that'll screw with synthesis.
@@ -156,7 +156,7 @@ class UpdateOnDecodingSynth(UpdateOnDecoding):
 
 
 class UpdateOnLossSynth(UpdateOnLoss):
-    def decode_step_logic(self):
+    def post_optimisation_hook(self):
         """
         Don't do the reassignment of the the rounded graph delta variables as
         that'll screw with synthesis.
