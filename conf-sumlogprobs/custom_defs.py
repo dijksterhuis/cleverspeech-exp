@@ -7,10 +7,10 @@ from cleverspeech.utils.Utils import lcomp
 
 
 class BaseLogProbsLoss(BaseLogitDiffLoss):
-    def __init__(self, attack_graph, target_argmax, weight_settings=(None, None)):
+    def __init__(self, attack, target_argmax, weight_settings=(None, None)):
 
         super().__init__(
-            attack_graph,
+            attack,
             target_argmax,
             weight_settings=weight_settings,
             softmax=True
@@ -36,12 +36,12 @@ class BaseLogProbsLoss(BaseLogitDiffLoss):
 
 
 class FwdOnlyLogProbsLoss(BaseLogProbsLoss):
-    def __init__(self, attack_graph, target_argmax, weight_settings=(1.0, 1.0)):
+    def __init__(self, attack, target_argmax, weight_settings=(1.0, 1.0)):
         """
         """
 
         super().__init__(
-            attack_graph,
+            attack,
             target_argmax,
             weight_settings=weight_settings,
         )
@@ -51,12 +51,12 @@ class FwdOnlyLogProbsLoss(BaseLogProbsLoss):
 
 
 class BackOnlyLogProbsLoss(BaseLogProbsLoss):
-    def __init__(self, attack_graph, target_argmax, weight_settings=(1.0, 1.0)):
+    def __init__(self, attack, target_argmax, weight_settings=(1.0, 1.0)):
         """
         """
 
         super().__init__(
-            attack_graph,
+            attack,
             target_argmax,
             weight_settings=weight_settings,
         )
@@ -66,12 +66,12 @@ class BackOnlyLogProbsLoss(BaseLogProbsLoss):
 
 
 class FwdPlusBackLogProbsLoss(BaseLogProbsLoss):
-    def __init__(self, attack_graph, target_argmax, weight_settings=(1.0, 1.0)):
+    def __init__(self, attack, target_argmax, weight_settings=(1.0, 1.0)):
         """
         """
 
         super().__init__(
-            attack_graph,
+            attack,
             target_argmax,
             weight_settings=weight_settings,
         )
@@ -81,12 +81,12 @@ class FwdPlusBackLogProbsLoss(BaseLogProbsLoss):
 
 
 class FwdMultBackLogProbsLoss(BaseLogProbsLoss):
-    def __init__(self, attack_graph, target_argmax, weight_settings=(1.0, 1.0)):
+    def __init__(self, attack, target_argmax, weight_settings=(1.0, 1.0)):
         """
         """
 
         super().__init__(
-            attack_graph,
+            attack,
             target_argmax,
             weight_settings=weight_settings,
         )

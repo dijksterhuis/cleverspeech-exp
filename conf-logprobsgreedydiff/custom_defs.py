@@ -4,10 +4,10 @@ from cleverspeech.graph.Losses import BaseLoss, BaseLogitDiffLoss
 
 
 class BaseVibertishDifferenceLoss(BaseLogitDiffLoss):
-    def __init__(self, attack_graph, target_argmax, weight_settings=(None, None)):
+    def __init__(self, attack, target_argmax, weight_settings=(None, None)):
 
         super().__init__(
-            attack_graph,
+            attack,
             target_argmax,
             weight_settings=weight_settings,
             softmax=True
@@ -44,15 +44,15 @@ class BaseVibertishDifferenceLoss(BaseLogitDiffLoss):
 
 
 class VibertiMostLikely(BaseLoss):
-    def __init__(self, attack_graph, weight_settings=(None, None)):
+    def __init__(self, attack, weight_settings=(None, None)):
 
         super().__init__(
-            attack_graph.sess,
-            attack_graph.batch.size,
+            attack.sess,
+            attack.batch.size,
             weight_settings=weight_settings
         )
 
-        smax_log = tf.log(attack_graph.victm.logits + 1e-8)
+        smax_log = tf.log(attack.victm.logits + 1e-8)
         self.fwd_most_likely = self.viberti_probs(smax_log)
 
     def viberti_probs(self, log_softmax, backward_pass=False):
@@ -97,14 +97,14 @@ class VibertiMostLikely(BaseLoss):
 
 
 class FwdOnlyVibertish(BaseVibertishDifferenceLoss):
-    def __init__(self, attack_graph, target_argmax, kappa=1.1, weight_settings=(1.0, 1.0)):
+    def __init__(self, attack, target_argmax, kappa=1.1, weight_settings=(1.0, 1.0)):
         """
         """
 
         assert kappa > 1.0
 
         super().__init__(
-            attack_graph,
+            attack,
             target_argmax,
             weight_settings=weight_settings,
         )
@@ -117,13 +117,13 @@ class FwdOnlyVibertish(BaseVibertishDifferenceLoss):
 
 
 class BackOnlyVibertish(BaseVibertishDifferenceLoss):
-    def __init__(self, attack_graph, target_argmax, kappa=1.1, weight_settings=(1.0, 1.0)):
+    def __init__(self, attack, target_argmax, kappa=1.1, weight_settings=(1.0, 1.0)):
         """
         """
         assert kappa > 1.0
 
         super().__init__(
-            attack_graph,
+            attack,
             target_argmax,
             weight_settings=weight_settings,
         )
@@ -136,13 +136,13 @@ class BackOnlyVibertish(BaseVibertishDifferenceLoss):
 
 
 class FwdPlusBackVibertish(BaseVibertishDifferenceLoss):
-    def __init__(self, attack_graph, target_argmax, kappa=1.1, weight_settings=(1.0, 1.0)):
+    def __init__(self, attack, target_argmax, kappa=1.1, weight_settings=(1.0, 1.0)):
         """
         """
         assert kappa > 1.0
 
         super().__init__(
-            attack_graph,
+            attack,
             target_argmax,
             weight_settings=weight_settings,
         )
@@ -155,13 +155,13 @@ class FwdPlusBackVibertish(BaseVibertishDifferenceLoss):
 
 
 class FwdMultBackVibertish(BaseVibertishDifferenceLoss):
-    def __init__(self, attack_graph, target_argmax, kappa=1.1, weight_settings=(1.0, 1.0)):
+    def __init__(self, attack, target_argmax, kappa=1.1, weight_settings=(1.0, 1.0)):
         """
         """
         assert kappa > 1.0
 
         super().__init__(
-            attack_graph,
+            attack,
             target_argmax,
             weight_settings=weight_settings,
         )

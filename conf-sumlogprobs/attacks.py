@@ -3,10 +3,11 @@ import os
 
 from cleverspeech.graph.GraphConstructor import Constructor
 from cleverspeech.graph import Constraints
-from cleverspeech.graph import VariableGraphs
+from cleverspeech.graph import PerturbationSubGraphs
 from cleverspeech.graph import Losses
 from cleverspeech.graph import Optimisers
 from cleverspeech.graph import Procedures
+from cleverspeech.graph import Placeholders
 from cleverspeech.graph.CTCAlignmentSearch import create_tf_ctc_alignment_search_graph
 
 from cleverspeech.data.ingress.etl import batch_generators
@@ -69,8 +70,9 @@ def execute(settings, attack_fn, batch_gen):
     if not os.path.exists(settings["outdir"]):
         os.makedirs(settings["outdir"], exist_ok=True)
 
-    results_extracter = Standard(extra_logging_keys=["alpha", "beta"])
-    file_writer = SingleFileWriter(settings["outdir"], results_extracter)
+    results_extractor = Transforms.get_current_attack_state
+    results_transformer = Transforms.Standard()
+    file_writer = SingleFileWriter(settings["outdir"], results_transformer)
 
     # Write the current settings to "settings.json" file.
 
@@ -152,9 +154,11 @@ class CustomProcedure(Procedures.UpdateOnDecoding):
 
 
 def create_attack_graph(sess, batch, settings):
-
     feeds = Feeds.Attack(batch)
+
     attack = Constructor(sess, batch, feeds)
+
+    attack.add_placeholders(Placeholders.Placeholders)
 
     attack.add_hard_constraint(
         Constraints.L2,
@@ -162,8 +166,8 @@ def create_attack_graph(sess, batch, settings):
         update_method=settings["constraint_update"],
     )
 
-    attack.add_graph(
-        VariableGraphs.Independent
+    attack.add_perturbation_subgraph(
+        PerturbationSubGraphs.Independent
     )
 
     attack.add_victim(
@@ -175,7 +179,7 @@ def create_attack_graph(sess, batch, settings):
 
     attack.add_loss(
         LOSSES[settings["loss_type"]],
-        attack.graph.placeholders.targets,
+        attack.placeholders.targets,
     )
 
     attack.create_loss_fn()
@@ -196,9 +200,11 @@ def create_attack_graph(sess, batch, settings):
 
 
 def create_ctcalign_attack_graph(sess, batch, settings):
-
     feeds = Feeds.Attack(batch)
+
     attack = Constructor(sess, batch, feeds)
+
+    attack.add_placeholders(Placeholders.Placeholders)
 
     attack.add_hard_constraint(
         Constraints.L2,
@@ -206,8 +212,8 @@ def create_ctcalign_attack_graph(sess, batch, settings):
         update_method=settings["constraint_update"],
     )
 
-    attack.add_graph(
-        VariableGraphs.Independent
+    attack.add_perturbation_subgraph(
+        PerturbationSubGraphs.Independent
     )
 
     attack.add_victim(

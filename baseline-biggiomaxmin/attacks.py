@@ -4,10 +4,11 @@ import os
 # attack def imports
 from cleverspeech.graph.GraphConstructor import Constructor
 from cleverspeech.graph import Constraints
-from cleverspeech.graph import VariableGraphs
+from cleverspeech.graph import PerturbationSubGraphs
 from cleverspeech.graph import Losses
 from cleverspeech.graph import Optimisers
 from cleverspeech.graph import Procedures
+from cleverspeech.graph import Placeholders
 from cleverspeech.graph.CTCAlignmentSearch import create_tf_ctc_alignment_search_graph
 
 from cleverspeech.data.ingress.etl import batch_generators
@@ -93,14 +94,16 @@ def create_regular_attack_graph(sess, batch, settings):
 
     attack = Constructor(sess, batch, feeds)
 
+    attack.add_placeholders(Placeholders.Placeholders)
+
     attack.add_hard_constraint(
         Constraints.L2,
         r_constant=settings["rescale"],
         update_method=settings["constraint_update"],
     )
 
-    attack.add_graph(
-        VariableGraphs.Independent
+    attack.add_perturbation_subgraph(
+        PerturbationSubGraphs.Independent
     )
 
     attack.add_victim(
@@ -112,7 +115,7 @@ def create_regular_attack_graph(sess, batch, settings):
 
     attack.add_loss(
         Losses.BiggioMaxMin,
-        attack.graph.placeholders.targets,
+        attack.placeholders.targets,
     )
     attack.create_loss_fn()
     attack.add_optimiser(
@@ -125,8 +128,6 @@ def create_regular_attack_graph(sess, batch, settings):
         decode_step=settings["decode_step"]
     )
 
-    attack.create_feeds()
-
     return attack
 
 
@@ -135,14 +136,16 @@ def create_ctcalign_attack_graph(sess, batch, settings):
 
     attack = Constructor(sess, batch, feeds)
 
+    attack.add_placeholders(Placeholders.Placeholders)
+
     attack.add_hard_constraint(
         Constraints.L2,
         r_constant=settings["rescale"],
         update_method=settings["constraint_update"],
     )
 
-    attack.add_graph(
-        VariableGraphs.Independent
+    attack.add_perturbation_subgraph(
+        PerturbationSubGraphs.Independent
     )
 
     attack.add_victim(
@@ -169,8 +172,6 @@ def create_ctcalign_attack_graph(sess, batch, settings):
         steps=settings["nsteps"],
         decode_step=settings["decode_step"]
     )
-
-    attack.create_feeds()
 
     return attack
 

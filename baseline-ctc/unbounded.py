@@ -4,7 +4,7 @@ import os
 # attack def imports
 from cleverspeech.graph.GraphConstructor import Constructor
 from cleverspeech.graph import Constraints
-from cleverspeech.graph import VariableGraphs
+from cleverspeech.graph import PerturbationSubGraphs
 from cleverspeech.graph import Losses
 from cleverspeech.graph import Optimisers
 from cleverspeech.graph import Procedures
@@ -105,8 +105,8 @@ def create_attack_graph(sess, batch, settings):
         update_method=settings["constraint_update"],
     )
 
-    attack.add_graph(
-        VariableGraphs.Independent
+    attack.add_perturbation_subgraph(
+        PerturbationSubGraphs.Independent
     )
 
     attack.add_victim(

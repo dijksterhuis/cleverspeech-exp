@@ -96,9 +96,9 @@ class SynthesisAttack:
 
 
 class AdditiveAmplitudeLoss(object):
-    def __init__(self, attack_graph, loss_weight=1.0):
+    def __init__(self, attack, loss_weight=1.0):
 
-        g, b = attack_graph, attack_graph.batch
+        g, b = attack, attack.batch
 
         assert b.audios["ds_feats"].all() > 0
 
@@ -110,9 +110,9 @@ class AdditiveAmplitudeLoss(object):
 
 
 class AdditiveEnergyLoss(object):
-    def __init__(self, attack_graph, loss_weight=1.0):
+    def __init__(self, attack, loss_weight=1.0):
 
-        g, b = attack_graph, attack_graph.batch
+        g, b = attack, attack.batch
 
         assert b.audios["ds_feats"].all() > 0
 
@@ -124,8 +124,8 @@ class AdditiveEnergyLoss(object):
 
 
 class DetNoiseRMSRatioLoss(object):
-    def __init__(self, attack_graph, loss_weight=1.0):
-        g, b = attack_graph, attack_graph.batch
+    def __init__(self, attack, loss_weight=1.0):
+        g, b = attack, attack.batch
 
         def rms(x):
             return tf.sqrt(tf.abs(tf.reduce_mean(tf.square(x) + 1e-8, axis=1)))
@@ -138,7 +138,7 @@ class SpectralLoss(object):
     def __init__(self, attack, norm: int = 2, loss_weight: float = 1e-3):
 
         self.magnitude_diff = tf.cast(
-            tf.abs(attack.graph.synthesiser.stft_deltas), tf.float32
+            tf.abs(attack.delta_graph.synthesiser.stft_deltas), tf.float32
         )
 
         self.mag_loss_fn = tf.reduce_mean(self.magnitude_diff ** norm, axis=[1, 2])

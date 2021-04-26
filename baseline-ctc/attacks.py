@@ -4,10 +4,11 @@ import os
 # attack def imports
 from cleverspeech.graph.GraphConstructor import Constructor
 from cleverspeech.graph import Constraints
-from cleverspeech.graph import VariableGraphs
+from cleverspeech.graph import PerturbationSubGraphs
 from cleverspeech.graph import Losses
 from cleverspeech.graph import Optimisers
 from cleverspeech.graph import Procedures
+from cleverspeech.graph import Placeholders
 
 from cleverspeech.data.ingress.etl import batch_generators
 from cleverspeech.data.ingress import Feeds
@@ -99,14 +100,16 @@ def create_attack_graph(sess, batch, settings):
 
     attack = Constructor(sess, batch, feeds)
 
+    attack.add_placeholders(Placeholders.Placeholders)
+
     attack.add_hard_constraint(
         Constraints.L2,
         r_constant=settings["rescale"],
         update_method=settings["constraint_update"],
     )
 
-    attack.add_graph(
-        VariableGraphs.Independent
+    attack.add_perturbation_subgraph(
+        PerturbationSubGraphs.Independent
     )
 
     attack.add_victim(
@@ -130,8 +133,6 @@ def create_attack_graph(sess, batch, settings):
         steps=settings["nsteps"],
         decode_step=settings["decode_step"]
     )
-
-    attack.create_feeds()
 
     return attack
 

@@ -5,8 +5,9 @@ import os
 from cleverspeech.graph.GraphConstructor import Constructor
 from cleverspeech.graph import Constraints
 from cleverspeech.graph.Losses import CTCLoss
-from cleverspeech.graph import VariableGraphs
+from cleverspeech.graph import PerturbationSubGraphs
 from cleverspeech.graph import Optimisers
+from cleverspeech.graph import Placeholders
 # from cleverspeech.graph import Procedures
 
 from cleverspeech.data.ingress.etl import batch_generators
@@ -115,7 +116,10 @@ def create_attack_graph(sess, batch, settings):
     synth = synth_cls(batch, **settings["synth"])
 
     feeds = Feeds.Attack(batch)
+
     attack = Constructor(sess, batch, feeds)
+
+    attack.add_placeholders(Placeholders.Placeholders)
 
     attack.add_hard_constraint(
         Constraints.L2,
@@ -123,8 +127,8 @@ def create_attack_graph(sess, batch, settings):
         update_method=settings["constraint_update"],
     )
 
-    attack.add_graph(
-        VariableGraphs.Synthesis,
+    attack.add_perturbation_subgraph(
+        PerturbationSubGraphs.Synthesis,
         synth
     )
 
@@ -447,8 +451,8 @@ def spectral_regularised_run(master_settings):
             update_method=settings["constraint_update"],
         )
 
-        attack.add_graph(
-            VariableGraphs.Synthesis,
+        attack.add_perturbation_subgraph(
+            PerturbationSubGraphs.Synthesis,
             synth
         )
 
