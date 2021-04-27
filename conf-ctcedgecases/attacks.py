@@ -128,8 +128,6 @@ def create_standard_attack_graph(sess, batch, settings):
         update_step=settings["decode_step"]
     )
 
-    attack.create_feeds()
-
     return attack
 
 
@@ -171,8 +169,6 @@ def create_extreme_attack_graph(sess, batch, settings):
         steps=settings["nsteps"],
         update_step=settings["decode_step"]
     )
-
-    attack.create_feeds()
 
     return attack
 

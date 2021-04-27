@@ -63,6 +63,27 @@ LOSSES = {
 # all others instead of optimising for individual class labels per frame.
 
 
+def mod_convert_evasion_attack_state_to_dict(attack):
+
+    results = AttackETLs.convert_evasion_attack_state_to_dict(attack)
+
+    target_alpha = attack.loss[0].fwd_target_log_probs
+    target_beta = attack.loss[0].back_target_log_probs
+
+    alpha, beta = attack.procedure.tf_run(
+        [target_alpha, target_beta]
+    )
+
+    results.update(
+        {
+            "alpha": alpha,
+            "beta": beta,
+        }
+    )
+
+    return results
+
+
 def execute(settings, attack_fn, batch_gen):
 
     # set up the directory we'll use for results
@@ -70,7 +91,7 @@ def execute(settings, attack_fn, batch_gen):
     if not os.path.exists(settings["outdir"]):
         os.makedirs(settings["outdir"], exist_ok=True)
 
-    results_extractor = AttackETLs.convert_evasion_attack_state_to_dict
+    results_extractor = mod_convert_evasion_attack_state_to_dict
     results_transformer = AttackETLs.EvasionResults()
     file_writer = SingleFileWriter(settings["outdir"], results_transformer)
 
@@ -101,56 +122,6 @@ def execute(settings, attack_fn, batch_gen):
     # Run the stats function on all successful examples once all attacks
     # are completed.
     Reporting.generate_stats_file(settings["outdir"])
-
-
-class CustomCTCProcedure(Procedures.StandardCTCAlignProcedure):
-
-    def get_current_attack_state(self):
-
-        batched_results = super().get_current_attack_state()
-
-        # Get the target alignment's forward and backward log probability
-
-        target_alpha = self.attack.loss[0].fwd_target_log_probs
-        target_beta = self.attack.loss[0].back_target_log_probs
-
-        alpha, beta = self.attack.procedure.tf_run(
-            [target_alpha, target_beta]
-        )
-
-        batched_results.update(
-            {
-                "alpha": alpha,
-                "beta": beta,
-            }
-        )
-
-        return batched_results
-
-
-class CustomProcedure(Procedures.UpdateOnDecoding):
-
-    def get_current_attack_state(self):
-
-        batched_results = super().get_current_attack_state()
-
-        # Get the target alignment's forward and backward log probability
-
-        target_alpha = self.attack.loss[0].fwd_target_log_probs
-        target_beta = self.attack.loss[0].back_target_log_probs
-
-        alpha, beta = self.attack.procedure.tf_run(
-            [target_alpha, target_beta]
-        )
-
-        batched_results.update(
-            {
-                "alpha": alpha,
-                "beta": beta,
-            }
-        )
-
-        return batched_results
 
 
 def create_attack_graph(sess, batch, settings):
@@ -189,12 +160,10 @@ def create_attack_graph(sess, batch, settings):
         learning_rate=settings["learning_rate"]
     )
     attack.add_procedure(
-        CustomProcedure,
+        Procedures.StandardProcedure,
         steps=settings["nsteps"],
         update_step=settings["decode_step"]
     )
-
-    attack.create_feeds()
 
     return attack
 
@@ -237,14 +206,12 @@ def create_ctcalign_attack_graph(sess, batch, settings):
         learning_rate=settings["learning_rate"]
     )
     attack.add_procedure(
-        CustomCTCProcedure,
+        Procedures.StandardCTCAlignProcedure,
         alignment,
         steps=settings["nsteps"],
         update_step=settings["decode_step"],
         #loss_lower_bound=10.0
     )
-
-    attack.create_feeds()
 
     return attack
 

@@ -135,8 +135,6 @@ def create_adaptive_kappa_attack_graph(sess, batch, settings):
         update_step=settings["decode_step"]
     )
 
-    attack.create_feeds()
-
     return attack
 
 
@@ -213,7 +211,10 @@ def ctcalign_adaptive_kappa_run(master_settings):
     def create_attack_graph(sess, batch, settings):
 
         feeds = Feeds.Attack(batch)
+
         attack = EvasionAttackConstructor(sess, batch, feeds)
+
+        attack.add_placeholders(Placeholders.Placeholders)
 
         attack.add_hard_constraint(
             Constraints.L2,
@@ -222,8 +223,8 @@ def ctcalign_adaptive_kappa_run(master_settings):
         )
 
         attack.add_perturbation_subgraph(
-        PerturbationSubGraphs.Independent
-    )
+            PerturbationSubGraphs.Independent
+        )
 
         attack.add_victim(
             DeepSpeech.Model,
@@ -247,8 +248,9 @@ def ctcalign_adaptive_kappa_run(master_settings):
         )
 
         attack.create_loss_fn()
+
         attack.add_optimiser(
-        Optimisers.AdamIndependentOptimiser,
+            Optimisers.AdamIndependentOptimiser,
             learning_rate=settings["learning_rate"]
         )
         attack.add_procedure(
@@ -257,8 +259,6 @@ def ctcalign_adaptive_kappa_run(master_settings):
             steps=settings["nsteps"],
             update_step=settings["decode_step"]
         )
-
-        attack.create_feeds()
 
         return attack
 

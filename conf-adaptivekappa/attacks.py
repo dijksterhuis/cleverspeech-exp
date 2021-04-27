@@ -219,7 +219,6 @@ def create_ctcalign_attack_graph(sess, batch, settings):
         update_step=settings["decode_step"],
         loss_update_idx=[0],
     )
-    attack.create_feeds()
 
     return attack
 
