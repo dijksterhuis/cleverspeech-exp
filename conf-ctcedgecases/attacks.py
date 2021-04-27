@@ -385,6 +385,8 @@ def ctcalign_extreme_run(master_settings):
 
         attack = EvasionAttackConstructor(sess, batch, feeds)
 
+        attack.add_placeholders(Placeholders.Placeholders)
+
         attack.add_hard_constraint(
             Constraints.L2,
             r_constant=settings["rescale"],
@@ -392,8 +394,8 @@ def ctcalign_extreme_run(master_settings):
         )
 
         attack.add_perturbation_subgraph(
-        PerturbationSubGraphs.Independent
-    )
+            PerturbationSubGraphs.Independent
+        )
 
         attack.add_victim(
             DeepSpeech.Model,
@@ -411,7 +413,7 @@ def ctcalign_extreme_run(master_settings):
         attack.create_loss_fn()
 
         attack.add_optimiser(
-        Optimisers.AdamIndependentOptimiser,
+            Optimisers.AdamIndependentOptimiser,
             learning_rate=settings["learning_rate"]
         )
 
@@ -422,8 +424,6 @@ def ctcalign_extreme_run(master_settings):
             update_step=settings["decode_step"],
             loss_lower_bound=settings["loss_threshold"],
         )
-
-        attack.create_feeds()
 
         return attack
 
