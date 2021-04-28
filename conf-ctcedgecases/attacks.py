@@ -340,7 +340,6 @@ def ctcalign_run(master_settings):
             alignment_graph=alignment,
             steps=settings["nsteps"],
             update_step=settings["decode_step"],
-            loss_lower_bound=settings["loss_threshold"],
         )
 
         return attack
