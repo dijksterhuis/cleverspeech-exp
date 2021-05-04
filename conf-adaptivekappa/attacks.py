@@ -26,6 +26,13 @@ from cleverspeech.utils.Utils import log
 from SecEval import VictimAPI as DeepSpeech
 
 
+ALIGNMENT_CHOICES = {
+    "sparse": batch_generators.sparse,
+    "ctcalign": batch_generators.standard,
+    "dense": batch_generators.dense,
+}
+
+
 def execute(settings, attack_fn, batch_gen):
 
     # set up the directory we'll use for results
@@ -155,17 +162,7 @@ def attack_run(master_settings):
 
     master_settings["outdir"] = outdir
 
-    if align == "ctcalign":
-        batch_gen = batch_generators.standard(master_settings)
-
-    elif align == "sparse":
-        batch_gen = batch_generators.sparse(master_settings)
-
-    elif align == "dense":
-        batch_gen = batch_generators.dense(master_settings)
-
-    else:
-        raise NotImplementedError("Incorrect choice for --align argument.")
+    batch_gen = ALIGNMENT_CHOICES[align](master_settings)
 
     execute(master_settings, create_attack_graph, batch_gen,)
     log("Finished run.")
@@ -174,7 +171,7 @@ def attack_run(master_settings):
 if __name__ == '__main__':
 
     extra_args = {
-        'align': [str, "sparse", False, ["sparse", "dense", "ctcalign"]],
+        'align': [str, "sparse", False, ALIGNMENT_CHOICES.keys()],
         "kappa": [float, 0.25, False, None],
     }
 

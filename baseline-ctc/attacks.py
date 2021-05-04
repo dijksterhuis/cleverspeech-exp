@@ -26,7 +26,7 @@ from cleverspeech.utils.runtime.ExperimentArguments import args
 from SecEval import VictimAPI as DeepSpeech
 
 
-LOSSES = {
+LOSS_CHOICES = {
     "ctc": Losses.CTCLoss,
     "ctc2": Losses.CTCLossV2,
 }
@@ -91,7 +91,7 @@ def create_attack_graph(sess, batch, settings):
         beam_width=settings["beam_width"]
     )
     attack.add_loss(
-        LOSSES[settings["loss"]]
+        LOSS_CHOICES[settings["loss"]]
     )
     attack.create_loss_fn()
     attack.add_optimiser(
@@ -133,7 +133,7 @@ if __name__ == '__main__':
     log("", wrap=True)
 
     extra_args = {
-        "loss": [str, "ctc", False, ["ctc", "ctc2"]],
+        "loss": [str, "ctc", False, LOSS_CHOICES.keys()],
     }
 
     args(attack_run, additional_args=extra_args)
