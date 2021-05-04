@@ -108,7 +108,7 @@ pipeline {
                 axes {
                     axis {
                         name 'LOSS'
-                        values 'ctc', 'ctc_v2'
+                        values 'ctc', 'ctc2'
                     }
                 }
                 stages {

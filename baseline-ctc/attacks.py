@@ -51,7 +51,7 @@ KAPPA = 5.0
 
 LOSSES = {
     "ctc": Losses.CTCLoss,
-    "ctc_v2": Losses.CTCLossV2,
+    "ctc2": Losses.CTCLossV2,
 }
 
 
@@ -178,7 +178,7 @@ if __name__ == '__main__':
     log("", wrap=True)
 
     extra_args = {
-        "loss": [str, "ctc", False, ["ctc", "ctc_v2"]],
+        "loss": [str, "ctc", False, ["ctc", "ctc2"]],
         'decoder': [str, "batch", False, ["greedy", "batch", "ds", "tf"]],
     }
 
