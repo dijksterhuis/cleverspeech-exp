@@ -8,7 +8,7 @@ samples-*/
 samples/*
 *example.wav
 *delta.wav
-*adv*
+adv/
 *.wav
 notes/
 *.log
