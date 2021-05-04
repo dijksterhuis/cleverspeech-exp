@@ -72,16 +72,20 @@ pipeline {
                              'percep-spectralloss'
                              */
                     }
+                    axis {
+                        name 'EXP_SCRIPT'
+                        values 'attacks', 'unbounded'
+                    }
                 }
                 stages {
                     stage("Run experiment") {
                         steps {
-                            echo "Starting ${DIR} build job..."
+                            echo "Starting ${DIR} build job for ${EXP_SCRIPT} script..."
                             build job: "${DIR}",
                                 wait: true,
                                 parameters: [
                                     stringParam(name: 'ADDITIONAL_ARGS', value: "${params.ADDITIONAL_ARGS}"),
-                                    stringParam(name: 'EXP_SCRIPT', value: "${params.EXP_SCRIPT}"),
+                                    stringParam(name: 'EXP_SCRIPT', value: "${EXP_SCRIPT}"),
                                     stringParam(name: 'MAX_SPAWNS', value: "${params.MAX_SPAWNS}"),
                                     stringParam(name: 'BATCH_SIZE', value: "${params.BATCH_SIZE}"),
                                     stringParam(name: 'N_STEPS', value: "${params.N_STEPS}"),
