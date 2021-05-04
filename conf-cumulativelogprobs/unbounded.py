@@ -127,7 +127,7 @@ def create_attack_graph(sess, batch, settings):
         alignment = create_tf_ctc_alignment_search_graph(attack, batch)
 
         attack.add_loss(
-            LOSS_CHOICES[settings["loss_type"]],
+            LOSS_CHOICES[settings["loss"]],
             alignment.graph.target_alignments,
         )
         attack.create_loss_fn()
@@ -145,7 +145,7 @@ def create_attack_graph(sess, batch, settings):
     else:
 
         attack.add_loss(
-            LOSS_CHOICES[settings["loss_type"]],
+            LOSS_CHOICES[settings["loss"]],
             attack.placeholders.targets,
         )
         attack.create_loss_fn()
