@@ -21,26 +21,7 @@ from cleverspeech.utils.runtime.AttackSpawner import AttackSpawner
 from cleverspeech.utils.runtime.ExperimentArguments import args
 
 # victim model
-from SecEval import VictimAPI as Victim
-
-GPU_DEVICE = 0
-MAX_PROCESSES = 1
-SPAWN_DELAY = 30
-
-AUDIOS_INDIR = "./samples/all/"
-TARGETS_PATH = "./samples/cv-valid-test.csv"
-OUTDIR = "./adv/"
-MAX_EXAMPLES = 100
-MAX_TARGETS = 1000
-MAX_AUDIO_LENGTH = 120000
-
-TOKENS = " abcdefghijklmnopqrstuvwxyz'-"
-BEAM_WIDTH = 500
-LEARNING_RATE = 10
-CONSTRAINT_UPDATE = "geom"
-RESCALE = 0.95
-DECODING_STEP = 100
-NUMB_STEPS = 5000
+from SecEval import VictimAPI as DeepSpeech
 
 
 def execute(settings, attack_fn, batch_gen):
@@ -108,9 +89,8 @@ def create_attack_graph(sess, batch, settings):
         perturbation_sub_graph_cls
     )
     attack.add_victim(
-        Victim.Model,
-        tokens=settings["tokens"],
-        decoder=settings["decoder_type"],
+        DeepSpeech.Model,
+        decoder=settings["decoder"],
         beam_width=settings["beam_width"]
     )
     attack.add_loss(
@@ -136,6 +116,7 @@ def attack_run(master_settings):
     decoder = master_settings["decoder"]
     nbatch_max = master_settings["nbatch_max"]
     nbatch_step = master_settings["nbatch_step"]
+    outdir = master_settings["outdir"]
 
     assert nbatch_max >= 1
     assert nbatch_step >= 1
@@ -146,36 +127,16 @@ def attack_run(master_settings):
         if batch_size == 0:
             batch_size = 1
 
-        outdir = os.path.join(OUTDIR, "evasion/batch-vs-indy/")
+        outdir = os.path.join(outdir, "evasion/batch-vs-indy/")
         outdir = os.path.join(outdir, "{}/".format(graph_type))
         outdir = os.path.join(outdir, "{}/".format(decoder))
         outdir = os.path.join(outdir, "{}/".format(batch_size))
 
-        settings = {
-            "audio_indir": AUDIOS_INDIR,
-            "targets_path": TARGETS_PATH,
-            "outdir": outdir,
-            "batch_size": batch_size,
-            "tokens": TOKENS,
-            "nsteps": NUMB_STEPS,
-            "decode_step": DECODING_STEP,
-            "beam_width": BEAM_WIDTH,
-            "constraint_update": CONSTRAINT_UPDATE,
-            "rescale": RESCALE,
-            "learning_rate": LEARNING_RATE,
-            "gpu_device": GPU_DEVICE,
-            "max_spawns": MAX_PROCESSES,
-            "spawn_delay": SPAWN_DELAY,
-            "max_examples": batch_size,
-            "max_targets": MAX_TARGETS,
-            "max_audio_length": MAX_AUDIO_LENGTH,
-            "graph_type": graph_type,
-            "decoder_type": decoder,
-        }
+        master_settings["outdir"] = outdir
+        master_settings["batch_size"] = batch_size
 
-        settings.update(master_settings)
-        batch_gen = batch_generators.standard(settings)
-        execute(settings, create_attack_graph, batch_gen)
+        batch_gen = batch_generators.standard(master_settings)
+        execute(master_settings, create_attack_graph, batch_gen)
 
         log("Finished batch run {}.".format(batch_size))
 
@@ -190,7 +151,6 @@ if __name__ == '__main__':
         'graph_type': [str, "batch", False, ["batch", "indy"]],
         'nbatch_max': [int, 20, False, None],
         'nbatch_step': [int, 5, False, None],
-        'decoder': [str, "batch", False, ["greedy", "batch", "ds", "tf"]],
     }
 
     args(attack_run, additional_args=extra_args)

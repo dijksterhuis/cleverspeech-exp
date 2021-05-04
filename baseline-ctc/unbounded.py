@@ -23,7 +23,7 @@ from cleverspeech.utils.runtime.AttackSpawner import AttackSpawner
 from cleverspeech.utils.runtime.ExperimentArguments import args
 
 # victim model
-from SecEval import VictimAPI as Victim
+from SecEval import VictimAPI as DeepSpeech
 
 GPU_DEVICE = 0
 MAX_PROCESSES = 1
@@ -105,8 +105,7 @@ def create_attack_graph(sess, batch, settings):
     )
     attack.add_victim(
         Victim.Model,
-        tokens=settings["tokens"],
-        decoder=settings["decoder_type"],
+        decoder=settings["decoder"],
         beam_width=settings["beam_width"]
     )
     attack.add_loss(

@@ -26,35 +26,6 @@ from cleverspeech.utils.Utils import log
 from SecEval import VictimAPI as DeepSpeech
 
 
-GPU_DEVICE = 0
-MAX_PROCESSES = 1
-SPAWN_DELAY = 30
-
-AUDIOS_INDIR = "./samples/all/"
-TARGETS_PATH = "./samples/cv-valid-test.csv"
-OUTDIR = "./adv/"
-MAX_EXAMPLES = 100
-MAX_TARGETS = 1000
-MAX_AUDIO_LENGTH = 120000
-
-TOKENS = " abcdefghijklmnopqrstuvwxyz'-"
-BEAM_WIDTH = 500
-LEARNING_RATE = 10
-CONSTRAINT_UPDATE = "geom"
-RESCALE = 0.95
-DECODING_STEP = 100
-NUMB_STEPS = DECODING_STEP ** 2
-BATCH_SIZE = 10
-
-# extreme run settings
-LOSS_UPDATE_THRESHOLD = 10.0
-
-KAPPA_HYPERS = [
-    [k/(10 ** l) for k in [np.exp2(x) for x in range(0, 4)]] for l in range(1, 3)
-]
-KAPPA = 0.25
-
-
 def execute(settings, attack_fn, batch_gen):
 
     # set up the directory we'll use for results
@@ -112,8 +83,7 @@ def create_attack_graph(sess, batch, settings):
     )
     attack.add_victim(
         DeepSpeech.Model,
-        tokens=settings["tokens"],
-        decoder=settings["decoder_type"],
+        decoder=settings["decoder"],
         beam_width=settings["beam_width"]
     )
 
@@ -176,52 +146,28 @@ def attack_run(master_settings):
     align = master_settings["align"]
     decoder = master_settings["decoder"]
     kappa = master_settings["kappa"]
+    outdir = master_settings["outdir"]
 
-    outdir = os.path.join(OUTDIR, "unbounded/confidence/adaptive-kappa/")
+    outdir = os.path.join(outdir, "unbounded/confidence/adaptive-kappa/")
     outdir = os.path.join(outdir, "{}/".format(align))
     outdir = os.path.join(outdir, "{}/".format(decoder))
     outdir = os.path.join(outdir, "{}/".format(kappa))
 
-    settings = {
-        "audio_indir": AUDIOS_INDIR,
-        "targets_path": TARGETS_PATH,
-        "outdir": outdir,
-        "batch_size": BATCH_SIZE,
-        "tokens": TOKENS,
-        "nsteps": NUMB_STEPS,
-        "decode_step": DECODING_STEP,
-        "beam_width": BEAM_WIDTH,
-        "constraint_update": CONSTRAINT_UPDATE,
-        "rescale": RESCALE,
-        "learning_rate": LEARNING_RATE,
-        "gpu_device": GPU_DEVICE,
-        "max_spawns": MAX_PROCESSES,
-        "spawn_delay": SPAWN_DELAY,
-        "max_examples": MAX_EXAMPLES,
-        "max_targets": MAX_TARGETS,
-        "max_audio_length": MAX_AUDIO_LENGTH,
-        "align": align,
-        "decoder_type": decoder,
-        "kappa": kappa,
-
-        # "additional_loss": additional_loss
-    }
-
-    settings.update(master_settings)
+    master_settings["outdir"] = outdir
 
     if align == "ctcalign":
-        batch_gen = batch_generators.standard(settings)
+        batch_gen = batch_generators.standard(master_settings)
 
     elif align == "sparse":
-        batch_gen = batch_generators.sparse(settings)
+        batch_gen = batch_generators.sparse(master_settings)
 
     elif align == "dense":
-        batch_gen = batch_generators.dense(settings)
+        batch_gen = batch_generators.dense(master_settings)
 
     else:
         raise NotImplementedError("Incorrect choice for --align argument.")
 
-    execute(settings, create_attack_graph, batch_gen,)
+    execute(master_settings, create_attack_graph, batch_gen,)
     log("Finished run.")
 
 
@@ -229,7 +175,6 @@ if __name__ == '__main__':
 
     extra_args = {
         'align': [str, "sparse", False, ["sparse", "dense", "ctcalign"]],
-        'decoder': [str, "batch", False, ["greedy", "batch", "ds", "tf"]],
         "kappa": [float, 0.25, False, None],
     }
 

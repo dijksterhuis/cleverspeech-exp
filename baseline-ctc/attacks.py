@@ -23,31 +23,8 @@ from cleverspeech.utils.runtime.AttackSpawner import AttackSpawner
 from cleverspeech.utils.runtime.ExperimentArguments import args
 
 # victim model
-from SecEval import VictimAPI as Victim
+from SecEval import VictimAPI as DeepSpeech
 
-GPU_DEVICE = 0
-MAX_PROCESSES = 1
-SPAWN_DELAY = 30
-
-AUDIOS_INDIR = "./samples/all/"
-TARGETS_PATH = "./samples/cv-valid-test.csv"
-OUTDIR = "./adv/"
-MAX_EXAMPLES = 100
-MAX_TARGETS = 1000
-MAX_AUDIO_LENGTH = 120000
-
-TOKENS = " abcdefghijklmnopqrstuvwxyz'-"
-BEAM_WIDTH = 500
-LEARNING_RATE = 10
-CONSTRAINT_UPDATE = "geom"
-RESCALE = 0.95
-DECODING_STEP = 100
-NUMB_STEPS = DECODING_STEP ** 2
-BATCH_SIZE = 10
-
-# extreme run settings
-LOSS_UPDATE_THRESHOLD = 10.0
-KAPPA = 5.0
 
 LOSSES = {
     "ctc": Losses.CTCLoss,
@@ -110,8 +87,7 @@ def create_attack_graph(sess, batch, settings):
     )
     attack.add_victim(
         Victim.Model,
-        tokens=settings["tokens"],
-        decoder=settings["decoder_type"],
+        decoder=settings["decoder"],
         beam_width=settings["beam_width"]
     )
     attack.add_loss(
@@ -138,37 +114,16 @@ def attack_run(master_settings):
 
     loss = master_settings["loss"]
     decoder = master_settings["decoder"]
+    outdir = master_settings["outdir"]
 
-    outdir = os.path.join(OUTDIR, "evasion/baselines/ctc/")
+    outdir = os.path.join(outdir, "evasion/baselines/ctc/")
     outdir = os.path.join(outdir, "{}/".format(loss))
     outdir = os.path.join(outdir, "{}/".format(decoder))
 
-    settings = {
-        "audio_indir": AUDIOS_INDIR,
-        "targets_path": TARGETS_PATH,
-        "outdir": outdir,
-        "batch_size": BATCH_SIZE,
-        "tokens": TOKENS,
-        "nsteps": NUMB_STEPS,
-        "decode_step": DECODING_STEP,
-        "beam_width": BEAM_WIDTH,
-        "constraint_update": CONSTRAINT_UPDATE,
-        "rescale": RESCALE,
-        "learning_rate": LEARNING_RATE,
-        "gpu_device": GPU_DEVICE,
-        "max_spawns": MAX_PROCESSES,
-        "spawn_delay": SPAWN_DELAY,
-        "max_examples": MAX_EXAMPLES,
-        "max_targets": MAX_TARGETS,
-        "max_audio_length": MAX_AUDIO_LENGTH,
-        "loss": loss,
-        "decoder_type": decoder,
-    }
+    master_settings["outdir"] = outdir
 
-    settings.update(master_settings)
-
-    batch_gen = batch_generators.standard(settings)
-    execute(settings, create_attack_graph, batch_gen)
+    batch_gen = batch_generators.standard(master_settings)
+    execute(master_settings, create_attack_graph, batch_gen)
 
     log("Finished run.")
 
@@ -179,10 +134,7 @@ if __name__ == '__main__':
 
     extra_args = {
         "loss": [str, "ctc", False, ["ctc", "ctc2"]],
-        'decoder': [str, "batch", False, ["greedy", "batch", "ds", "tf"]],
     }
 
     args(attack_run, additional_args=extra_args)
-
-
 
