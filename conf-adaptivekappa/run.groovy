@@ -96,8 +96,7 @@ pipeline {
                 STEPS_ARG="--nsteps ${params.N_STEPS}"
                 BATCH_ARG="--batch_size ${params.BATCH_SIZE}"
                 ALIGN_ARG="--align \${ALIGNMENT}"
-                LOSS_ARG="--loss \${LOSS}"
-                PY_EXP_ARGS="${SPAWN_ARG} ${BATCH_ARG} ${STEPS_ARG} ${ALIGN_ARG} ${LOSS_ARG}"
+                PY_EXP_ARGS="${SPAWN_ARG} ${BATCH_ARG} ${STEPS_ARG} ${ALIGN_ARG}"
 
                 PYTHON_CMD = "${PY_BASE_CMD} ${PY_EXP_ARGS} ${PY_DATA_ARGS} ${params.ADDITIONAL_ARGS}"
             }
