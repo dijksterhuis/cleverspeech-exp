@@ -36,8 +36,12 @@ pipeline {
                 defaultValue: '10000',
                 description: 'How many iterations to run the attack for.'
 
-            string name: 'BATCH_SIZE',
-                defaultValue: '10',
+            string name: 'MAX_BATCH_SIZE',
+                defaultValue: '5',
+                description: 'How many examples in a batch.'
+
+            string name: 'STEP_BATCH_SIZE',
+                defaultValue: '1',
                 description: 'How many examples in a batch.'
 
             /*
@@ -84,7 +88,7 @@ pipeline {
                 /*
                 Nasty way of not-really-but-sort-of simplifying the mess of our docker run command
                 */
-                DOCKER_NAME="${EXP_BASE_NAME}-\${ALIGNMENT}-\${DECODER}-${JOB_TYPE}"
+                DOCKER_NAME="${EXP_BASE_NAME}-\${GRAPH}-${JOB_TYPE}"
                 DOCKER_MOUNT="\$(pwd)/${BUILD_ID}:/home/cleverspeech/cleverSpeech/adv/"
                 DOCKER_UID="LOCAL_UID=\$(id -u ${USER})"
                 DOCKER_GID="LOCAL_GID=\$(id -g ${USER})"
@@ -94,7 +98,7 @@ pipeline {
 
                 SPAWN_ARG="--max_spawns ${params.MAX_SPAWNS}"
                 STEPS_ARG="--nsteps ${params.N_STEPS}"
-                BATCH_ARG="--nbatch_max ${params.BATCH_SIZE}"
+                BATCH_ARG="--nbatch_max ${params.MAX_BATCH_SIZE} --nbatch_step ${params.STEP_BATCH_SIZE}"
                 GRAPH_ARG="--graph_type \${GRAPH}"
                 PY_EXP_ARGS="${SPAWN_ARG} ${BATCH_ARG} ${STEPS_ARG} ${GRAPH_ARG}"
 
