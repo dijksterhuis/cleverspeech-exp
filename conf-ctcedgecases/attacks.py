@@ -109,7 +109,7 @@ def create_attack_graph(sess, batch, settings):
         beam_width=settings["beam_width"]
     )
 
-    if settings["align"] == "ctcalign" and settings["proc"] == "std":
+    if settings["align"] == "ctcalign" and settings["procedure"] == "std":
 
         alignment = create_tf_ctc_alignment_search_graph(sess, batch)
 
@@ -129,7 +129,7 @@ def create_attack_graph(sess, batch, settings):
             update_step=settings["decode_step"],
         )
 
-    elif settings["align"] == "ctcalign" and settings["proc"] == "extreme":
+    elif settings["align"] == "ctcalign" and settings["procedure"] == "extreme":
 
         alignment = create_tf_ctc_alignment_search_graph(sess, batch)
 
@@ -150,7 +150,7 @@ def create_attack_graph(sess, batch, settings):
             loss_lower_bound=settings["loss_threshold"],
         )
 
-    elif settings["proc"] == "std":
+    elif settings["procedure"] == "std":
 
         attack.add_loss(
             Losses.AlignmentsCTCLoss
@@ -166,7 +166,7 @@ def create_attack_graph(sess, batch, settings):
             update_step=settings["decode_step"],
         )
 
-    elif settings["proc"] == "extreme":
+    elif settings["procedure"] == "extreme":
 
         attack.add_loss(
             Losses.AlignmentsCTCLoss
