@@ -84,21 +84,6 @@ pipeline {
                 /*
                 Nasty way of not-really-but-sort-of simplifying the mess of our docker run command
                 */
-                DOCKER_NAME="${EXP_BASE_NAME}-\${ALIGNMENT}-\${PROCEDURE}-${JOB_TYPE}"
-                DOCKER_MOUNT="\$(pwd)/${BUILD_ID}:/home/cleverspeech/cleverSpeech/adv/"
-                DOCKER_UID="LOCAL_UID=\$(id -u ${USER})"
-                DOCKER_GID="LOCAL_GID=\$(id -g ${USER})"
-                PYTHON_EXP="python3 ./experiments/${EXP_BASE_NAME}/${params.EXP_SCRIPT}.py \${ALIGNMENT}-\${PROCEDURE}"
-                SPAWN_ARG="--max_spawns ${params.MAX_SPAWNS}"
-                STEPS_ARG="--nsteps ${params.N_STEPS}"
-                BATCH_ARG="--batch_size ${params.BATCH_SIZE}"
-                PYTHON_DATA_ARGS="--audio_indir ./${params.DATA}/all/ --targets_path ./${params.DATA}/cv-valid-test.csv"
-                PYTHON_CMD = "${PYTHON_EXP} ${SPAWN_ARG} ${BATCH_ARG} ${STEPS_ARG} ${PYTHON_DATA_ARGS} ${params.ADDITIONAL_ARGS}"
-            }
-            environment{
-                /*
-                Nasty way of not-really-but-sort-of simplifying the mess of our docker run command
-                */
                 DOCKER_NAME="${EXP_BASE_NAME}-\${ALIGNMENT}-\${DECODER}-${JOB_TYPE}"
                 DOCKER_MOUNT="\$(pwd)/${BUILD_ID}:/home/cleverspeech/cleverSpeech/adv/"
                 DOCKER_UID="LOCAL_UID=\$(id -u ${USER})"
