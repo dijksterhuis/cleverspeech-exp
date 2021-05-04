@@ -9,7 +9,7 @@ from cleverspeech.graph import Losses
 from cleverspeech.graph import Optimisers
 from cleverspeech.graph import Procedures
 from cleverspeech.graph import Placeholders
-
+from cleverspeech.graph.CTCAlignmentSearch import create_tf_ctc_alignment_search_graph
 
 from cleverspeech.data.ingress.etl import batch_generators
 from cleverspeech.data.ingress import Feeds
@@ -47,12 +47,6 @@ BATCH_SIZE = 10
 
 # extreme run settings
 LOSS_UPDATE_THRESHOLD = 10.0
-KAPPA = 5.0
-
-LOSSES = {
-    "ctc": Losses.CTCLoss,
-    "ctc_v2": Losses.CTCLossV2,
-}
 
 
 def execute(settings, attack_fn, batch_gen):
@@ -109,33 +103,55 @@ def create_attack_graph(sess, batch, settings):
         decoder=settings["decoder_type"],
         beam_width=settings["beam_width"]
     )
-    attack.add_loss(
-        LOSSES[settings["loss"]]
-    )
-    attack.create_loss_fn()
-    attack.add_optimiser(
-        Optimisers.AdamIndependentOptimiser,
-        learning_rate=settings["learning_rate"]
-    )
-    attack.add_procedure(
-        Procedures.Unbounded,
-        steps=settings["nsteps"],
-        update_step=settings["decode_step"]
-    )
+
+    if settings["align"] == "ctcalign":
+
+        alignment = create_tf_ctc_alignment_search_graph(sess, batch)
+
+        attack.add_loss(
+            Losses.BiggioMaxMin,
+            alignment.graph.target_alignments,
+        )
+        attack.create_loss_fn()
+        attack.add_optimiser(
+            Optimisers.AdamIndependentOptimiser,
+            learning_rate=settings["learning_rate"]
+        )
+        attack.add_procedure(
+            Procedures.CTCAlignUnbounded,
+            alignment_graph=alignment,
+            steps=settings["nsteps"],
+            update_step=settings["decode_step"]
+        )
+
+    else:
+        attack.add_loss(
+            Losses.BiggioMaxMin,
+            attack.placeholders.targets,
+        )
+        attack.create_loss_fn()
+        attack.add_optimiser(
+            Optimisers.AdamIndependentOptimiser,
+            learning_rate=settings["learning_rate"]
+        )
+        attack.add_procedure(
+            Procedures.Unbounded,
+            steps=settings["nsteps"],
+            update_step=settings["decode_step"]
+        )
 
     return attack
 
 
 def attack_run(master_settings):
     """
-    CTC Loss attack modified from the original Carlini & Wagner work.
     """
 
-    loss = master_settings["loss"]
+    align = master_settings["align"]
     decoder = master_settings["decoder"]
 
-    outdir = os.path.join(OUTDIR, "unbounded/baselines/ctc/")
-    outdir = os.path.join(outdir, "{}/".format(loss))
+    outdir = os.path.join(OUTDIR, "unbounded/baselines/biggio/")
+    outdir = os.path.join(outdir, "{}/".format(align))
     outdir = os.path.join(outdir, "{}/".format(decoder))
 
     settings = {
@@ -156,15 +172,25 @@ def attack_run(master_settings):
         "max_examples": MAX_EXAMPLES,
         "max_targets": MAX_TARGETS,
         "max_audio_length": MAX_AUDIO_LENGTH,
-        "loss": loss,
+        "align": align,
         "decoder_type": decoder,
     }
 
     settings.update(master_settings)
 
-    batch_gen = batch_generators.standard(settings)
-    execute(settings, create_attack_graph, batch_gen)
+    if align == "ctcalign":
+        batch_gen = batch_generators.standard(settings)
 
+    elif align == "sparse":
+        batch_gen = batch_generators.sparse(settings)
+
+    elif align == "dense":
+        batch_gen = batch_generators.dense(settings)
+
+    else:
+        raise NotImplementedError("Incorrect choice for --align argument.")
+
+    execute(settings, create_attack_graph, batch_gen,)
     log("Finished run.")
 
 
@@ -173,8 +199,8 @@ if __name__ == '__main__':
     log("", wrap=True)
 
     extra_args = {
-        "loss": [str, "ctc", False, ["ctc", "ctc_v2"]],
-        'decoder': [str, "batch", False, ["greedy", "batch", "ds", "tf"]],
+        'align': [str, "sparse", False, ["sparse", "ctcalign", "dense"]],
+        "decoder": [str, "batch", False, ["greedy", "batch", "ds", "tf"]],
     }
 
     args(attack_run, additional_args=extra_args)

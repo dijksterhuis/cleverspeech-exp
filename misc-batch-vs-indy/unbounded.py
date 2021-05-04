@@ -10,14 +10,12 @@ from cleverspeech.graph import Optimisers
 from cleverspeech.graph import Procedures
 from cleverspeech.graph import Placeholders
 
-
 from cleverspeech.data.ingress.etl import batch_generators
 from cleverspeech.data.ingress import Feeds
 from cleverspeech.data.egress.Databases import SingleJsonDB
 from cleverspeech.data.egress import AttackETLs
 from cleverspeech.data.egress.Writers import SingleFileWriter
 from cleverspeech.data.egress import Reporting
-
 from cleverspeech.utils.Utils import log
 from cleverspeech.utils.runtime.AttackSpawner import AttackSpawner
 from cleverspeech.utils.runtime.ExperimentArguments import args
@@ -42,17 +40,7 @@ LEARNING_RATE = 10
 CONSTRAINT_UPDATE = "geom"
 RESCALE = 0.95
 DECODING_STEP = 100
-NUMB_STEPS = DECODING_STEP ** 2
-BATCH_SIZE = 10
-
-# extreme run settings
-LOSS_UPDATE_THRESHOLD = 10.0
-KAPPA = 5.0
-
-LOSSES = {
-    "ctc": Losses.CTCLoss,
-    "ctc_v2": Losses.CTCLossV2,
-}
+NUMB_STEPS = 5000
 
 
 def execute(settings, attack_fn, batch_gen):
@@ -96,12 +84,23 @@ def execute(settings, attack_fn, batch_gen):
 
 def create_attack_graph(sess, batch, settings):
 
+    if settings["graph_type"] == "batch":
+        perturbation_sub_graph_cls = PerturbationSubGraphs.Independent
+        optimiser_cls = Optimisers.AdamIndependentOptimiser
+
+    elif settings["graph_type"] == "indy":
+        perturbation_sub_graph_cls = PerturbationSubGraphs.Independent
+        optimiser_cls = Optimisers.AdamIndependentOptimiser
+
+    else:
+        raise NotImplementedError
+
     feeds = Feeds.Attack(batch)
 
     attack = UnboundedAttackConstructor(sess, batch, feeds)
     attack.add_placeholders(Placeholders.Placeholders)
     attack.add_perturbation_subgraph(
-        PerturbationSubGraphs.Independent
+        perturbation_sub_graph_cls
     )
     attack.add_victim(
         Victim.Model,
@@ -110,11 +109,11 @@ def create_attack_graph(sess, batch, settings):
         beam_width=settings["beam_width"]
     )
     attack.add_loss(
-        LOSSES[settings["loss"]]
+        Losses.CTCLoss
     )
     attack.create_loss_fn()
     attack.add_optimiser(
-        Optimisers.AdamIndependentOptimiser,
+        optimiser_cls,
         learning_rate=settings["learning_rate"]
     )
     attack.add_procedure(
@@ -127,45 +126,55 @@ def create_attack_graph(sess, batch, settings):
 
 
 def attack_run(master_settings):
-    """
-    CTC Loss attack modified from the original Carlini & Wagner work.
-    """
 
-    loss = master_settings["loss"]
+    graph_type = master_settings["graph_type"]
     decoder = master_settings["decoder"]
+    nbatch_max = master_settings["nbatch_max"]
+    nbatch_step = master_settings["nbatch_step"]
 
-    outdir = os.path.join(OUTDIR, "unbounded/baselines/ctc/")
-    outdir = os.path.join(outdir, "{}/".format(loss))
-    outdir = os.path.join(outdir, "{}/".format(decoder))
+    assert nbatch_max >= 1
+    assert nbatch_step >= 1
+    assert nbatch_max >= nbatch_step
 
-    settings = {
-        "audio_indir": AUDIOS_INDIR,
-        "targets_path": TARGETS_PATH,
-        "outdir": outdir,
-        "batch_size": BATCH_SIZE,
-        "tokens": TOKENS,
-        "nsteps": NUMB_STEPS,
-        "decode_step": DECODING_STEP,
-        "beam_width": BEAM_WIDTH,
-        "constraint_update": CONSTRAINT_UPDATE,
-        "rescale": RESCALE,
-        "learning_rate": LEARNING_RATE,
-        "gpu_device": GPU_DEVICE,
-        "max_spawns": MAX_PROCESSES,
-        "spawn_delay": SPAWN_DELAY,
-        "max_examples": MAX_EXAMPLES,
-        "max_targets": MAX_TARGETS,
-        "max_audio_length": MAX_AUDIO_LENGTH,
-        "loss": loss,
-        "decoder_type": decoder,
-    }
+    for batch_size in range(0, nbatch_max + 1, nbatch_step):
 
-    settings.update(master_settings)
+        if batch_size == 0:
+            batch_size = 1
 
-    batch_gen = batch_generators.standard(settings)
-    execute(settings, create_attack_graph, batch_gen)
+        outdir = os.path.join(OUTDIR, "unbounded/batch-vs-indy/")
+        outdir = os.path.join(outdir, "{}/".format(graph_type))
+        outdir = os.path.join(outdir, "{}/".format(decoder))
+        outdir = os.path.join(outdir, "{}/".format(batch_size))
 
-    log("Finished run.")
+        settings = {
+            "audio_indir": AUDIOS_INDIR,
+            "targets_path": TARGETS_PATH,
+            "outdir": outdir,
+            "batch_size": batch_size,
+            "tokens": TOKENS,
+            "nsteps": NUMB_STEPS,
+            "decode_step": DECODING_STEP,
+            "beam_width": BEAM_WIDTH,
+            "constraint_update": CONSTRAINT_UPDATE,
+            "rescale": RESCALE,
+            "learning_rate": LEARNING_RATE,
+            "gpu_device": GPU_DEVICE,
+            "max_spawns": MAX_PROCESSES,
+            "spawn_delay": SPAWN_DELAY,
+            "max_examples": batch_size,
+            "max_targets": MAX_TARGETS,
+            "max_audio_length": MAX_AUDIO_LENGTH,
+            "graph_type": graph_type,
+            "decoder_type": decoder,
+        }
+
+        settings.update(master_settings)
+        batch_gen = batch_generators.standard(settings)
+        execute(settings, create_attack_graph, batch_gen)
+
+        log("Finished batch run {}.".format(batch_size))
+
+    log("Finished all runs.")
 
 
 if __name__ == '__main__':
@@ -173,7 +182,9 @@ if __name__ == '__main__':
     log("", wrap=True)
 
     extra_args = {
-        "loss": [str, "ctc", False, ["ctc", "ctc_v2"]],
+        'graph_type': [str, "batch", False, ["batch", "indy"]],
+        'nbatch_max': [int, 20, False, None],
+        'nbatch_step': [int, 5, False, None],
         'decoder': [str, "batch", False, ["greedy", "batch", "ds", "tf"]],
     }
 
