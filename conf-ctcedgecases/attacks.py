@@ -31,7 +31,7 @@ SPAWN_DELAY = 30
 
 AUDIOS_INDIR = "./samples/all/"
 TARGETS_PATH = "./samples/cv-valid-test.csv"
-OUTDIR = "./adv/confidence/ctc-edge-cases/"
+OUTDIR = "./adv/"
 MAX_EXAMPLES = 100
 MAX_TARGETS = 1000
 MAX_AUDIO_LENGTH = 120000
@@ -58,6 +58,7 @@ def execute(settings, attack_fn, batch_gen):
 
     results_extractor = AttackETLs.convert_evasion_attack_state_to_dict
     results_transformer = AttackETLs.EvasionResults()
+
     file_writer = SingleFileWriter(settings["outdir"], results_transformer)
 
     # Write the current settings to "settings.json" file.
@@ -79,9 +80,7 @@ def execute(settings, attack_fn, batch_gen):
         for b_id, batch in batch_gen:
 
             log("Running for Batch Number: {}".format(b_id), wrap=True)
-
             attack_args = (settings, attack_fn, batch, results_extractor)
-
             spawner.spawn(attack_args)
 
     # Run the stats function on all successful examples once all attacks
@@ -89,252 +88,40 @@ def execute(settings, attack_fn, batch_gen):
     Reporting.generate_stats_file(settings["outdir"])
 
 
-def create_standard_attack_graph(sess, batch, settings):
+def create_attack_graph(sess, batch, settings):
 
     feeds = Feeds.Attack(batch)
 
     attack = EvasionAttackConstructor(sess, batch, feeds)
-
     attack.add_placeholders(Placeholders.Placeholders)
-
     attack.add_hard_constraint(
         Constraints.L2,
         r_constant=settings["rescale"],
         update_method=settings["constraint_update"],
     )
-
     attack.add_perturbation_subgraph(
         PerturbationSubGraphs.Independent
     )
-
     attack.add_victim(
         DeepSpeech.Model,
         tokens=settings["tokens"],
+        decoder=settings["decoder_type"],
         beam_width=settings["beam_width"]
     )
 
-    attack.add_loss(Losses.AlignmentsCTCLoss)
+    if settings["align"] == "ctcalign" and settings["proc"] == "std":
 
-    attack.create_loss_fn()
-
-    attack.add_optimiser(
-        Optimisers.AdamIndependentOptimiser,
-        learning_rate=settings["learning_rate"]
-    )
-
-    attack.add_procedure(
-        Procedures.StandardProcedure,
-        steps=settings["nsteps"],
-        update_step=settings["decode_step"]
-    )
-
-    return attack
-
-
-def create_extreme_attack_graph(sess, batch, settings):
-
-    feeds = Feeds.Attack(batch)
-
-    attack = EvasionAttackConstructor(sess, batch, feeds)
-
-    attack.add_placeholders(Placeholders.Placeholders)
-
-    attack.add_hard_constraint(
-        Constraints.L2,
-        r_constant=settings["rescale"],
-        update_method=settings["constraint_update"],
-    )
-
-    attack.add_perturbation_subgraph(
-        PerturbationSubGraphs.Independent
-    )
-
-    attack.add_victim(
-        DeepSpeech.Model,
-        tokens=settings["tokens"],
-        beam_width=settings["beam_width"]
-    )
-
-    attack.add_loss(Losses.AlignmentsCTCLoss)
-
-    attack.create_loss_fn()
-
-    attack.add_optimiser(
-        Optimisers.AdamIndependentOptimiser,
-        learning_rate=settings["learning_rate"]
-    )
-
-    attack.add_procedure(
-        Procedures.StandardProcedure,
-        steps=settings["nsteps"],
-        update_step=settings["decode_step"]
-    )
-
-    return attack
-
-
-def dense_run(master_settings):
-
-    outdir = os.path.join(OUTDIR, "dense/")
-
-    settings = {
-        "audio_indir": AUDIOS_INDIR,
-        "targets_path": TARGETS_PATH,
-        "outdir": outdir,
-        "batch_size": BATCH_SIZE,
-        "tokens": TOKENS,
-        "nsteps": NUMB_STEPS,
-        "decode_step": DECODING_STEP,
-        "beam_width": BEAM_WIDTH,
-        "constraint_update": CONSTRAINT_UPDATE,
-        "rescale": RESCALE,
-        "learning_rate": LEARNING_RATE,
-        "gpu_device": GPU_DEVICE,
-        "max_spawns": MAX_PROCESSES,
-        "spawn_delay": SPAWN_DELAY,
-        "max_examples": MAX_EXAMPLES,
-        "max_targets": MAX_TARGETS,
-        "max_audio_length": MAX_AUDIO_LENGTH,
-    }
-
-    settings.update(master_settings)
-    batch_factory = batch_generators.dense(settings)
-    execute(settings, create_standard_attack_graph, batch_factory)
-    log("Finished run.")
-
-
-def dense_extreme_run(master_settings):
-    """
-    As above, expect only update bounds when loss is below some threshold.
-    """
-
-    outdir = os.path.join(OUTDIR, "dense-extreme/")
-
-    settings = {
-        "audio_indir": AUDIOS_INDIR,
-        "targets_path": TARGETS_PATH,
-        "outdir": outdir,
-        "batch_size": BATCH_SIZE,
-        "tokens": TOKENS,
-        "nsteps": NUMB_STEPS,
-        "decode_step": DECODING_STEP,
-        "beam_width": BEAM_WIDTH,
-        "constraint_update": CONSTRAINT_UPDATE,
-        "rescale": RESCALE,
-        "learning_rate": LEARNING_RATE,
-        "gpu_device": GPU_DEVICE,
-        "max_spawns": MAX_PROCESSES,
-        "spawn_delay": SPAWN_DELAY,
-        "max_examples": MAX_EXAMPLES,
-        "max_targets": MAX_TARGETS,
-        "max_audio_length": MAX_AUDIO_LENGTH,
-        "loss_threshold": LOSS_UPDATE_THRESHOLD,
-    }
-
-    settings.update(master_settings)
-    batch_factory = batch_generators.dense(settings)
-    execute(settings, create_extreme_attack_graph, batch_factory)
-    log("Finished run.")
-
-
-def sparse_run(master_settings):
-
-    outdir = os.path.join(OUTDIR, "sparse/")
-
-    settings = {
-        "audio_indir": AUDIOS_INDIR,
-        "targets_path": TARGETS_PATH,
-        "outdir": outdir,
-        "batch_size": BATCH_SIZE,
-        "tokens": TOKENS,
-        "nsteps": NUMB_STEPS,
-        "decode_step": DECODING_STEP,
-        "beam_width": BEAM_WIDTH,
-        "constraint_update": CONSTRAINT_UPDATE,
-        "rescale": RESCALE,
-        "learning_rate": LEARNING_RATE,
-        "gpu_device": GPU_DEVICE,
-        "max_spawns": MAX_PROCESSES,
-        "spawn_delay": SPAWN_DELAY,
-        "max_examples": MAX_EXAMPLES,
-        "max_targets": MAX_TARGETS,
-        "max_audio_length": MAX_AUDIO_LENGTH,
-    }
-
-    settings.update(master_settings)
-    batch_factory = batch_generators.sparse(settings)
-    execute(settings, create_standard_attack_graph, batch_factory)
-    log("Finished run.")
-
-
-def sparse_extreme_run(master_settings):
-
-    outdir = os.path.join(OUTDIR, "sparse-extreme/")
-
-    settings = {
-        "audio_indir": AUDIOS_INDIR,
-        "targets_path": TARGETS_PATH,
-        "outdir": outdir,
-        "batch_size": BATCH_SIZE,
-        "tokens": TOKENS,
-        "nsteps": NUMB_STEPS,
-        "decode_step": DECODING_STEP,
-        "beam_width": BEAM_WIDTH,
-        "constraint_update": CONSTRAINT_UPDATE,
-        "rescale": RESCALE,
-        "learning_rate": LEARNING_RATE,
-        "gpu_device": GPU_DEVICE,
-        "max_spawns": MAX_PROCESSES,
-        "spawn_delay": SPAWN_DELAY,
-        "max_examples": MAX_EXAMPLES,
-        "max_targets": MAX_TARGETS,
-        "max_audio_length": MAX_AUDIO_LENGTH,
-    }
-
-    settings.update(master_settings)
-    batch_factory = batch_generators.sparse(settings)
-    execute(settings, create_extreme_attack_graph, batch_factory)
-    log("Finished run.")
-
-
-def ctcalign_run(master_settings):
-    def create_attack_graph(sess, batch, settings):
-        feeds = Feeds.Attack(batch)
-
-        attack = EvasionAttackConstructor(sess, batch, feeds)
-
-        attack.add_placeholders(Placeholders.Placeholders)
-
-        attack.add_hard_constraint(
-            Constraints.L2,
-            r_constant=settings["rescale"],
-            update_method=settings["constraint_update"],
-        )
-
-        attack.add_perturbation_subgraph(
-            PerturbationSubGraphs.Independent
-        )
-
-        attack.add_victim(
-            DeepSpeech.Model,
-            tokens=settings["tokens"],
-            beam_width=settings["beam_width"]
-        )
-
-        alignment = create_tf_ctc_alignment_search_graph(attack, batch, feeds)
+        alignment = create_tf_ctc_alignment_search_graph(attack, batch)
 
         attack.add_loss(
             Losses.AlignmentsCTCLoss,
             alignment=alignment.graph.target_alignments,
         )
-
         attack.create_loss_fn()
-
         attack.add_optimiser(
             Optimisers.AdamIndependentOptimiser,
             learning_rate=settings["learning_rate"]
         )
-
         attack.add_procedure(
             Procedures.StandardCTCAlignProcedure,
             alignment_graph=alignment,
@@ -342,80 +129,19 @@ def ctcalign_run(master_settings):
             update_step=settings["decode_step"],
         )
 
-        return attack
+    elif settings["align"] == "ctcalign" and settings["proc"] == "extreme":
 
-    outdir = os.path.join(OUTDIR, "ctcalign/")
-
-    settings = {
-        "audio_indir": AUDIOS_INDIR,
-        "targets_path": TARGETS_PATH,
-        "outdir": outdir,
-        "batch_size": BATCH_SIZE,
-        "tokens": TOKENS,
-        "nsteps": NUMB_STEPS,
-        "decode_step": DECODING_STEP,
-        "beam_width": BEAM_WIDTH,
-        "constraint_update": CONSTRAINT_UPDATE,
-        "rescale": RESCALE,
-        "learning_rate": LEARNING_RATE,
-        "gpu_device": GPU_DEVICE,
-        "max_spawns": MAX_PROCESSES,
-        "spawn_delay": SPAWN_DELAY,
-        "max_examples": MAX_EXAMPLES,
-        "max_targets": MAX_TARGETS,
-        "max_audio_length": MAX_AUDIO_LENGTH,
-        "loss_threshold": 1.0,
-    }
-
-    settings.update(master_settings)
-    batch_factory = batch_generators.standard(settings)
-    execute(settings, create_attack_graph, batch_factory)
-    log("Finished run.")
-
-
-def ctcalign_extreme_run(master_settings):
-    """
-    As above, but this time we define `success` when the current loss is below a
-    specified threshold.
-    """
-    def create_attack_graph(sess, batch, settings):
-
-        feeds = Feeds.Attack(batch)
-
-        attack = EvasionAttackConstructor(sess, batch, feeds)
-
-        attack.add_placeholders(Placeholders.Placeholders)
-
-        attack.add_hard_constraint(
-            Constraints.L2,
-            r_constant=settings["rescale"],
-            update_method=settings["constraint_update"],
-        )
-
-        attack.add_perturbation_subgraph(
-            PerturbationSubGraphs.Independent
-        )
-
-        attack.add_victim(
-            DeepSpeech.Model,
-            tokens=settings["tokens"],
-            beam_width=settings["beam_width"]
-        )
-
-        alignment = create_tf_ctc_alignment_search_graph(attack, batch, feeds)
+        alignment = create_tf_ctc_alignment_search_graph(attack, batch)
 
         attack.add_loss(
             Losses.AlignmentsCTCLoss,
             alignment=alignment.graph.target_alignments,
         )
-
         attack.create_loss_fn()
-
         attack.add_optimiser(
             Optimisers.AdamIndependentOptimiser,
             learning_rate=settings["learning_rate"]
         )
-
         attack.add_procedure(
             Procedures.CTCAlignUpdateOnLoss,
             alignment_graph=alignment,
@@ -424,9 +150,62 @@ def ctcalign_extreme_run(master_settings):
             loss_lower_bound=settings["loss_threshold"],
         )
 
-        return attack
+    elif settings["proc"] == "std":
 
-    outdir = os.path.join(OUTDIR, "ctcalign-extreme/")
+        attack.add_loss(
+            Losses.AlignmentsCTCLoss
+        )
+        attack.create_loss_fn()
+        attack.add_optimiser(
+            Optimisers.AdamIndependentOptimiser,
+            learning_rate=settings["learning_rate"]
+        )
+        attack.add_procedure(
+            Procedures.StandardProcedure,
+            steps=settings["nsteps"],
+            update_step=settings["decode_step"],
+        )
+
+    elif settings["proc"] == "extreme":
+
+        attack.add_loss(
+            Losses.AlignmentsCTCLoss
+        )
+        attack.create_loss_fn()
+        attack.add_optimiser(
+            Optimisers.AdamIndependentOptimiser,
+            learning_rate=settings["learning_rate"]
+        )
+        attack.add_procedure(
+            Procedures.UpdateOnLoss,
+            steps=settings["nsteps"],
+            update_step=settings["decode_step"],
+            loss_lower_bound=settings["loss_threshold"],
+        )
+
+    else:
+        raise NotImplementedError
+
+    return attack
+
+
+def attack_run(master_settings):
+    """
+
+    """
+
+    align = master_settings["align"]
+    decoder = master_settings["decoder"]
+    procedure = master_settings["procedure"]
+    loss_threshold = master_settings["loss_threshold"]
+
+    outdir = os.path.join(OUTDIR, "evasion/confidence/ctc-edge-case/")
+    outdir = os.path.join(outdir, "{}/".format(align))
+    outdir = os.path.join(outdir, "{}/".format(decoder))
+    outdir = os.path.join(outdir, "{}/".format(procedure))
+
+    if procedure == "extreme":
+        outdir = os.path.join(outdir, "{}/".format(loss_threshold))
 
     settings = {
         "audio_indir": AUDIOS_INDIR,
@@ -446,25 +225,38 @@ def ctcalign_extreme_run(master_settings):
         "max_examples": MAX_EXAMPLES,
         "max_targets": MAX_TARGETS,
         "max_audio_length": MAX_AUDIO_LENGTH,
-        "loss_threshold": 1.0,
+        "align": align,
+        "procedure": procedure,
+        "loss_threshold": loss_threshold,
+        "decoder_type": decoder,
     }
 
     settings.update(master_settings)
-    batch_factory = batch_generators.standard(settings)
-    execute(settings, create_attack_graph, batch_factory)
+
+    if align == "ctcalign":
+        batch_gen = batch_generators.standard(settings)
+
+    elif align == "sparse":
+        batch_gen = batch_generators.sparse(settings)
+
+    elif align == "dense":
+        batch_gen = batch_generators.dense(settings)
+
+    else:
+        raise NotImplementedError("Incorrect choice for --align argument.")
+
+    execute(settings, create_attack_graph, batch_gen)
     log("Finished run.")
 
 
 if __name__ == '__main__':
 
-    experiments = {
-        "dense-std": dense_run,
-        "dense-extreme": dense_extreme_run,
-        "sparse-std": sparse_run,
-        "sparse-extreme": sparse_extreme_run,
-        "ctcalign-std": ctcalign_run,
-        "ctcalign-extreme": ctcalign_extreme_run,
+    extra_args = {
+        'align': [str, "sparse", False, ["sparse", "ctcalign", "dense"]],
+        'decoder': [str, "batch", False, ["greedy", "batch", "ds", "tf"]],
+        "procedure": [str, "std", False, ["std", "extreme"]],
+        "loss_threshold": [float, 20.0, False, None],
     }
 
-    args(experiments)
+    args(attack_run, additional_args=extra_args)
 

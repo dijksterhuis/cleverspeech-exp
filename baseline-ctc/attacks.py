@@ -10,6 +10,7 @@ from cleverspeech.graph import Optimisers
 from cleverspeech.graph import Procedures
 from cleverspeech.graph import Placeholders
 
+
 from cleverspeech.data.ingress.etl import batch_generators
 from cleverspeech.data.ingress import Feeds
 from cleverspeech.data.egress.Databases import SingleJsonDB
@@ -30,7 +31,7 @@ SPAWN_DELAY = 30
 
 AUDIOS_INDIR = "./samples/all/"
 TARGETS_PATH = "./samples/cv-valid-test.csv"
-OUTDIR = "./adv/baselines/ctc"
+OUTDIR = "./adv/"
 MAX_EXAMPLES = 100
 MAX_TARGETS = 1000
 MAX_AUDIO_LENGTH = 120000
@@ -63,6 +64,7 @@ def execute(settings, attack_fn, batch_gen):
 
     results_extractor = AttackETLs.convert_evasion_attack_state_to_dict
     results_transformer = AttackETLs.EvasionResults()
+
     file_writer = SingleFileWriter(settings["outdir"], results_transformer)
 
     # Write the current settings to "settings.json" file.
@@ -84,9 +86,7 @@ def execute(settings, attack_fn, batch_gen):
         for b_id, batch in batch_gen:
 
             log("Running for Batch Number: {}".format(b_id), wrap=True)
-
             attack_args = (settings, attack_fn, batch, results_extractor)
-
             spawner.spawn(attack_args)
 
     # Run the stats function on all successful examples once all attacks
@@ -99,35 +99,29 @@ def create_attack_graph(sess, batch, settings):
     feeds = Feeds.Attack(batch)
 
     attack = EvasionAttackConstructor(sess, batch, feeds)
-
     attack.add_placeholders(Placeholders.Placeholders)
-
     attack.add_hard_constraint(
         Constraints.L2,
         r_constant=settings["rescale"],
         update_method=settings["constraint_update"],
     )
-
     attack.add_perturbation_subgraph(
         PerturbationSubGraphs.Independent
     )
-
     attack.add_victim(
         Victim.Model,
         tokens=settings["tokens"],
+        decoder=settings["decoder_type"],
         beam_width=settings["beam_width"]
     )
-
     attack.add_loss(
         LOSSES[settings["loss"]]
     )
     attack.create_loss_fn()
-
     attack.add_optimiser(
         Optimisers.AdamIndependentOptimiser,
         learning_rate=settings["learning_rate"]
     )
-
     attack.add_procedure(
         Procedures.StandardProcedure,
         steps=settings["nsteps"],
@@ -137,13 +131,17 @@ def create_attack_graph(sess, batch, settings):
     return attack
 
 
-def ctc_run(master_settings):
+def attack_run(master_settings):
     """
     CTC Loss attack modified from the original Carlini & Wagner work.
     """
 
-    loss = "ctc"
-    outdir = os.path.join(OUTDIR, "{}/".format(loss))
+    loss = master_settings["loss"]
+    decoder = master_settings["decoder"]
+
+    outdir = os.path.join(OUTDIR, "evasion/baselines/ctc/")
+    outdir = os.path.join(outdir, "{}/".format(loss))
+    outdir = os.path.join(outdir, "{}/".format(decoder))
 
     settings = {
         "audio_indir": AUDIOS_INDIR,
@@ -164,54 +162,27 @@ def ctc_run(master_settings):
         "max_targets": MAX_TARGETS,
         "max_audio_length": MAX_AUDIO_LENGTH,
         "loss": loss,
+        "decoder_type": decoder,
     }
 
     settings.update(master_settings)
+
     batch_gen = batch_generators.standard(settings)
     execute(settings, create_attack_graph, batch_gen)
-    log("Finished run.")  # {}.".format(run))
 
-
-def ctc_v2_run(master_settings):
-    """
-    CTC Loss attack modified from the original Carlini & Wagner work.
-    """
-
-    loss = "ctc_v2"
-    outdir = os.path.join(OUTDIR, "{}/".format(loss))
-
-    settings = {
-        "audio_indir": AUDIOS_INDIR,
-        "targets_path": TARGETS_PATH,
-        "outdir": outdir,
-        "batch_size": BATCH_SIZE,
-        "tokens": TOKENS,
-        "nsteps": NUMB_STEPS,
-        "decode_step": DECODING_STEP,
-        "beam_width": BEAM_WIDTH,
-        "constraint_update": CONSTRAINT_UPDATE,
-        "rescale": RESCALE,
-        "learning_rate": LEARNING_RATE,
-        "gpu_device": GPU_DEVICE,
-        "max_spawns": MAX_PROCESSES,
-        "spawn_delay": SPAWN_DELAY,
-        "max_examples": MAX_EXAMPLES,
-        "max_targets": MAX_TARGETS,
-        "max_audio_length": MAX_AUDIO_LENGTH,
-        "loss": loss,
-    }
-
-    settings.update(master_settings)
-    batch_gen = batch_generators.standard(settings)
-    execute(settings, create_attack_graph, batch_gen)
-    log("Finished run.")  # {}.".format(run))
+    log("Finished run.")
 
 
 if __name__ == '__main__':
 
     log("", wrap=True)
-    experiments = {"ctc": ctc_run, "ctc2": ctc_v2_run}
-    args(experiments)
+
+    extra_args = {
+        "loss": [str, "ctc", False, ["ctc", "ctc_v2"]],
+        'decoder': [str, "batch", False, ["greedy", "batch", "ds", "tf"]],
+    }
+
+    args(attack_run, additional_args=extra_args)
 
 
 

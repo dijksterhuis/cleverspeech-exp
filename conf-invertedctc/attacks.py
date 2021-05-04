@@ -31,7 +31,7 @@ SPAWN_DELAY = 30
 
 AUDIOS_INDIR = "./samples/all/"
 TARGETS_PATH = "./samples/cv-valid-test.csv"
-OUTDIR = "./adv/confidence/invertedctc/"
+OUTDIR = "./adv/"
 MAX_EXAMPLES = 100
 MAX_TARGETS = 1000
 MAX_AUDIO_LENGTH = 120000
@@ -48,6 +48,12 @@ BATCH_SIZE = 10
 # extreme run settings
 LOSS_UPDATE_THRESHOLD = 10.0
 
+# TODO
+LOSSES = [
+    Losses.AdaptiveKappaMaxDiff,
+    Losses.AlignmentsCTCLoss,
+]
+
 
 def execute(settings, attack_fn, batch_gen):
 
@@ -58,6 +64,7 @@ def execute(settings, attack_fn, batch_gen):
 
     results_extractor = AttackETLs.convert_evasion_attack_state_to_dict
     results_transformer = AttackETLs.EvasionResults()
+
     file_writer = SingleFileWriter(settings["outdir"], results_transformer)
 
     # Write the current settings to "settings.json" file.
@@ -79,9 +86,7 @@ def execute(settings, attack_fn, batch_gen):
         for b_id, batch in batch_gen:
 
             log("Running for Batch Number: {}".format(b_id), wrap=True)
-
             attack_args = (settings, attack_fn, batch, results_extractor)
-
             spawner.spawn(attack_args)
 
     # Run the stats function on all successful examples once all attacks
@@ -89,23 +94,20 @@ def execute(settings, attack_fn, batch_gen):
     Reporting.generate_stats_file(settings["outdir"])
 
 
-def create_adaptive_kappa_attack_graph(sess, batch, settings):
+def create_attack_graph(sess, batch, settings):
+
     feeds = Feeds.Attack(batch)
 
     attack = EvasionAttackConstructor(sess, batch, feeds)
-
     attack.add_placeholders(Placeholders.Placeholders)
-
     attack.add_hard_constraint(
         Constraints.L2,
         r_constant=settings["rescale"],
         update_method=settings["constraint_update"],
     )
-
     attack.add_perturbation_subgraph(
         PerturbationSubGraphs.Independent
     )
-
     attack.add_victim(
         DeepSpeech.Model,
         tokens=settings["tokens"],
@@ -113,142 +115,21 @@ def create_adaptive_kappa_attack_graph(sess, batch, settings):
         beam_width=settings["beam_width"]
     )
 
-    attack.add_loss(
-        Losses.GreedyOtherAlignmentsCTCLoss,
-        alignment=attack.placeholders.targets,
-        weight_settings=(1 / 100, 1 / 100)
-    )
+    if settings["align"] == "ctcalign":
 
-    attack.add_loss(
-        Losses.AdaptiveKappaMaxDiff,
-        attack.placeholders.targets,
-        k=1.0,
-    )
-    attack.create_loss_fn()
-    attack.add_optimiser(
-        Optimisers.AdamIndependentOptimiser,
-        learning_rate=settings["learning_rate"]
-    )
-    attack.add_procedure(
-        Procedures.StandardProcedure,
-        steps=settings["nsteps"],
-        update_step=settings["decode_step"]
-    )
-
-    return attack
-
-
-def dense_adaptive_kappa_run(master_settings):
-    """
-    """
-
-    outdir = os.path.join(OUTDIR, "adaptive_kappa/")
-    outdir = os.path.join(outdir, "dense/")
-
-    settings = {
-        "audio_indir": AUDIOS_INDIR,
-        "targets_path": TARGETS_PATH,
-        "outdir": outdir,
-        "batch_size": BATCH_SIZE,
-        "tokens": TOKENS,
-        "nsteps": NUMB_STEPS,
-        "decode_step": DECODING_STEP,
-        "beam_width": BEAM_WIDTH,
-        "constraint_update": CONSTRAINT_UPDATE,
-        "rescale": RESCALE,
-        "learning_rate": LEARNING_RATE,
-        "gpu_device": GPU_DEVICE,
-        "max_spawns": MAX_PROCESSES,
-        "spawn_delay": SPAWN_DELAY,
-        "decoder_type": "batch",
-        "max_examples": MAX_EXAMPLES,
-        "max_targets": MAX_TARGETS,
-        "max_audio_length": MAX_AUDIO_LENGTH,
-    }
-
-    settings.update(master_settings)
-    batch_gen = batch_generators.dense(settings)
-    execute(settings, create_adaptive_kappa_attack_graph, batch_gen)
-    log("Finished run.")
-
-
-def sparse_adaptive_kappa_run(master_settings):
-    """
-    """
-    outdir = os.path.join(OUTDIR, "adaptive_kappa/")
-    outdir = os.path.join(outdir, "sparse/")
-
-    settings = {
-        "audio_indir": AUDIOS_INDIR,
-        "targets_path": TARGETS_PATH,
-        "outdir": outdir,
-        "batch_size": BATCH_SIZE,
-        "tokens": TOKENS,
-        "nsteps": NUMB_STEPS,
-        "decode_step": DECODING_STEP,
-        "beam_width": BEAM_WIDTH,
-        "constraint_update": CONSTRAINT_UPDATE,
-        "rescale": RESCALE,
-        "learning_rate": LEARNING_RATE,
-        "gpu_device": GPU_DEVICE,
-        "max_spawns": MAX_PROCESSES,
-        "spawn_delay": SPAWN_DELAY,
-        "decoder_type": "batch",
-        "max_examples": MAX_EXAMPLES,
-        "max_targets": MAX_TARGETS,
-        "max_audio_length": MAX_AUDIO_LENGTH,
-    }
-
-    settings.update(master_settings)
-    batch_gen = batch_generators.sparse(settings)
-    execute(settings, create_adaptive_kappa_attack_graph, batch_gen)
-    log("Finished run.")
-
-
-def ctcalign_adaptive_kappa_run(master_settings):
-    """
-    """
-    def create_attack_graph(sess, batch, settings):
-
-        feeds = Feeds.Attack(batch)
-
-        attack = EvasionAttackConstructor(sess, batch, feeds)
-
-        attack.add_placeholders(Placeholders.Placeholders)
-
-        attack.add_hard_constraint(
-            Constraints.L2,
-            r_constant=settings["rescale"],
-            update_method=settings["constraint_update"],
-        )
-
-        attack.add_perturbation_subgraph(
-            PerturbationSubGraphs.Independent
-        )
-
-        attack.add_victim(
-            DeepSpeech.Model,
-            tokens=settings["tokens"],
-            decoder=settings["decoder_type"],
-            beam_width=settings["beam_width"]
-        )
-
-        alignment = create_tf_ctc_alignment_search_graph(attack, batch, feeds)
+        alignment = create_tf_ctc_alignment_search_graph(attack, batch)
 
         attack.add_loss(
             Losses.GreedyOtherAlignmentsCTCLoss,
             alignment=alignment.graph.target_alignments,
             weight_settings=(1/100, 1/100)
         )
-
         attack.add_loss(
-            Losses.AdaptiveKappaMaxDiff,
+            Losses.CWMaxDiff,
             alignment.graph.target_alignments,
-            k=1.0,
+            k=settings["kappa"]
         )
-
         attack.create_loss_fn()
-
         attack.add_optimiser(
             Optimisers.AdamIndependentOptimiser,
             learning_rate=settings["learning_rate"]
@@ -260,10 +141,44 @@ def ctcalign_adaptive_kappa_run(master_settings):
             update_step=settings["decode_step"]
         )
 
-        return attack
+    else:
 
-    outdir = os.path.join(OUTDIR, "adaptive_kappa/")
-    outdir = os.path.join(outdir, "ctcalign/")
+        attack.add_loss(
+            Losses.GreedyOtherAlignmentsCTCLoss,
+            alignment=attack.placeholders.targets,
+            weight_settings=(1 / 100, 1 / 100)
+        )
+        attack.add_loss(
+            Losses.CWMaxDiff,
+            attack.placeholders.targets,
+            k=settings["kappa"]
+        )
+        attack.create_loss_fn()
+        attack.add_optimiser(
+            Optimisers.AdamIndependentOptimiser,
+            learning_rate=settings["learning_rate"]
+        )
+        attack.add_procedure(
+            Procedures.StandardProcedure,
+            steps=settings["nsteps"],
+            update_step=settings["decode_step"]
+        )
+
+    return attack
+
+
+def attack_run(master_settings):
+    """
+    """
+
+    align = master_settings["align"]
+    decoder = master_settings["decoder"]
+    kappa = master_settings["kappa"]
+
+    outdir = os.path.join(OUTDIR, "evasion/confidence/invertedctc-cwmaxdiff/")
+    outdir = os.path.join(outdir, "{}/".format(align))
+    outdir = os.path.join(outdir, "{}/".format(decoder))
+    outdir = os.path.join(outdir, "{}/".format(kappa))
 
     settings = {
         "audio_indir": AUDIOS_INDIR,
@@ -280,25 +195,40 @@ def ctcalign_adaptive_kappa_run(master_settings):
         "gpu_device": GPU_DEVICE,
         "max_spawns": MAX_PROCESSES,
         "spawn_delay": SPAWN_DELAY,
-        "decoder_type": "batch",
         "max_examples": MAX_EXAMPLES,
         "max_targets": MAX_TARGETS,
         "max_audio_length": MAX_AUDIO_LENGTH,
+        "align": align,
+        "decoder_type": decoder,
+        "kappa": kappa,
+
     }
 
     settings.update(master_settings)
-    batch_gen = batch_generators.standard(settings)
-    execute(settings, create_attack_graph, batch_gen)
+
+    if align == "ctcalign":
+        batch_gen = batch_generators.standard(settings)
+
+    elif align == "sparse":
+        batch_gen = batch_generators.sparse(settings)
+
+    elif align == "dense":
+        batch_gen = batch_generators.dense(settings)
+
+    else:
+        raise NotImplementedError("Incorrect choice for --align argument.")
+
+    execute(settings, create_attack_graph, batch_gen, )
     log("Finished run.")
 
 
 if __name__ == '__main__':
 
-    experiments = {
-        "dense-adaptive-kappa": dense_adaptive_kappa_run,
-        "sparse-adaptive-kappa": sparse_adaptive_kappa_run,
-        "ctcalign-adaptive-kappa": ctcalign_adaptive_kappa_run,
+    extra_args = {
+        'align': [str, "sparse", False, ["sparse", "ctcalign", "dense"]],
+        'decoder': [str, "batch", False, ["greedy", "batch", "ds", "tf"]],
+        "kappa": [float, 5.0, False, None],
     }
 
-    args(experiments)
+    args(attack_run, additional_args=extra_args)
 

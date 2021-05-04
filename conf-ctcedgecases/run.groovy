@@ -95,6 +95,27 @@ pipeline {
                 PYTHON_DATA_ARGS="--audio_indir ./${params.DATA}/all/ --targets_path ./${params.DATA}/cv-valid-test.csv"
                 PYTHON_CMD = "${PYTHON_EXP} ${SPAWN_ARG} ${BATCH_ARG} ${STEPS_ARG} ${PYTHON_DATA_ARGS} ${params.ADDITIONAL_ARGS}"
             }
+            environment{
+                /*
+                Nasty way of not-really-but-sort-of simplifying the mess of our docker run command
+                */
+                DOCKER_NAME="${EXP_BASE_NAME}-\${ALIGNMENT}-\${DECODER}-${JOB_TYPE}"
+                DOCKER_MOUNT="\$(pwd)/${BUILD_ID}:/home/cleverspeech/cleverSpeech/adv/"
+                DOCKER_UID="LOCAL_UID=\$(id -u ${USER})"
+                DOCKER_GID="LOCAL_GID=\$(id -g ${USER})"
+
+                PY_BASE_CMD="python3 ./experiments/${EXP_BASE_NAME}/${params.EXP_SCRIPT}.py"
+                PY_DATA_ARGS="--audio_indir ./${params.DATA}/all/ --targets_path ./${params.DATA}/cv-valid-test.csv"
+
+                SPAWN_ARG="--max_spawns ${params.MAX_SPAWNS}"
+                STEPS_ARG="--nsteps ${params.N_STEPS}"
+                BATCH_ARG="--batch_size ${params.BATCH_SIZE}"
+                ALIGN_ARG="--align \${ALIGNMENT}"
+                PROCEDURE_ARG="--procedure \${PROCEDURE}"
+                PY_EXP_ARGS="${SPAWN_ARG} ${BATCH_ARG} ${STEPS_ARG} ${ALIGN_ARG} ${PROCEDURE_ARG}"
+
+                PYTHON_CMD = "${PY_BASE_CMD} ${PY_EXP_ARGS} ${PY_DATA_ARGS} ${params.ADDITIONAL_ARGS}"
+            }
             matrix {
                 /* Run each of these combinations over all axes on the gpu machines. */
                 agent {

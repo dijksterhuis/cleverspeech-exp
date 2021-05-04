@@ -33,7 +33,7 @@ SPAWN_DELAY = 30
 
 AUDIOS_INDIR = "./samples/all/"
 TARGETS_PATH = "./samples/cv-valid-test.csv"
-OUTDIR = "./adv/confidence/sum-logprobs/"
+OUTDIR = "./adv/"
 MAX_EXAMPLES = 100
 MAX_TARGETS = 1000
 MAX_AUDIO_LENGTH = 120000
@@ -51,10 +51,10 @@ BATCH_SIZE = 10
 LOSS_UPDATE_THRESHOLD = 10.0
 
 LOSSES = {
-    "fwd_only": custom_defs.FwdOnlyLogProbsLoss,
-    "back_only": custom_defs.BackOnlyLogProbsLoss,
-    "fwd_plus_back": custom_defs.FwdPlusBackLogProbsLoss,
-    "fwd_mult_back": custom_defs.FwdMultBackLogProbsLoss,
+    "fwd": custom_defs.FwdOnlyLogProbsLoss,
+    "back": custom_defs.BackOnlyLogProbsLoss,
+    "fwdplusback": custom_defs.FwdPlusBackLogProbsLoss,
+    "fwdmultback": custom_defs.FwdMultBackLogProbsLoss,
 }
 
 # VIBERT-ish
@@ -93,6 +93,7 @@ def execute(settings, attack_fn, batch_gen):
 
     results_extractor = mod_convert_evasion_attack_state_to_dict
     results_transformer = AttackETLs.EvasionResults()
+
     file_writer = SingleFileWriter(settings["outdir"], results_transformer)
 
     # Write the current settings to "settings.json" file.
@@ -114,9 +115,7 @@ def execute(settings, attack_fn, batch_gen):
         for b_id, batch in batch_gen:
 
             log("Running for Batch Number: {}".format(b_id), wrap=True)
-
             attack_args = (settings, attack_fn, batch, results_extractor)
-
             spawner.spawn(attack_args)
 
     # Run the stats function on all successful examples once all attacks
@@ -125,22 +124,19 @@ def execute(settings, attack_fn, batch_gen):
 
 
 def create_attack_graph(sess, batch, settings):
+
     feeds = Feeds.Attack(batch)
 
     attack = EvasionAttackConstructor(sess, batch, feeds)
-
     attack.add_placeholders(Placeholders.Placeholders)
-
     attack.add_hard_constraint(
         Constraints.L2,
         r_constant=settings["rescale"],
         update_method=settings["constraint_update"],
     )
-
     attack.add_perturbation_subgraph(
         PerturbationSubGraphs.Independent
     )
-
     attack.add_victim(
         DeepSpeech.Model,
         tokens=settings["tokens"],
@@ -148,115 +144,57 @@ def create_attack_graph(sess, batch, settings):
         beam_width=settings["beam_width"]
     )
 
-    attack.add_loss(
-        LOSSES[settings["loss_type"]],
-        attack.placeholders.targets,
-    )
+    if settings["align"] == "ctcalign":
 
-    attack.create_loss_fn()
+        alignment = create_tf_ctc_alignment_search_graph(attack, batch)
 
-    attack.add_optimiser(
-        Optimisers.AdamIndependentOptimiser,
-        learning_rate=settings["learning_rate"]
-    )
-    attack.add_procedure(
-        Procedures.StandardProcedure,
-        steps=settings["nsteps"],
-        update_step=settings["decode_step"]
-    )
+        attack.add_loss(
+            LOSSES[settings["loss"]],
+            alignment.graph.target_alignments,
+        )
+        attack.create_loss_fn()
+        attack.add_optimiser(
+            Optimisers.AdamIndependentOptimiser,
+            learning_rate=settings["learning_rate"]
+        )
+        attack.add_procedure(
+            Procedures.StandardCTCAlignProcedure,
+            alignment,
+            steps=settings["nsteps"],
+            update_step=settings["decode_step"],
+            # loss_lower_bound=10.0
+        )
 
-    return attack
+    else:
 
-
-def create_ctcalign_attack_graph(sess, batch, settings):
-    feeds = Feeds.Attack(batch)
-
-    attack = EvasionAttackConstructor(sess, batch, feeds)
-
-    attack.add_placeholders(Placeholders.Placeholders)
-
-    attack.add_hard_constraint(
-        Constraints.L2,
-        r_constant=settings["rescale"],
-        update_method=settings["constraint_update"],
-    )
-
-    attack.add_perturbation_subgraph(
-        PerturbationSubGraphs.Independent
-    )
-
-    attack.add_victim(
-        DeepSpeech.Model,
-        tokens=settings["tokens"],
-        decoder=settings["decoder_type"],
-        beam_width=settings["beam_width"]
-    )
-
-    alignment = create_tf_ctc_alignment_search_graph(attack, batch, feeds)
-
-    attack.add_loss(
-        LOSSES[settings["loss_type"]],
-        alignment.graph.target_alignments,
-    )
-
-    attack.create_loss_fn()
-
-    attack.add_optimiser(
-        Optimisers.AdamIndependentOptimiser,
-        learning_rate=settings["learning_rate"]
-    )
-    attack.add_procedure(
-        Procedures.StandardCTCAlignProcedure,
-        alignment,
-        steps=settings["nsteps"],
-        update_step=settings["decode_step"],
-        #loss_lower_bound=10.0
-    )
+        attack.add_loss(
+            LOSSES[settings["loss"]],
+            attack.placeholders.targets,
+        )
+        attack.create_loss_fn()
+        attack.add_optimiser(
+            Optimisers.AdamIndependentOptimiser,
+            learning_rate=settings["learning_rate"]
+        )
+        attack.add_procedure(
+            Procedures.StandardProcedure,
+            steps=settings["nsteps"],
+            update_step=settings["decode_step"]
+        )
 
     return attack
 
 
-def dense_fwd_only_run(master_settings):
+def attack_run(master_settings):
 
-    loss = "fwd_only"
+    align = master_settings["align"]
+    decoder = master_settings["decoder"]
+    loss = master_settings["loss"]
 
-    outdir = os.path.join(OUTDIR, "{}/".format(loss))
-    outdir = os.path.join(outdir, "dense/")
-
-    settings = {
-        "audio_indir": AUDIOS_INDIR,
-        "targets_path": TARGETS_PATH,
-        "outdir": outdir,
-        "batch_size": BATCH_SIZE,
-        "tokens": TOKENS,
-        "nsteps": NUMB_STEPS,
-        "decode_step": DECODING_STEP,
-        "beam_width": BEAM_WIDTH,
-        "constraint_update": CONSTRAINT_UPDATE,
-        "rescale": RESCALE,
-        "learning_rate": LEARNING_RATE,
-        "gpu_device": GPU_DEVICE,
-        "max_spawns": MAX_PROCESSES,
-        "spawn_delay": SPAWN_DELAY,
-        "decoder_type": "batch",
-        "max_examples": MAX_EXAMPLES,
-        "max_targets": MAX_TARGETS,
-        "max_audio_length": MAX_AUDIO_LENGTH,
-        "loss_type": loss,
-    }
-
-    settings.update(master_settings)
-    batch_gen = batch_generators.dense(settings)
-    execute(settings, create_attack_graph, batch_gen)
-    log("Finished run.")
-
-
-def dense_back_only_run(master_settings):
-
-    loss = "back_only"
-
-    outdir = os.path.join(OUTDIR, "{}/".format(loss))
-    outdir = os.path.join(outdir, "dense/")
+    outdir = os.path.join(OUTDIR, "evasion/confidence/sumlogprobs/")
+    outdir = os.path.join(outdir, "{}/".format(align))
+    outdir = os.path.join(outdir, "{}/".format(decoder))
+    outdir = os.path.join(outdir, "{}/".format(loss))
 
     settings = {
         "audio_indir": AUDIOS_INDIR,
@@ -273,385 +211,39 @@ def dense_back_only_run(master_settings):
         "gpu_device": GPU_DEVICE,
         "max_spawns": MAX_PROCESSES,
         "spawn_delay": SPAWN_DELAY,
-        "decoder_type": "batch",
         "max_examples": MAX_EXAMPLES,
         "max_targets": MAX_TARGETS,
         "max_audio_length": MAX_AUDIO_LENGTH,
-        "loss_type": loss,
+        "align": align,
+        "decoder_type": decoder,
+        "loss": loss,
+
     }
 
     settings.update(master_settings)
-    batch_gen = batch_generators.dense(settings)
-    execute(settings, create_attack_graph, batch_gen)
-    log("Finished run.")
 
+    if align == "ctcalign":
+        batch_gen = batch_generators.standard(settings)
 
-def dense_fwd_plus_back_run(master_settings):
+    elif align == "sparse":
+        batch_gen = batch_generators.sparse(settings)
 
-    loss = "fwd_plus_back"
+    elif align == "dense":
+        batch_gen = batch_generators.dense(settings)
 
-    outdir = os.path.join(OUTDIR, "{}/".format(loss))
-    outdir = os.path.join(outdir, "dense/")
+    else:
+        raise NotImplementedError("Incorrect choice for --align argument.")
 
-    settings = {
-        "audio_indir": AUDIOS_INDIR,
-        "targets_path": TARGETS_PATH,
-        "outdir": outdir,
-        "batch_size": BATCH_SIZE,
-        "tokens": TOKENS,
-        "nsteps": NUMB_STEPS,
-        "decode_step": DECODING_STEP,
-        "beam_width": BEAM_WIDTH,
-        "constraint_update": CONSTRAINT_UPDATE,
-        "rescale": RESCALE,
-        "learning_rate": LEARNING_RATE,
-        "gpu_device": GPU_DEVICE,
-        "max_spawns": MAX_PROCESSES,
-        "spawn_delay": SPAWN_DELAY,
-        "decoder_type": "batch",
-        "max_examples": MAX_EXAMPLES,
-        "max_targets": MAX_TARGETS,
-        "max_audio_length": MAX_AUDIO_LENGTH,
-        "loss_type": loss,
-    }
-
-    settings.update(master_settings)
-    batch_gen = batch_generators.dense(settings)
-    execute(settings, create_attack_graph, batch_gen)
-    log("Finished run.")
-
-
-def dense_fwd_mult_back_run(master_settings):
-
-    loss = "fwd_mult_back"
-
-    outdir = os.path.join(OUTDIR, "{}/".format(loss))
-    outdir = os.path.join(outdir, "dense/")
-
-    settings = {
-        "audio_indir": AUDIOS_INDIR,
-        "targets_path": TARGETS_PATH,
-        "outdir": outdir,
-        "batch_size": BATCH_SIZE,
-        "tokens": TOKENS,
-        "nsteps": NUMB_STEPS,
-        "decode_step": DECODING_STEP,
-        "beam_width": BEAM_WIDTH,
-        "constraint_update": CONSTRAINT_UPDATE,
-        "rescale": RESCALE,
-        "learning_rate": LEARNING_RATE,
-        "gpu_device": GPU_DEVICE,
-        "max_spawns": MAX_PROCESSES,
-        "spawn_delay": SPAWN_DELAY,
-        "decoder_type": "batch",
-        "max_examples": MAX_EXAMPLES,
-        "max_targets": MAX_TARGETS,
-        "max_audio_length": MAX_AUDIO_LENGTH,
-        "loss_type": loss,
-    }
-
-    settings.update(master_settings)
-    batch_gen = batch_generators.dense(settings)
-    execute(settings, create_attack_graph, batch_gen)
-    log("Finished run.")
-
-
-def sparse_fwd_only_run(master_settings):
-
-    loss = "fwd_only"
-
-    outdir = os.path.join(OUTDIR, "{}/".format(loss))
-    outdir = os.path.join(outdir, "sparse/")
-
-    settings = {
-        "audio_indir": AUDIOS_INDIR,
-        "targets_path": TARGETS_PATH,
-        "outdir": outdir,
-        "batch_size": BATCH_SIZE,
-        "tokens": TOKENS,
-        "nsteps": NUMB_STEPS,
-        "decode_step": DECODING_STEP,
-        "beam_width": BEAM_WIDTH,
-        "constraint_update": CONSTRAINT_UPDATE,
-        "rescale": RESCALE,
-        "learning_rate": LEARNING_RATE,
-        "gpu_device": GPU_DEVICE,
-        "max_spawns": MAX_PROCESSES,
-        "spawn_delay": SPAWN_DELAY,
-        "decoder_type": "batch",
-        "max_examples": MAX_EXAMPLES,
-        "max_targets": MAX_TARGETS,
-        "max_audio_length": MAX_AUDIO_LENGTH,
-        "loss_type": loss,
-    }
-
-    settings.update(master_settings)
-    batch_gen = batch_generators.sparse(settings)
-    execute(settings, create_attack_graph, batch_gen)
-    log("Finished run.")
-
-
-def sparse_back_only_run(master_settings):
-
-    loss = "back_only"
-
-    outdir = os.path.join(OUTDIR, "{}/".format(loss))
-    outdir = os.path.join(outdir, "sparse/")
-
-    settings = {
-        "audio_indir": AUDIOS_INDIR,
-        "targets_path": TARGETS_PATH,
-        "outdir": outdir,
-        "batch_size": BATCH_SIZE,
-        "tokens": TOKENS,
-        "nsteps": NUMB_STEPS,
-        "decode_step": DECODING_STEP,
-        "beam_width": BEAM_WIDTH,
-        "constraint_update": CONSTRAINT_UPDATE,
-        "rescale": RESCALE,
-        "learning_rate": LEARNING_RATE,
-        "gpu_device": GPU_DEVICE,
-        "max_spawns": MAX_PROCESSES,
-        "spawn_delay": SPAWN_DELAY,
-        "decoder_type": "batch",
-        "max_examples": MAX_EXAMPLES,
-        "max_targets": MAX_TARGETS,
-        "max_audio_length": MAX_AUDIO_LENGTH,
-        "loss_type": loss,
-    }
-
-    settings.update(master_settings)
-    batch_gen = batch_generators.sparse(settings)
-    execute(settings, create_attack_graph, batch_gen)
-    log("Finished run.")
-
-
-def sparse_fwd_plus_back_run(master_settings):
-
-    loss = "fwd_plus_back"
-
-    outdir = os.path.join(OUTDIR, "{}/".format(loss))
-    outdir = os.path.join(outdir, "sparse/")
-
-    settings = {
-        "audio_indir": AUDIOS_INDIR,
-        "targets_path": TARGETS_PATH,
-        "outdir": outdir,
-        "batch_size": BATCH_SIZE,
-        "tokens": TOKENS,
-        "nsteps": NUMB_STEPS,
-        "decode_step": DECODING_STEP,
-        "beam_width": BEAM_WIDTH,
-        "constraint_update": CONSTRAINT_UPDATE,
-        "rescale": RESCALE,
-        "learning_rate": LEARNING_RATE,
-        "gpu_device": GPU_DEVICE,
-        "max_spawns": MAX_PROCESSES,
-        "spawn_delay": SPAWN_DELAY,
-        "decoder_type": "batch",
-        "max_examples": MAX_EXAMPLES,
-        "max_targets": MAX_TARGETS,
-        "max_audio_length": MAX_AUDIO_LENGTH,
-        "loss_type": loss,
-    }
-
-    settings.update(master_settings)
-    batch_gen = batch_generators.sparse(settings)
-    execute(settings, create_attack_graph, batch_gen)
-    log("Finished run.")
-
-
-def sparse_fwd_mult_back_run(master_settings):
-
-    loss = "fwd_mult_back"
-
-    outdir = os.path.join(OUTDIR, "{}/".format(loss))
-    outdir = os.path.join(outdir, "sparse/")
-
-    settings = {
-        "audio_indir": AUDIOS_INDIR,
-        "targets_path": TARGETS_PATH,
-        "outdir": outdir,
-        "batch_size": BATCH_SIZE,
-        "tokens": TOKENS,
-        "nsteps": NUMB_STEPS,
-        "decode_step": DECODING_STEP,
-        "beam_width": BEAM_WIDTH,
-        "constraint_update": CONSTRAINT_UPDATE,
-        "rescale": RESCALE,
-        "learning_rate": LEARNING_RATE,
-        "gpu_device": GPU_DEVICE,
-        "max_spawns": MAX_PROCESSES,
-        "spawn_delay": SPAWN_DELAY,
-        "decoder_type": "batch",
-        "max_examples": MAX_EXAMPLES,
-        "max_targets": MAX_TARGETS,
-        "max_audio_length": MAX_AUDIO_LENGTH,
-        "loss_type": loss,
-    }
-
-    settings.update(master_settings)
-    batch_gen = batch_generators.sparse(settings)
-    execute(settings, create_attack_graph, batch_gen)
-    log("Finished run.")
-
-
-def ctcalign_fwd_only_run(master_settings):
-
-    loss = "fwd_only"
-
-    outdir = os.path.join(OUTDIR, "{}/".format(loss))
-    outdir = os.path.join(outdir, "ctcalign/")
-
-    settings = {
-        "audio_indir": AUDIOS_INDIR,
-        "targets_path": TARGETS_PATH,
-        "outdir": outdir,
-        "batch_size": BATCH_SIZE,
-        "tokens": TOKENS,
-        "nsteps": NUMB_STEPS,
-        "decode_step": DECODING_STEP,
-        "beam_width": BEAM_WIDTH,
-        "constraint_update": CONSTRAINT_UPDATE,
-        "rescale": RESCALE,
-        "learning_rate": LEARNING_RATE,
-        "gpu_device": GPU_DEVICE,
-        "max_spawns": MAX_PROCESSES,
-        "spawn_delay": SPAWN_DELAY,
-        "decoder_type": "batch",
-        "max_examples": MAX_EXAMPLES,
-        "max_targets": MAX_TARGETS,
-        "max_audio_length": MAX_AUDIO_LENGTH,
-        "loss_type": loss,
-    }
-
-    settings.update(master_settings)
-    batch_gen = batch_generators.standard(settings)
-    execute(settings, create_ctcalign_attack_graph, batch_gen)
-    log("Finished run.")
-
-
-def ctcalign_back_only_run(master_settings):
-
-    loss = "back_only"
-
-    outdir = os.path.join(OUTDIR, "{}/".format(loss))
-    outdir = os.path.join(outdir, "ctcalign/")
-
-    settings = {
-        "audio_indir": AUDIOS_INDIR,
-        "targets_path": TARGETS_PATH,
-        "outdir": outdir,
-        "batch_size": BATCH_SIZE,
-        "tokens": TOKENS,
-        "nsteps": NUMB_STEPS,
-        "decode_step": DECODING_STEP,
-        "beam_width": BEAM_WIDTH,
-        "constraint_update": CONSTRAINT_UPDATE,
-        "rescale": RESCALE,
-        "learning_rate": LEARNING_RATE,
-        "gpu_device": GPU_DEVICE,
-        "max_spawns": MAX_PROCESSES,
-        "spawn_delay": SPAWN_DELAY,
-        "decoder_type": "batch",
-        "max_examples": MAX_EXAMPLES,
-        "max_targets": MAX_TARGETS,
-        "max_audio_length": MAX_AUDIO_LENGTH,
-        "loss_type": loss,
-    }
-
-    settings.update(master_settings)
-    batch_gen = batch_generators.standard(settings)
-    execute(settings, create_ctcalign_attack_graph, batch_gen)
-    log("Finished run.")
-
-
-def ctcalign_fwd_plus_back_run(master_settings):
-
-    loss = "fwd_plus_back"
-
-    outdir = os.path.join(OUTDIR, "{}/".format(loss))
-    outdir = os.path.join(outdir, "ctcalign/")
-
-    settings = {
-        "audio_indir": AUDIOS_INDIR,
-        "targets_path": TARGETS_PATH,
-        "outdir": outdir,
-        "batch_size": BATCH_SIZE,
-        "tokens": TOKENS,
-        "nsteps": NUMB_STEPS,
-        "decode_step": DECODING_STEP,
-        "beam_width": BEAM_WIDTH,
-        "constraint_update": CONSTRAINT_UPDATE,
-        "rescale": RESCALE,
-        "learning_rate": LEARNING_RATE,
-        "gpu_device": GPU_DEVICE,
-        "max_spawns": MAX_PROCESSES,
-        "spawn_delay": SPAWN_DELAY,
-        "decoder_type": "batch",
-        "max_examples": MAX_EXAMPLES,
-        "max_targets": MAX_TARGETS,
-        "max_audio_length": MAX_AUDIO_LENGTH,
-        "loss_type": loss,
-    }
-
-    settings.update(master_settings)
-    batch_gen = batch_generators.standard(settings)
-    execute(settings, create_ctcalign_attack_graph, batch_gen)
-    log("Finished run.")
-
-
-def ctcalign_fwd_mult_back_run(master_settings):
-
-    loss = "fwd_mult_back"
-
-    outdir = os.path.join(OUTDIR, "{}/".format(loss))
-    outdir = os.path.join(outdir, "ctcalign/")
-
-    settings = {
-        "audio_indir": AUDIOS_INDIR,
-        "targets_path": TARGETS_PATH,
-        "outdir": outdir,
-        "batch_size": BATCH_SIZE,
-        "tokens": TOKENS,
-        "nsteps": NUMB_STEPS,
-        "decode_step": DECODING_STEP,
-        "beam_width": BEAM_WIDTH,
-        "constraint_update": CONSTRAINT_UPDATE,
-        "rescale": RESCALE,
-        "learning_rate": LEARNING_RATE,
-        "gpu_device": GPU_DEVICE,
-        "max_spawns": MAX_PROCESSES,
-        "spawn_delay": SPAWN_DELAY,
-        "decoder_type": "batch",
-        "max_examples": MAX_EXAMPLES,
-        "max_targets": MAX_TARGETS,
-        "max_audio_length": MAX_AUDIO_LENGTH,
-        "loss_type": loss,
-    }
-
-    settings.update(master_settings)
-    batch_gen = batch_generators.standard(settings)
-    execute(settings, create_ctcalign_attack_graph, batch_gen)
+    execute(settings, create_attack_graph, batch_gen,)
     log("Finished run.")
 
 
 if __name__ == '__main__':
 
-    experiments = {
-        "dense-fwd": dense_fwd_only_run,
-        "dense-back": dense_back_only_run,
-        "dense-fwdplusback": dense_fwd_plus_back_run,
-        "dense-fwdmultback": dense_fwd_mult_back_run,
-        "sparse-fwd": sparse_fwd_only_run,
-        "sparse-back": sparse_back_only_run,
-        "sparse-fwdplusback": sparse_fwd_plus_back_run,
-        "sparse-fwdmultback": sparse_fwd_mult_back_run,
-        "ctcalign-fwd": ctcalign_fwd_only_run,
-        "ctcalign-back": ctcalign_back_only_run,
-        "ctcalign-fwdplusback": ctcalign_fwd_plus_back_run,
-        "ctcalign-fwdmultback": ctcalign_fwd_mult_back_run,
+    extra_args = {
+        'align': [str, "sparse", False, ["sparse", "ctcalign", "dense"]],
+        'decoder': [str, "batch", False, ["greedy", "batch", "ds", "tf"]],
+        "loss": [str, "fwd", False, ["fwd", "back", "fwdplusback", "fwdmultback"]],
     }
 
-    args(experiments)
-
+    args(attack_run, additional_args=extra_args)
