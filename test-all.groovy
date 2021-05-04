@@ -24,9 +24,10 @@ pipeline {
             defaultValue: '100',
             description: 'How many iterations to run the attack for.'
 
-        choice name: 'EXP_SCRIPT',
+        /* choice name: 'EXP_SCRIPT',
             choices: ['attacks', 'unbounded'],
             description: 'Which attack python script to run. default: attacks.py.'
+        */
 
         choice name: 'DATA',
             choices: ['samples', 'silence'],
@@ -45,7 +46,7 @@ pipeline {
                     wait: true,
                     parameters: [
                         stringParam(name: 'ADDITIONAL_ARGS', value: "${params.ADDITIONAL_ARGS}"),
-                        stringParam(name: 'EXP_SCRIPT', value: "${params.EXP_SCRIPT}"),
+                        stringParam(name: 'EXP_SCRIPT', value: "attacks"),
                         stringParam(name: 'MAX_SPAWNS', value: "${params.MAX_SPAWNS}"),
                         stringParam(name: 'BATCH_SIZE', value: "${params.BATCH_SIZE}"),
                         stringParam(name: 'N_STEPS', value: "${params.N_STEPS}"),
@@ -60,13 +61,15 @@ pipeline {
                 axes {
                     axis {
                         name 'DIR'
-                        values 'baseline-cwmaxdiff',
+                        values 'baseline-ctc',
+                            'baseline-cwmaxdiff',
                             'conf-adaptivekappa',
                             'conf-ctcedgecases',
                             'conf-invertedctc',
                             'conf-logprobsgreedydiff',
                             'conf-sumlogprobs',
-                            'conf-cumulativelogprobs' /*,
+                            'conf-cumulativelogprobs',
+                            'misc-batch-vs-indy' /*,
                              'percep-synthesis',
                              'percep-synthesisregularised',
                              'percep-spectralloss'
@@ -75,6 +78,19 @@ pipeline {
                     axis {
                         name 'EXP_SCRIPT'
                         values 'attacks', 'unbounded'
+                    }
+                    /* exclude the baseline-ctc that already ran */
+                    excludes{
+                        exclude{
+                            axis {
+                                name 'DIR'
+                                values 'baseline-ctc'
+                            }
+                            axis {
+                                name 'EXP_SCRIPT'
+                                values 'attacks'
+                            }
+                        }
                     }
                 }
                 stages {
