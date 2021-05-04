@@ -111,36 +111,7 @@ pipeline {
                         name 'ALIGNMENT'
                         values 'dense', 'sparse', 'ctcalign'
                     }
-                    axis {
-                        name 'LOSS'
-                        values 'none' /*, 'rctc', 'ctc' */
-                    }
                 }
-                /*
-                Do not run `dense-ctc` or `sparse-ctc` as they're known to be broken.
-                */
-                /* excludes {
-                    exclude {
-                        axis {
-                           name 'alignment_type'
-                            values 'dense'
-                        }
-                        axis {
-                            name 'loss_type'
-                            values 'ctc'
-                        }
-                    }
-                    exclude {
-                        axis {
-                           name 'alignment_type'
-                            values 'sparse'
-                        }
-                        axis {
-                            name 'loss_type'
-                            values 'ctc'
-                        }
-                    }
-                } */
                 stages {
                     stage("Pull docker image") {
                         steps {

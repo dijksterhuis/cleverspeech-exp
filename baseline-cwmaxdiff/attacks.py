@@ -113,7 +113,7 @@ def create_attack_graph(sess, batch, settings):
 
     if settings["align"] == "ctcalign":
 
-        alignment = create_tf_ctc_alignment_search_graph(attack, batch)
+        alignment = create_tf_ctc_alignment_search_graph(sess, batch)
 
         attack.add_loss(
             Losses.CWMaxDiff,

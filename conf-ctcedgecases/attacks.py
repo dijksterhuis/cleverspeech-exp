@@ -111,7 +111,7 @@ def create_attack_graph(sess, batch, settings):
 
     if settings["align"] == "ctcalign" and settings["proc"] == "std":
 
-        alignment = create_tf_ctc_alignment_search_graph(attack, batch)
+        alignment = create_tf_ctc_alignment_search_graph(sess, batch)
 
         attack.add_loss(
             Losses.AlignmentsCTCLoss,
@@ -131,7 +131,7 @@ def create_attack_graph(sess, batch, settings):
 
     elif settings["align"] == "ctcalign" and settings["proc"] == "extreme":
 
-        alignment = create_tf_ctc_alignment_search_graph(attack, batch)
+        alignment = create_tf_ctc_alignment_search_graph(sess, batch)
 
         attack.add_loss(
             Losses.AlignmentsCTCLoss,

@@ -113,7 +113,7 @@ pipeline {
                     }
                     axis {
                         name 'LOSS'
-                        values 'adaptive-kappa'
+                        values 'adaptive_kappa'
                     }
                 }
                 stages {
