@@ -113,7 +113,7 @@ pipeline {
                     }
                     axis {
                         name 'DECODER'
-                        values 'beam' /*, 'greedy'*/
+                        values 'batch', 'greedy'
                     }
                 }
                 stages {

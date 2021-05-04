@@ -117,7 +117,7 @@ pipeline {
                             don't bother with beam search decoder (batch / beam)
                        */
                         name 'DECODER'
-                        values 'greedy' /*, 'batch'*/
+                        values 'greedy', 'batch'
                     }
                 }
                 stages {
