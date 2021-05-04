@@ -86,7 +86,7 @@ def create_attack_graph(sess, batch, settings):
         PerturbationSubGraphs.Independent
     )
     attack.add_victim(
-        Victim.Model,
+        DeepSpeech.Model,
         decoder=settings["decoder"],
         beam_width=settings["beam_width"]
     )
