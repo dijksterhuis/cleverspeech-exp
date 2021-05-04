@@ -111,10 +111,6 @@ pipeline {
                         name 'ALIGNMENT'
                         values 'dense', 'sparse', 'ctcalign'
                     }
-                    axis {
-                        name 'LOSS'
-                        values 'adaptive_kappa'
-                    }
                 }
                 stages {
                     stage("Pull docker image") {
