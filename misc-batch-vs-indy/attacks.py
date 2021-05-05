@@ -102,7 +102,7 @@ def create_attack_graph(sess, batch, settings):
         beam_width=settings["beam_width"]
     )
     attack.add_loss(
-        LOSS_CHOICES["loss"]
+        LOSS_CHOICES[settings["loss"]]
     )
     attack.create_loss_fn()
     attack.add_optimiser(
