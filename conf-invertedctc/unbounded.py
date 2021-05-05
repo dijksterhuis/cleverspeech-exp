@@ -68,7 +68,8 @@ def execute(settings, attack_fn, batch_gen):
 
     # Run the stats function on all successful examples once all attacks
     # are completed.
-    Reporting.generate_stats_file(settings["outdir"])
+    # TODO
+    # Reporting.generate_stats_file(settings["outdir"])
 
 
 def create_attack_graph(sess, batch, settings):

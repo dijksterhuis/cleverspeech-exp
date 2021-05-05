@@ -79,17 +79,17 @@ pipeline {
                         name 'EXP_SCRIPT'
                         values 'attacks', 'unbounded'
                     }
-                    /* exclude the baseline-ctc that already ran */
-                    excludes{
-                        exclude{
-                            axis {
-                                name 'DIR'
-                                values 'baseline-ctc'
-                            }
-                            axis {
-                                name 'EXP_SCRIPT'
-                                values 'attacks'
-                            }
+                }
+                /* exclude the baseline-ctc that already ran */
+                excludes {
+                    exclude {
+                        axis {
+                            name 'DIR'
+                            values 'baseline-ctc'
+                        }
+                        axis {
+                            name 'EXP_SCRIPT'
+                            values 'attacks'
                         }
                     }
                 }
