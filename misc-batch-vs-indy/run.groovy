@@ -99,7 +99,7 @@ pipeline {
                 SPAWN_ARG="--max_spawns ${params.MAX_SPAWNS}"
                 STEPS_ARG="--nsteps ${params.N_STEPS}"
                 BATCH_ARG="--nbatch_max ${params.MAX_BATCH_SIZE} --nbatch_step ${params.STEP_BATCH_SIZE}"
-                GRAPH_ARG="--graph_type \${GRAPH}"
+                GRAPH_ARG="--graph \${GRAPH}"
                 PY_EXP_ARGS="${SPAWN_ARG} ${BATCH_ARG} ${STEPS_ARG} ${GRAPH_ARG}"
 
                 PYTHON_CMD = "${PY_BASE_CMD} ${PY_EXP_ARGS} ${PY_DATA_ARGS} ${params.ADDITIONAL_ARGS}"

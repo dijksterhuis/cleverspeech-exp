@@ -24,6 +24,23 @@ from cleverspeech.utils.runtime.ExperimentArguments import args
 from SecEval import VictimAPI as DeepSpeech
 
 
+GRAPH_CHOICES = {
+    "batch": [
+        PerturbationSubGraphs.Batch,
+        Optimisers.AdamBatchwiseOptimiser,
+    ],
+    "indy": [
+        PerturbationSubGraphs.Independent,
+        Optimisers.AdamIndependentOptimiser,
+    ],
+}
+
+LOSS_CHOICES = {
+    "ctc": Losses.CTCLoss,
+    "ctc2": Losses.CTCLossV2
+}
+
+
 def execute(settings, attack_fn, batch_gen):
 
     # set up the directory we'll use for results
@@ -65,16 +82,7 @@ def execute(settings, attack_fn, batch_gen):
 
 def create_attack_graph(sess, batch, settings):
 
-    if settings["graph_type"] == "batch":
-        perturbation_sub_graph_cls = PerturbationSubGraphs.Independent
-        optimiser_cls = Optimisers.AdamIndependentOptimiser
-
-    elif settings["graph_type"] == "indy":
-        perturbation_sub_graph_cls = PerturbationSubGraphs.Independent
-        optimiser_cls = Optimisers.AdamIndependentOptimiser
-
-    else:
-        raise NotImplementedError
+    perturbation_sub_graph_cls, optimiser_cls = GRAPH_CHOICES[settings["graph"]]
 
     feeds = Feeds.Attack(batch)
 
@@ -94,7 +102,7 @@ def create_attack_graph(sess, batch, settings):
         beam_width=settings["beam_width"]
     )
     attack.add_loss(
-        Losses.CTCLoss
+        LOSS_CHOICES["loss"]
     )
     attack.create_loss_fn()
     attack.add_optimiser(
@@ -112,8 +120,9 @@ def create_attack_graph(sess, batch, settings):
 
 def attack_run(master_settings):
 
-    graph_type = master_settings["graph_type"]
+    graph_type = master_settings["graph"]
     decoder = master_settings["decoder"]
+    loss = master_settings["loss"]
     nbatch_max = master_settings["nbatch_max"]
     nbatch_step = master_settings["nbatch_step"]
     outdir = master_settings["outdir"]
@@ -130,6 +139,7 @@ def attack_run(master_settings):
         outdir = os.path.join(outdir, "evasion/batch-vs-indy/")
         outdir = os.path.join(outdir, "{}/".format(graph_type))
         outdir = os.path.join(outdir, "{}/".format(decoder))
+        outdir = os.path.join(outdir, "{}/".format(loss))
         outdir = os.path.join(outdir, "{}/".format(batch_size))
 
         master_settings["outdir"] = outdir
@@ -148,7 +158,8 @@ if __name__ == '__main__':
     log("", wrap=True)
 
     extra_args = {
-        'graph_type': [str, "batch", False, ["batch", "indy"]],
+        'graph': [str, "batch", False, GRAPH_CHOICES.keys()],
+        'loss': [str, "ctc", False, LOSS_CHOICES.keys()],
         'nbatch_max': [int, 20, False, None],
         'nbatch_step': [int, 5, False, None],
     }
