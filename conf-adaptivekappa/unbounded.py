@@ -114,7 +114,6 @@ def create_attack_graph(sess, batch, settings):
             alignment,
             steps=settings["nsteps"],
             update_step=settings["decode_step"],
-            loss_update_idx=[0],
         )
 
     else:
@@ -132,7 +131,6 @@ def create_attack_graph(sess, batch, settings):
             Procedures.Unbounded,
             steps=settings["nsteps"],
             update_step=settings["decode_step"],
-            loss_update_idx=[0],
         )
 
     return attack
