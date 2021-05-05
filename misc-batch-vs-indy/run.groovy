@@ -37,7 +37,7 @@ pipeline {
                 description: 'How many iterations to run the attack for.'
 
             string name: 'MAX_BATCH_SIZE',
-                defaultValue: '5',
+                defaultValue: '2',
                 description: 'How many examples in a batch.'
 
             string name: 'STEP_BATCH_SIZE',
