@@ -48,12 +48,16 @@ pipeline {
                         name 'DIR'
                         values 'baseline-ctc',
                             'baseline-cwmaxdiff',
+                            'baseline-biggiomaxmin',
                             'conf-adaptivekappa',
                             'conf-ctcedgecases',
                             'conf-invertedctc',
                             'conf-logprobsgreedydiff',
                             'conf-sumlogprobs',
-                            'conf-cumulativelogprobs' /*,
+                            'conf-cumulativelogprobs',
+                            'conf-biggiomaxofmaxmin',
+                            'conf-targetonly',
+                            'misc-batch-vs-indy' /*,
                              'percep-synthesis',
                              'percep-synthesisregularised',
                              'percep-spectralloss'
