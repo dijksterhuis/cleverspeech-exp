@@ -179,10 +179,10 @@ if __name__ == '__main__':
     }
 
     if extra_args["loss"][1] == "softmax":
-        assert 0 <= extra_args["loss"][1] < 1
+        assert 0 <= extra_args["kappa"][1] < 1
 
     else:
-        assert extra_args["loss"][1] >= 0
+        assert extra_args["kappa"][1] >= 0
 
     args(attack_run, additional_args=extra_args)
 
