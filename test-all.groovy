@@ -21,7 +21,7 @@ pipeline {
             description: 'How many examples in a batch.'
 
         string name: 'N_STEPS',
-            defaultValue: '100',
+            defaultValue: '10',
             description: 'How many iterations to run the attack for.'
 
         /* choice name: 'EXP_SCRIPT',
@@ -34,7 +34,7 @@ pipeline {
             description: 'Which dataset to use. default: ./samples'
 
         text   name: 'ADDITIONAL_ARGS',
-            defaultValue: '--decode_step 10 --max_examples 4 --spawn_delay 2 ',
+            defaultValue: '--decode_step 5 --max_examples 4 --spawn_delay 2 ',
             description: 'Additional arguments to pass to the attack script e.g. --decode_step 10. default: none.'
 
     }
