@@ -56,6 +56,16 @@ pipeline {
                 choices: ['samples', 'silence'],
                 description: 'Which dataset to use. default: ./samples'
 
+            choice name: 'ALIGNMENT_FILTER',
+                choices: ['all', 'dense', 'ctcalign', 'sparse'],
+                description: 'Filter experiments based on alignment hyper parameter. Note that this only works when combined with other filters.'
+
+            /*
+            choice name: 'LOSS_FILTER',
+                choices: ['all', 'fwd', 'back', 'fwdplusback', 'fwdmultback'],
+                description: 'Filter experiments based on loss hyper parameter. Note that this only works when combined with other filters.'
+            */
+
             text   name: 'ADDITIONAL_ARGS',
                 defaultValue: '',
                 description: 'Additional arguments to pass to the attack script e.g. --decode_step 10. default: none.'
@@ -105,6 +115,20 @@ pipeline {
                 /* Run each of these combinations over all axes on the gpu machines. */
                 agent {
                     label "gpu"
+                }
+                when {
+                    anyOf {
+                        allOf{
+                            /* no filters applied so run everything */
+                            expression { params.ALIGNMENT_FILTER == 'all' }
+                            /*expression { params.LOSS_FILTER == 'all' }*/
+                        }
+                        allOf {
+                            /* exclusive filters applied, only run when all filters match */
+                            expression { params.ALIGNMENT_FILTER == env.ALIGNMENT }
+                            /*expression { params.LOSS_FILTER == env.LOSS }*/
+                        }
+                    }
                 }
                 axes {
                     axis {

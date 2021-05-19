@@ -56,6 +56,16 @@ pipeline {
                 choices: ['samples', 'silence'],
                 description: 'Which dataset to use. default: ./samples'
 
+            choice name: 'ALIGNMENT_FILTER',
+                choices: ['all', 'dense', 'ctcalign', 'sparse'],
+                description: 'Filter experiments based on alignment hyper parameter. Note that this only works when combined with other filters.'
+
+            /*
+            choice name: 'PROCEDURE_FILTER',
+                choices: ['all', 'std', 'extreme'],
+                description: 'Filter experiments based on procedure hyper parameter. Note that this only works when combined with other filters.'
+            */
+
             text   name: 'ADDITIONAL_ARGS',
                 defaultValue: '',
                 description: 'Additional arguments to pass to the attack script e.g. --decode_step 10. default: none.'
@@ -84,7 +94,7 @@ pipeline {
                 /*
                 Nasty way of not-really-but-sort-of simplifying the mess of our docker run command
                 */
-                DOCKER_NAME="${EXP_BASE_NAME}-${EXP_SCRIPT}-${DATA}-\${ALIGNMENT}-\${DECODER}-${JOB_TYPE}"
+                DOCKER_NAME="${EXP_BASE_NAME}-${EXP_SCRIPT}-${DATA}-\${ALIGNMENT}-\${PROCEDURE}-${JOB_TYPE}"
                 DOCKER_MOUNT="\$(pwd)/${BUILD_ID}:/home/cleverspeech/cleverSpeech/adv/"
                 DOCKER_UID="LOCAL_UID=\$(id -u ${USER})"
                 DOCKER_GID="LOCAL_GID=\$(id -g ${USER})"
@@ -105,6 +115,20 @@ pipeline {
                 /* Run each of these combinations over all axes on the gpu machines. */
                 agent {
                     label "gpu"
+                }
+                when {
+                    anyOf {
+                        allOf{
+                            /* no filters applied so run everything */
+                            expression { params.ALIGNMENT_FILTER == 'all' }
+                            /*expression { params.PROCEDURE_FILTER == 'all' }*/
+                        }
+                        allOf {
+                            /* exclusive filters applied, only run when all filters match */
+                            expression { params.ALIGNMENT_FILTER == env.ALIGNMENT }
+                            /*expression { params.PROCEDURE_FILTER == env.PROCEDURE }*/
+                        }
+                    }
                 }
                 axes {
                     axis {
