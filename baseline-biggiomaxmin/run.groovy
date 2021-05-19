@@ -84,7 +84,7 @@ pipeline {
                 /*
                 Nasty way of not-really-but-sort-of simplifying the mess of our docker run command
                 */
-                DOCKER_NAME="${EXP_BASE_NAME}-\${ALIGNMENT}-\${DECODER}-${JOB_TYPE}"
+                DOCKER_NAME="${EXP_BASE_NAME}-\${ALIGNMENT}-\${DECODER}-\${LOSS}-${JOB_TYPE}"
                 DOCKER_MOUNT="\$(pwd)/${BUILD_ID}:/home/cleverspeech/cleverSpeech/adv/"
                 DOCKER_UID="LOCAL_UID=\$(id -u ${USER})"
                 DOCKER_GID="LOCAL_GID=\$(id -g ${USER})"
@@ -96,8 +96,9 @@ pipeline {
                 STEPS_ARG="--nsteps ${params.N_STEPS}"
                 BATCH_ARG="--batch_size ${params.BATCH_SIZE}"
                 ALIGN_ARG="--align \${ALIGNMENT}"
+                LOSS_ARG="--loss \${LOSS}"
                 DECODER_ARG="--decoder \${DECODER}"
-                PY_EXP_ARGS="${SPAWN_ARG} ${BATCH_ARG} ${STEPS_ARG} ${ALIGN_ARG} ${DECODER_ARG}"
+                PY_EXP_ARGS="${SPAWN_ARG} ${BATCH_ARG} ${STEPS_ARG} ${ALIGN_ARG} ${DECODER_ARG} ${LOSS_ARG}"
 
                 PYTHON_CMD = "${PY_BASE_CMD} ${PY_EXP_ARGS} ${PY_DATA_ARGS} ${params.ADDITIONAL_ARGS}"
             }
@@ -110,6 +111,10 @@ pipeline {
                     axis {
                         name 'ALIGNMENT'
                         values 'sparse', 'dense', 'ctcalign'
+                    }
+                    axis {
+                        name 'LOSS'
+                        values 'softmax', 'logits'
                     }
                     axis {
                         /*

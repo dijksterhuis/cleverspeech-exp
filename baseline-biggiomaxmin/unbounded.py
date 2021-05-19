@@ -32,6 +32,11 @@ ALIGNMENT_CHOICES = {
     "dense": batch_generators.dense,
 }
 
+LOSS_CHOICES = {
+    "softmax": Losses.BiggioMaxMinSoftmax,
+    "logits": Losses.BiggioMaxMin,
+}
+
 
 def execute(settings, attack_fn, batch_gen):
 
@@ -93,7 +98,7 @@ def create_attack_graph(sess, batch, settings):
         alignment = create_tf_ctc_alignment_search_graph(sess, batch)
 
         attack.add_loss(
-            Losses.BiggioMaxMin,
+            LOSS_CHOICES[settings["loss"]],
             alignment.graph.target_alignments,
         )
         attack.create_loss_fn()
@@ -110,7 +115,7 @@ def create_attack_graph(sess, batch, settings):
 
     else:
         attack.add_loss(
-            Losses.BiggioMaxMin,
+            LOSS_CHOICES[settings["loss"]],
             attack.placeholders.targets,
         )
         attack.create_loss_fn()
@@ -132,27 +137,29 @@ def attack_run(master_settings):
     """
 
     align = master_settings["align"]
+    loss = master_settings["loss"]
     decoder = master_settings["decoder"]
     outdir = master_settings["outdir"]
 
     outdir = os.path.join(outdir, "unbounded/baselines/biggio/")
     outdir = os.path.join(outdir, "{}/".format(align))
+    outdir = os.path.join(outdir, "{}/".format(loss))
     outdir = os.path.join(outdir, "{}/".format(decoder))
 
     master_settings["outdir"] = outdir
 
     batch_gen = ALIGNMENT_CHOICES[align](master_settings)
 
-    execute(master_settings, create_attack_graph, batch_gen,)
+    execute(master_settings, create_attack_graph, batch_gen, )
     log("Finished run.")
 
 
 if __name__ == '__main__':
-
     log("", wrap=True)
 
     extra_args = {
         'align': [str, "sparse", False, ALIGNMENT_CHOICES.keys()],
+        'loss': [str, "logits", False, LOSS_CHOICES.keys()],
     }
 
     args(attack_run, additional_args=extra_args)

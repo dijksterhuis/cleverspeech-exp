@@ -32,6 +32,11 @@ ALIGNMENT_CHOICES = {
     "dense": batch_generators.dense,
 }
 
+LOSS_CHOICES = {
+    "softmax": Losses.CWMaxDiffSoftmax,
+    "logits": Losses.CWMaxDiff,
+}
+
 
 def execute(settings, attack_fn, batch_gen):
 
@@ -94,7 +99,7 @@ def create_attack_graph(sess, batch, settings):
         alignment = create_tf_ctc_alignment_search_graph(sess, batch)
 
         attack.add_loss(
-            Losses.CWMaxDiff,
+            LOSS_CHOICES[settings["loss"]],
             alignment.graph.target_alignments,
             k=settings["kappa"]
         )
@@ -112,7 +117,7 @@ def create_attack_graph(sess, batch, settings):
     else:
 
         attack.add_loss(
-            Losses.CWMaxDiff,
+            LOSS_CHOICES[settings["loss"]],
             attack.placeholders.targets,
             k=settings["kappa"]
         )
@@ -144,12 +149,14 @@ def attack_run(master_settings):
     """
 
     align = master_settings["align"]
+    loss = master_settings["loss"]
     decoder = master_settings["decoder"]
     kappa = master_settings["kappa"]
     outdir = master_settings["outdir"]
 
     outdir = os.path.join(outdir, "unbounded/baselines/cwmaxdiff/")
     outdir = os.path.join(outdir, "{}/".format(align))
+    outdir = os.path.join(outdir, "{}/".format(loss))
     outdir = os.path.join(outdir, "{}/".format(decoder))
     outdir = os.path.join(outdir, "{}/".format(kappa))
 
@@ -157,7 +164,7 @@ def attack_run(master_settings):
 
     batch_gen = ALIGNMENT_CHOICES[align](master_settings)
 
-    execute(master_settings, create_attack_graph, batch_gen,)
+    execute(master_settings, create_attack_graph, batch_gen, )
     log("Finished run.")
 
 
@@ -167,8 +174,15 @@ if __name__ == '__main__':
 
     extra_args = {
         'align': [str, "sparse", False, ALIGNMENT_CHOICES.keys()],
-        "kappa": [float, 5.0, False, None],
+        "kappa": [float, 0.5, False, None],
+        'loss': [str, "logits", False, LOSS_CHOICES.keys()],
     }
+
+    if extra_args["loss"][1] == "softmax":
+        assert 0 <= extra_args["loss"][1] < 1
+
+    else:
+        assert extra_args["loss"][1] >= 0
 
     args(attack_run, additional_args=extra_args)
 
