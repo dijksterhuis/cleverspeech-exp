@@ -193,11 +193,6 @@ pipeline {
                         }
                     }
                 }
-                stage("Store any results") {
-                    steps {
-                        archiveArtifacts "${BUILD_ID}/**"
-                    }
-                }
                 post {
                     always {
                         sh "docker container prune -f"
