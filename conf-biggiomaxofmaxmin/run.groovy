@@ -175,6 +175,7 @@ pipeline {
                                     ${IMAGE} \
                                     ${PYTHON_CMD}
                                 """
+                                archiveArtifacts "${BUILD_ID}/**"
                         }
                     }
                     stage("Run test") {
@@ -190,6 +191,11 @@ pipeline {
                                     ${PYTHON_CMD}
                                 """
                         }
+                    }
+                }
+                stage("Store any results") {
+                    steps {
+                        archiveArtifacts "${BUILD_ID}/**"
                     }
                 }
                 post {

@@ -151,6 +151,7 @@ pipeline {
                                     ${IMAGE} \
                                     ${PYTHON_CMD}
                                 """
+                                archiveArtifacts "${BUILD_ID}/**"
                         }
                     }
                     stage("Run test") {
