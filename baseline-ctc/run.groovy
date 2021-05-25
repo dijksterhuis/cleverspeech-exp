@@ -170,7 +170,6 @@ pipeline {
                 }
                 post {
                     always {
-                        sh "docker container prune -f"
                         sh "docker image prune -f"
                     }
                 }
