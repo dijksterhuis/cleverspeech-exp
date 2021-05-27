@@ -144,6 +144,7 @@ def attack_run(master_settings):
 
         master_settings["outdir"] = outdir
         master_settings["batch_size"] = batch_size
+        master_settings["max_examples"] = batch_size
 
         batch_gen = batch_generators.standard(master_settings)
         execute(master_settings, create_attack_graph, batch_gen)
