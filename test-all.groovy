@@ -12,10 +12,6 @@ pipeline {
     }
     parameters {
 
-        string name: 'MAX_SPAWNS',
-            defaultValue: '2',
-            description: 'Number of attacks to allow to spawn at once.'
-
         string name: 'BATCH_SIZE',
             defaultValue: '2',
             description: 'How many examples in a batch.'
@@ -34,7 +30,7 @@ pipeline {
             description: 'Which dataset to use. default: ./samples'
 
         text   name: 'ADDITIONAL_ARGS',
-            defaultValue: '--decode_step 5 --max_examples 4 --spawn_delay 2 ',
+            defaultValue: '--decode_step 5 --max_examples 4',
             description: 'Additional arguments to pass to the attack script e.g. --decode_step 10. default: none.'
 
     }
@@ -47,7 +43,6 @@ pipeline {
                     parameters: [
                         stringParam(name: 'ADDITIONAL_ARGS', value: "${params.ADDITIONAL_ARGS}"),
                         stringParam(name: 'EXP_SCRIPT', value: "attacks"),
-                        stringParam(name: 'MAX_SPAWNS', value: "${params.MAX_SPAWNS}"),
                         stringParam(name: 'BATCH_SIZE', value: "${params.BATCH_SIZE}"),
                         stringParam(name: 'N_STEPS', value: "${params.N_STEPS}"),
                         stringParam(name: 'DATA', value: "${params.DATA}"),
@@ -105,7 +100,6 @@ pipeline {
                                 parameters: [
                                     stringParam(name: 'ADDITIONAL_ARGS', value: "${params.ADDITIONAL_ARGS}"),
                                     stringParam(name: 'EXP_SCRIPT', value: "${EXP_SCRIPT}"),
-                                    stringParam(name: 'MAX_SPAWNS', value: "${params.MAX_SPAWNS}"),
                                     stringParam(name: 'BATCH_SIZE', value: "${params.BATCH_SIZE}"),
                                     stringParam(name: 'N_STEPS', value: "${params.N_STEPS}"),
                                     stringParam(name: 'DATA', value: "${params.DATA}"),

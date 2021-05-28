@@ -9,10 +9,6 @@ pipeline {
     }
     parameters {
 
-        string name: 'MAX_SPAWNS',
-            defaultValue: '3',
-            description: 'Number of attacks to allow to spawn at once.'
-
         string name: 'BATCH_SIZE',
             defaultValue: '10',
             description: 'How many examples in a batch.'
@@ -77,7 +73,6 @@ pipeline {
                                 parameters: [
                                     stringParam(name: 'ADDITIONAL_ARGS', value: "${params.ADDITIONAL_ARGS}"),
                                     stringParam(name: 'EXP_SCRIPT', value: "${MATRIX_EXP_SCRIPT}"),
-                                    stringParam(name: 'MAX_SPAWNS', value: "${params.MAX_SPAWNS}"),
                                     stringParam(name: 'BATCH_SIZE', value: "${params.BATCH_SIZE}"),
                                     stringParam(name: 'N_STEPS', value: "${params.N_STEPS}"),
                                     stringParam(name: 'DATA', value: "${MATRIX_DATA}"),

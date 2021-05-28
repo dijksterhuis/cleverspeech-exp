@@ -28,9 +28,7 @@ pipeline {
             are shared resources and these parameters will determine whether jobs fail or not due to
             resource issues (basically, undergrads might be hogging GPU memory).
             */
-            string name: 'MAX_SPAWNS',
-                defaultValue: '3',
-                description: 'Number of attacks to allow to spawn at once.'
+
 
             string name: 'N_STEPS',
                 defaultValue: '10000',
@@ -104,12 +102,12 @@ pipeline {
                 PY_BASE_CMD="python3 ./experiments/${EXP_BASE_NAME}/${params.EXP_SCRIPT}.py"
                 PY_DATA_ARGS="--audio_indir ./${params.DATA}/all/ --targets_path ./${params.DATA}/cv-valid-test.csv"
 
-                SPAWN_ARG="--max_spawns ${params.MAX_SPAWNS}"
+
                 STEPS_ARG="--nsteps ${params.N_STEPS}"
                 BATCH_ARG="--batch_size ${params.BATCH_SIZE}"
                 ALIGN_ARG="--align \${ALIGNMENT}"
                 PROCEDURE_ARG="--procedure \${PROCEDURE}"
-                PY_EXP_ARGS="${SPAWN_ARG} ${BATCH_ARG} ${STEPS_ARG} ${ALIGN_ARG} ${PROCEDURE_ARG}"
+                PY_EXP_ARGS="${BATCH_ARG} ${BATCH_ARG} ${STEPS_ARG} ${ALIGN_ARG} ${PROCEDURE_ARG}"
 
                 PYTHON_CMD = "${PY_BASE_CMD} ${PY_EXP_ARGS} ${PY_DATA_ARGS} ${params.ADDITIONAL_ARGS}"
             }
