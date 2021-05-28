@@ -58,7 +58,7 @@ pipeline {
                 choices: ['samples', 'silence'],
                 description: 'Which dataset to use. default: ./samples'
 
-            string name: 'WRITER',
+            choice name: 'WRITER',
                 choices: ['local', 's3'],
                 description: 'How/where to write results data?. default: local.'
 
