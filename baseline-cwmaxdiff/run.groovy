@@ -100,6 +100,8 @@ pipeline {
                 DOCKER_MOUNT="\$(pwd)/${BUILD_ID}:/home/cleverspeech/cleverSpeech/adv/"
                 DOCKER_UID="LOCAL_UID=\$(id -u ${USER})"
                 DOCKER_GID="LOCAL_GID=\$(id -g ${USER})"
+                AWS_ACCESS_KEY_ID = credentials('jenkins-aws-secret-key-id')
+                AWS_SECRET_ACCESS_KEY = credentials('jenkins-aws-secret-access-key')
 
                 PY_BASE_CMD="python3 ./experiments/${EXP_BASE_NAME}/${params.EXP_SCRIPT}.py"
                 PY_DATA_ARGS="--audio_indir ./${params.DATA}/all/ --targets_path ./${params.DATA}/cv-valid-test.csv"
@@ -169,8 +171,10 @@ pipeline {
                                     -v ${DOCKER_MOUNT} \
                                     -e ${DOCKER_UID} \
                                     -e ${DOCKER_GID} \
+                                    -e AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} \
+                                    -e AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY} \
                                     ${IMAGE} \
-                                    ${PYTHON_CMD}
+                                    ${PYTHON_CMD} --writer s3
                                 """
                                 archiveArtifacts "${BUILD_ID}/**"
                         }
@@ -185,7 +189,7 @@ pipeline {
                                     --gpus device=\${GPU_N} -t --rm --shm-size=10g --pid=host \
                                     --name ${DOCKER_NAME} \
                                     ${IMAGE} \
-                                    ${PYTHON_CMD}
+                                    ${PYTHON_CMD} --writer local
                                 """
                         }
                     }
