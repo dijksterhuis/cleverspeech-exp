@@ -223,7 +223,7 @@ def manager(settings, attack_fn, batch_gen):
         try:
             attack_process.start()
             attack_process.join()
-            attack_process.close()
+            attack_process.terminate()
 
         except Exception as e:
 
