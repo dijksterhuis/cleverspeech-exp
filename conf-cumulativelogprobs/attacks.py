@@ -255,6 +255,7 @@ def manager(settings, attack_fn, batch_gen):
         try:
             attack_process.start()
             attack_process.join()
+            attack_process.close()
 
         except Exception as e:
 
@@ -265,14 +266,7 @@ def manager(settings, attack_fn, batch_gen):
             s += "\n\nError Traceback:\n{e}".format(e=tb)
 
             log(s, wrap=True)
-            raise
-
-        finally:
-
             log("Attempting to close writer queue and subprocess.", wrap=True)
-
-            attack_process.terminate()
-            log("Attack subprocess closed.", wrap=True)
 
             results_queue.put("dead")
             results_queue.close()
@@ -281,6 +275,16 @@ def manager(settings, attack_fn, batch_gen):
             writer_process.join()
             writer_process.terminate()
             log("Writer subprocess closed.", wrap=True)
+            raise
+
+    log("Attempting to close writer queue and subprocess.", wrap=True)
+    results_queue.put("dead")
+    results_queue.close()
+    log("Results queue closed.", wrap=True)
+
+    writer_process.join()
+    writer_process.terminate()
+    log("Writer subprocess closed.", wrap=True)
 
 
 # ==============================================================================
