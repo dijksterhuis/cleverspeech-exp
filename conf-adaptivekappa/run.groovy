@@ -54,6 +54,10 @@ pipeline {
                 choices: ['samples', 'silence'],
                 description: 'Which dataset to use. default: ./samples'
 
+            string name: 'WRITER',
+                choices: ['local', 's3'],
+                description: 'How/where to write results data?. default: local.'
+
             choice name: 'ALIGNMENT_FILTER',
                 choices: ['all', 'dense', 'ctcalign', 'sparse'],
                 description: 'Filter experiments based on alignment hyper parameter. Note that this only works when combined with other filters.'
@@ -102,13 +106,14 @@ pipeline {
                 AWS_SECRET_ACCESS_KEY = credentials('jenkins-aws-secret-access-key')
 
                 PY_BASE_CMD="python3 ./experiments/${EXP_BASE_NAME}/${params.EXP_SCRIPT}.py"
-                PY_DATA_ARGS="--audio_indir ./${params.DATA}/all/ --targets_path ./${params.DATA}/cv-valid-test.csv"
+                PY_DATA_ARGS="--audio_indir ./${params.DATA}/all/ --targets_path ./${params.DATA}/cv-valid-test.csv --outdir ./adv/${BUILD_ID}/${JOB_TYPE}"
 
 
                 STEPS_ARG="--nsteps ${params.N_STEPS}"
                 BATCH_ARG="--batch_size ${params.BATCH_SIZE}"
                 ALIGN_ARG="--align \${ALIGNMENT}"
-                PY_EXP_ARGS="${BATCH_ARG} ${BATCH_ARG} ${STEPS_ARG} ${ALIGN_ARG}"
+                WRITER_ARG="--writer ${params.WRITER}"
+                PY_EXP_ARGS="${WRITER_ARG} ${BATCH_ARG} ${BATCH_ARG} ${STEPS_ARG} ${ALIGN_ARG}"
 
                 PYTHON_CMD = "${PY_BASE_CMD} ${PY_EXP_ARGS} ${PY_DATA_ARGS} ${params.ADDITIONAL_ARGS}"
             }
@@ -162,7 +167,7 @@ pipeline {
                                     -e AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} \
                                     -e AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY} \
                                     ${IMAGE} \
-                                    ${PYTHON_CMD} --writer s3
+                                    ${PYTHON_CMD}
                                 """
                                 archiveArtifacts "${BUILD_ID}/**"
                         }
@@ -177,7 +182,7 @@ pipeline {
                                     --gpus device=\${GPU_N} -t --rm --shm-size=10g --pid=host \
                                     --name ${DOCKER_NAME} \
                                     ${IMAGE} \
-                                    ${PYTHON_CMD} --writer local
+                                    ${PYTHON_CMD}
                                 """
                         }
                     }
