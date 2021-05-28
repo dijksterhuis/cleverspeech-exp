@@ -310,7 +310,7 @@ def attack_run(master_settings):
     loss = master_settings["loss"]
     nbatch_max = master_settings["nbatch_max"]
     nbatch_step = master_settings["nbatch_step"]
-    outdir = master_settings["outdir"]
+    initial_outdir = master_settings["outdir"]
 
     assert nbatch_max >= 1
     assert nbatch_step >= 1
@@ -321,7 +321,7 @@ def attack_run(master_settings):
         if batch_size == 0:
             batch_size = 1
 
-        outdir = os.path.join(outdir, "unbounded/batch-vs-indy/")
+        outdir = os.path.join(initial_outdir, "unbounded/batch-vs-indy/")
         outdir = os.path.join(outdir, "{}/".format(graph_type))
         outdir = os.path.join(outdir, "{}/".format(decoder))
         outdir = os.path.join(outdir, "{}/".format(loss))
