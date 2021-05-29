@@ -147,7 +147,7 @@ pipeline {
                     }
                     axis {
                         name 'DECODER'
-                        values 'batch', 'greedy'
+                        values 'greedy', 'batch', 'batch_no_lm', 'ds_greedy_no_lm'
                     }
                     axis {
                         name 'LOSS'

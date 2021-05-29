@@ -143,6 +143,11 @@ pipeline {
                         name 'ALIGNMENT'
                         values 'dense', 'sparse', 'ctcalign'
                     }
+                    axis {
+                        name 'DECODER'
+                        values 'greedy', 'batch', 'batch_no_lm', 'ds_greedy_no_lm'
+                    }
+
                 }
                 stages {
                     stage("Pull docker image") {

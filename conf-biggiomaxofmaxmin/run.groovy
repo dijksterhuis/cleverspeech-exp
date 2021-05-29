@@ -150,12 +150,8 @@ pipeline {
                         values 'logits', 'softmax'
                     }
                     axis {
-                        /*
-                            the biggio et al. objective function doesn't work well for audio so
-                            don't bother with beam search decoder (batch / beam)
-                       */
                         name 'DECODER'
-                        values 'greedy', 'batch'
+                        values 'greedy', 'batch', 'batch_no_lm', 'ds_greedy_no_lm'
                     }
                 }
                 stages {
