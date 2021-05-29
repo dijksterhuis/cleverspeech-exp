@@ -90,7 +90,7 @@ pipeline {
                 /*
                 Nasty way of not-really-but-sort-of simplifying the mess of our docker run command
                 */
-                DOCKER_NAME="${EXP_BASE_NAME}-${EXP_SCRIPT}-${DATA}-\${LOSS}-${JOB_TYPE}"
+                DOCKER_NAME="${EXP_BASE_NAME}-${EXP_SCRIPT}-${DATA}-\${LOSS}-\${DECODER}-${JOB_TYPE}"
                 DOCKER_MOUNT="\$(pwd)/${BUILD_ID}:/home/cleverspeech/cleverSpeech/adv/"
                 DOCKER_UID="LOCAL_UID=\$(id -u ${USER})"
                 DOCKER_GID="LOCAL_GID=\$(id -g ${USER})"
