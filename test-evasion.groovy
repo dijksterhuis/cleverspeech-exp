@@ -83,11 +83,11 @@ pipeline {
                     }
                 }
                 stages {
-                    stage("Run experiment") {
+                    stage("t") {
                         steps {
-                            echo "Starting ${DIR} build job for ${EXP_SCRIPT} script..."
+                            echo "Starting ${DIR} build job"
                             build job: "../matrixruns/${DIR}",
-                                wait: true,
+                                wait: true, propagate: true,
                                 parameters: [
                                     stringParam(name: 'ADDITIONAL_ARGS', value: "${params.ADDITIONAL_ARGS}"),
                                     stringParam(name: 'EXP_SCRIPT', value: "attacks"),

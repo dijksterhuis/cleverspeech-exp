@@ -42,14 +42,13 @@ pipeline {
                     ]
             }
         }
-        stage("Test others."){
+        stage("Tests"){
             failFast false
             matrix {
                 axes {
                     axis {
                         name 'DIR'
-                        values 'baseline-ctc',
-                            'baseline-cwmaxdiff',
+                        values 'baseline-cwmaxdiff',
                             'baseline-biggiomaxmin',
                             'conf-adaptivekappa',
                             'conf-ctcedgecases',
@@ -68,21 +67,12 @@ pipeline {
                              */
                     }
                 }
-                /* exclude the baseline-ctc that already ran */
-                excludes {
-                    exclude {
-                        axis {
-                            name 'DIR'
-                            values 'baseline-ctc'
-                        }
-                    }
-                }
                 stages {
-                    stage("Run experiment") {
+                    stage("t") {
                         steps {
-                            echo "Starting ${DIR} build job for ${EXP_SCRIPT} script..."
+                            echo "Starting ${DIR} build job"
                             build job: "../matrixruns/${DIR}",
-                                wait: true,
+                                wait: true, propagate: true,
                                 parameters: [
                                     stringParam(name: 'ADDITIONAL_ARGS', value: "${params.ADDITIONAL_ARGS}"),
                                     stringParam(name: 'EXP_SCRIPT', value: "unbounded"),
