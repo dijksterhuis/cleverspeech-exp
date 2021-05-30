@@ -118,7 +118,6 @@ pipeline {
         stage("Locked SCM checkout") {
             steps {
                 lock("dummy") {
-                    sleep 5
                     checkout scm
                 }
             }
