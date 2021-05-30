@@ -59,7 +59,7 @@ pipeline {
                                     stringParam(name: 'BATCH_SIZE', value: "${params.BATCH_SIZE}"),
                                     stringParam(name: 'N_STEPS', value: "${params.N_STEPS}"),
                                     stringParam(name: 'WRITER', value: "local_latest"),
-                                    stringParam(name: 'DATA', value: "${SILENCE}"),
+                                    stringParam(name: 'DATA', value: "${DATA}"),
                                     stringParam(name: 'JOB_TYPE', value: "test"),
                                 ]
                         }
