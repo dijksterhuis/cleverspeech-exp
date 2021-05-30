@@ -17,9 +17,13 @@ pipeline {
             defaultValue: '10000',
             description: 'How many iterations to run the attack for.'
 
-        string name: 'BATCH_SIZE',
+        string name: 'NBATCH_MAX',
             defaultValue: '10',
-            description: 'How many examples in a batch.'
+            description: 'Maximum number of examples in a batch.'
+
+        string name: 'NBATCH_STEP',
+            defaultValue: '4',
+            description: 'Step to increase batch size by.'
 
         choice name: 'JOB_TYPE',
             choices: ['run', 'test'],
@@ -70,7 +74,7 @@ pipeline {
 
                 script {
 
-                    def py_params = "--graph \${GRAPH} --loss \${LOSS}"
+                    def py_params = "--graph \${GRAPH} --loss \${LOSS} --nbatch_max ${params.NBATCH_MAX} --nbatch_steps ${params.NBATCH_STEP}"
                     def container_params = "\${GRAPH}-\${LOSS}"
 
                     def py_cmd = """python3 ./experiments/${EXP_BASE_NAME}/${params.EXP_SCRIPT}.py \
@@ -78,7 +82,6 @@ pipeline {
                             --targets_path ./${params.DATA}/cv-valid-test.csv \
                             --outdir ./adv/${BUILD_ID}/${params.JOB_TYPE} \
                             --nsteps ${params.N_STEPS} \
-                            --batch_size ${params.BATCH_SIZE} \
                             --writer ${params.WRITER} \
                             --decoder ${params.DECODER} \
                             ${params.ADDITIONAL_ARGS} \
