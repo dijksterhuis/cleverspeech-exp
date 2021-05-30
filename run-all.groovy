@@ -30,7 +30,7 @@ pipeline {
                 description: 'Which dataset to use. default: ./samples'
 
             choice name: 'WRITER',
-                choices: ['local', 's3'],
+            choices: ['local_latest', 'local_all', 's3_latest', 's3_all'],
                 description: 'How/where to write results data?. default: local.'
 
             text   name: 'ADDITIONAL_ARGS',

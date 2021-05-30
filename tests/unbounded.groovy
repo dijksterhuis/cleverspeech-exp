@@ -28,7 +28,7 @@ pipeline {
         stage("Test one."){
             steps{
                 echo "Starting baseline-ctc build job as an initial test..."
-                build job: "../matrixruns/baseline-ctc",
+                build job: "../baseline-ctc",
                     wait: true,
                     parameters: [
                         stringParam(name: 'ADDITIONAL_ARGS', value: "${params.ADDITIONAL_ARGS}"),
@@ -70,7 +70,7 @@ pipeline {
                     stage("t") {
                         steps {
                             echo "Starting ${DIR} build job"
-                            build job: "../matrixruns/${DIR}",
+                            build job: "../${DIR}",
                                 wait: true, propagate: true,
                                 parameters: [
                                     stringParam(name: 'ADDITIONAL_ARGS', value: "${params.ADDITIONAL_ARGS}"),

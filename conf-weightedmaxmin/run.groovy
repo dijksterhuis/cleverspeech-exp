@@ -32,7 +32,7 @@ pipeline {
         OUTDIR_ARG="--outdir ./adv/${BUILD_ID}/${params.JOB_TYPE}"
         STEPS_ARG="--nsteps ${params.N_STEPS}"
         BATCH_ARG="--batch_size ${params.BATCH_SIZE}"
-        ALIGN_ARG="--align ${params.ALIGNMENT}"
+        ALIGN_ARG="--align \${ALIGNMENT}"
         DECODER_ARG="--decoder ${params.DECODER}"
         WRITER_ARG="--writer ${params.WRITER}"
         PY_EXP_ARGS="${WRITER_ARG} ${BATCH_ARG} ${BATCH_ARG} ${STEPS_ARG} ${ALIGN_ARG} ${DECODER_ARG}"
@@ -73,7 +73,7 @@ pipeline {
             description: 'Which dataset to use. default: ./samples'
 
         choice name: 'WRITER',
-            choices: ['local', 's3'],
+            choices: ['local_latest', 'local_all', 's3_latest', 's3_all'],
             description: 'How/where to write results data?. default: local.'
 
         choice name: 'ALIGNMENT',

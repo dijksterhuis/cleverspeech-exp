@@ -21,7 +21,7 @@ pipeline {
         EXP_BASE_NAME = "conf-biggiomaxofmaxmin"
         IMAGE = "dijksterhuis/cleverspeech:latest"
 
-        DOCKER_NAME="${EXP_BASE_NAME}-${BUILD_ID}"
+        DOCKER_NAME="${EXP_BASE_NAME}-${BUILD_ID}-\${ALIGNMENT}-\${LOSS}"
         DOCKER_MOUNT="\$(pwd)/${BUILD_ID}:/home/cleverspeech/cleverSpeech/adv/"
         DOCKER_UID="LOCAL_UID=\$(id -u ${USER})"
         DOCKER_GID="LOCAL_GID=\$(id -g ${USER})"
@@ -32,8 +32,8 @@ pipeline {
         OUTDIR_ARG="--outdir ./adv/${BUILD_ID}/${params.JOB_TYPE}"
         STEPS_ARG="--nsteps ${params.N_STEPS}"
         BATCH_ARG="--batch_size ${params.BATCH_SIZE}"
-        ALIGN_ARG="--align ${params.ALIGNMENT}"
-        LOSS_ARG="--loss ${params.LOSS}"
+        ALIGN_ARG="--align \${ALIGNMENT}"
+        LOSS_ARG="--loss \${LOSS}"
         DECODER_ARG="--decoder ${params.DECODER}"
         WRITER_ARG="--writer ${params.WRITER}"
         PY_EXP_ARGS="${WRITER_ARG} ${BATCH_ARG} ${BATCH_ARG} ${STEPS_ARG} ${ALIGN_ARG} ${DECODER_ARG} ${LOSS_ARG}"
@@ -74,7 +74,7 @@ pipeline {
             description: 'Which dataset to use. default: ./samples'
 
         choice name: 'WRITER',
-            choices: ['local', 's3'],
+            choices: ['local_latest', 'local_all', 's3_latest', 's3_all'],
             description: 'How/where to write results data?. default: local.'
 
         choice name: 'ALIGNMENT',

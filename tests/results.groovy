@@ -39,7 +39,7 @@ pipeline {
                     stage("t") {
                         steps {
                             echo "Starting a minimal ctc attack build job for ${SCRIPT}"
-                            build job: "../matrixruns/baseline-ctc",
+                            build job: "../baseline-ctc",
                                 wait: true, propagate: true,
                                 parameters: [
                                     stringParam(name: 'ADDITIONAL_ARGS', value: "${params.ADDITIONAL_ARGS}"),
