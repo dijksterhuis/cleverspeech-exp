@@ -9,7 +9,7 @@ pipeline {
         skipDefaultCheckout()
         timestamps()
         disableResume()
-        disableConcurrentBuilds()
+        /*disableConcurrentBuilds()*/
     }
     parameters {
 
