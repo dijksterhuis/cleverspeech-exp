@@ -21,7 +21,7 @@ pipeline {
             description: 'How many iterations to run the attack for.'
 
         text   name: 'ADDITIONAL_ARGS',
-            defaultValue: '--decode_step 5 --max_examples 4',
+            defaultValue: '--decode_step 2 --max_examples 4',
             description: 'Additional arguments to pass to the attack script e.g. --decode_step 10. default: none.'
 
     }
@@ -89,7 +89,7 @@ pipeline {
                     stage("Run experiment") {
                         steps {
                             echo "Starting ${DIR} build job for ${EXP_SCRIPT} script..."
-                            build job: "${DIR}",
+                            build job: "./matrixruns/${DIR}",
                                 wait: true,
                                 parameters: [
                                     stringParam(name: 'ADDITIONAL_ARGS', value: "${params.ADDITIONAL_ARGS}"),
