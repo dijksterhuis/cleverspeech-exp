@@ -41,12 +41,16 @@ pipeline {
                     axis {
                         name 'SCRIPT'
                         values 'attacks', 'unbounded'
+                    },
+                    axis {
+                        name 'DATA'
+                        values 'silence', 'samples'
                     }
                 }
                 stages {
                     stage("t") {
                         steps {
-                            echo "Starting a minimal ctc attack build job for ${SCRIPT}"
+                            echo "Starting a minimal ctc attack build job for ${SCRIPT} and ${DATA}"
                             build job: "../baseline-ctc",
                                 wait: true, propagate: true,
                                 parameters: [
@@ -55,7 +59,7 @@ pipeline {
                                     stringParam(name: 'BATCH_SIZE', value: "${params.BATCH_SIZE}"),
                                     stringParam(name: 'N_STEPS', value: "${params.N_STEPS}"),
                                     stringParam(name: 'WRITER', value: "local_latest"),
-                                    stringParam(name: 'DATA', value: "samples"),
+                                    stringParam(name: 'DATA', value: "${SILENCE}"),
                                     stringParam(name: 'JOB_TYPE', value: "test"),
                                 ]
                         }
