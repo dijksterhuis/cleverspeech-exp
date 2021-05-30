@@ -18,10 +18,10 @@ pipeline {
     */
     environment {
 
-        EXP_BASE_NAME = "conf-cumulativelogprobs"
+        EXP_BASE_NAME = "misc-batch-vs-indy"
         IMAGE = "dijksterhuis/cleverspeech:latest"
 
-        DOCKER_NAME="${EXP_BASE_NAME}-${params.EXP_SCRIPT}-${DATA}-${params.GRAPH}-${params.DECODER}-${params.LOSS}-${params.JOB_TYPE}"
+        DOCKER_NAME="${EXP_BASE_NAME}-${BUILD_ID}"
         DOCKER_MOUNT="\$(pwd)/${BUILD_ID}:/home/cleverspeech/cleverSpeech/adv/"
         DOCKER_UID="LOCAL_UID=\$(id -u ${USER})"
         DOCKER_GID="LOCAL_GID=\$(id -g ${USER})"
