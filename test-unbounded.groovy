@@ -8,7 +8,7 @@ pipeline {
         disableConcurrentBuilds()
     }
     triggers {
-        upstream(upstreamProjects: './0-build/latest', threshold: hudson.model.Result.SUCCESS)
+        upstream(upstreamProjects: '../0-build/latest', threshold: hudson.model.Result.SUCCESS)
     }
     parameters {
 
@@ -29,7 +29,7 @@ pipeline {
         stage("Test one."){
             steps{
                 echo "Starting baseline-ctc build job as an initial test..."
-                build job: "./matrixruns/baseline-ctc",
+                build job: "../matrixruns/baseline-ctc",
                     wait: true,
                     parameters: [
                         stringParam(name: 'ADDITIONAL_ARGS', value: "${params.ADDITIONAL_ARGS}"),
@@ -81,7 +81,7 @@ pipeline {
                     stage("Run experiment") {
                         steps {
                             echo "Starting ${DIR} build job for ${EXP_SCRIPT} script..."
-                            build job: "./matrixruns/${DIR}",
+                            build job: "../matrixruns/${DIR}",
                                 wait: true,
                                 parameters: [
                                     stringParam(name: 'ADDITIONAL_ARGS', value: "${params.ADDITIONAL_ARGS}"),
