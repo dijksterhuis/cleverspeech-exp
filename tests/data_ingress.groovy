@@ -30,7 +30,7 @@ pipeline {
             failFast false
             matrix {
                 agent {
-                    label 'cpu'
+                    label 'gpu'
                 }
                 environment {
                     IMAGE = "dijksterhuis/cleverspeech:latest"
@@ -51,6 +51,7 @@ pipeline {
                             sh  """
                                 docker run \
                                     --pull=always \
+                                    --gpus device=\${GPU_N} \
                                     -t \
                                     --rm \
                                     --name etl-ingress-test-\${ETL}-\${DATA} \
