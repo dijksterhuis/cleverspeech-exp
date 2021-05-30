@@ -8,7 +8,7 @@ pipeline {
         disableConcurrentBuilds()
     }
     triggers {
-        upstream(upstreamProjects: './data', threshold: hudson.model.Result.SUCCESS)
+        upstream(upstreamProjects: './data_ingress', threshold: hudson.model.Result.SUCCESS)
     }
     parameters {
 
