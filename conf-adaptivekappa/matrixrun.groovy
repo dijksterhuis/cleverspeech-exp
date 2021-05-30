@@ -75,7 +75,7 @@ pipeline {
                     */
                     axis {
                         name 'DECODER'
-                        values 'greedy', 'batch', 'batch_no_lm', 'greedy_no_lm'
+                        values 'greedy', 'batch'
                     }
                 }
                 stages {
