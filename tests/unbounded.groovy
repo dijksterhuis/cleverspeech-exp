@@ -8,7 +8,7 @@ pipeline {
         disableConcurrentBuilds()
     }
     triggers {
-        upstream(upstreamProjects: '../0-build/latest', threshold: hudson.model.Result.SUCCESS)
+        upstream(upstreamProjects: './data', threshold: hudson.model.Result.SUCCESS)
     }
     parameters {
 
@@ -20,10 +20,9 @@ pipeline {
             defaultValue: '10',
             description: 'How many iterations to run the attack for.'
 
-        text   name: 'ADDITIONAL_ARGS',
+        text name: 'ADDITIONAL_ARGS',
             defaultValue: '--decode_step 2 --max_examples 4',
             description: 'Additional arguments to pass to the attack script e.g. --decode_step 10. default: none.'
-
     }
     stages {
         stage("Test one."){
