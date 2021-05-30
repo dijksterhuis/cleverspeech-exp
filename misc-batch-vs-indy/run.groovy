@@ -54,7 +54,7 @@ pipeline {
             description: 'Additional arguments to pass to the attack script e.g. --decode_step 10. default: none.'
     }
     environment {
-        EXP_BASE_NAME = "conf-weightedmaxmin"
+        EXP_BASE_NAME = "misc-batch-vs-indy"
         IMAGE = "dijksterhuis/cleverspeech:latest"
     }
     stages {
