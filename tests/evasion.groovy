@@ -50,7 +50,7 @@ pipeline {
 
                     ]
             }
-        }
+        }/*
         stage("Test others."){
             failFast false
             matrix {
@@ -70,14 +70,9 @@ pipeline {
                             'conf-targetonly',
                             'conf-weightedmaxmin',
                             'conf-maxadvctc-mintruectc',
-                            'misc-batch-vs-indy' /*,
-                             'percep-synthesis',
-                             'percep-synthesisregularised',
-                             'percep-spectralloss'
-                             */
+                            'misc-batch-vs-indy'
                     }
                 }
-                /* exclude the baseline-ctc that already ran */
                 excludes {
                     exclude {
                         axis {
@@ -110,5 +105,6 @@ pipeline {
                 }
             }
         }
+        */
     }
 }
