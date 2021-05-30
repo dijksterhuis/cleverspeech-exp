@@ -39,7 +39,7 @@ pipeline {
 
         choice name: 'GRAPH_FILTER',
             choices: ['all', 'batch', 'indy'],
-            description: 'Filter experiments based on graph hyper parameter. Default: batch.'
+            description: 'Filter experiments based on alignment hyper parameter. Default: batch.'
 
         choice name: 'LOSS_FILTER',
             choices: ['all', 'ctc', 'ctc2'],
@@ -87,23 +87,47 @@ pipeline {
                     def container_name = "${EXP_BASE_NAME}-${BUILD_ID}-${params.JOB_TYPE}-${container_params}"
 
                     if (params.JOB_TYPE == "run") {
-                        def cmd = """
-                                docker run \
-                                    --pull=always \
-                                    --gpus device=\${GPU_N} \
-                                    -t \
-                                    --rm \
-                                    --shm-size=10g \
-                                    --pid=host \
-                                    --name ${container_name} \
-                                    -v \$(pwd)/${BUILD_ID}:/home/cleverspeech/cleverSpeech/adv/ \
-                                    -e LOCAL_UID=\$(id -u ${USER}) \
-                                    -e LOCAL_GID=\$(id -g ${USER}) \
-                                    -e AWS_ACCESS_KEY_ID=credentials('jenkins-aws-secret-key-id') \
-                                    -e AWS_ACCESS_KEY_ID=credentials('jenkins-aws-secret-access-key') \
-                                    ${IMAGE} ${py_cmd}
-                        """
-                        CMD = "${cmd}"
+                        if (params.WRITER == "s3_latest" || params.WRITER == "s3_all") {
+
+                            def aws_key_id = credentials('jenkins-aws-secret-key-id')
+                            def aws_key_secret = credentials('jenkins-aws-secret-access-key')
+
+                            def cmd = """
+                                    docker run \
+                                        --pull=always \
+                                        --gpus device=\${GPU_N} \
+                                        -t \
+                                        --rm \
+                                        --shm-size=10g \
+                                        --pid=host \
+                                        --name ${container_name} \
+                                        -v \$(pwd)/${BUILD_ID}:/home/cleverspeech/cleverSpeech/adv/ \
+                                        -e LOCAL_UID=\$(id -u ${USER}) \
+                                        -e LOCAL_GID=\$(id -g ${USER}) \
+                                        -e AWS_ACCESS_KEY_ID=${aws_key_id} \
+                                        -e AWS_ACCESS_KEY_ID=${aws_key_secret} \
+                                        ${IMAGE} ${py_cmd}
+                            """
+                            CMD = "${cmd}"
+                        }
+                        else if (params.WRITER == "local_latest" || params.WRITER == "local_all") {
+
+                            def cmd = """
+                                    docker run \
+                                        --pull=always \
+                                        --gpus device=\${GPU_N} \
+                                        -t \
+                                        --rm \
+                                        --shm-size=10g \
+                                        --pid=host \
+                                        --name ${container_name} \
+                                        -v \$(pwd)/${BUILD_ID}:/home/cleverspeech/cleverSpeech/adv/ \
+                                        -e LOCAL_UID=\$(id -u ${USER}) \
+                                        -e LOCAL_GID=\$(id -g ${USER}) \
+                                        ${IMAGE} ${py_cmd}
+                            """
+                            CMD = "${cmd}"
+                        }
                     }
                     else if (params.JOB_TYPE == "test") {
                         def cmd = """
@@ -131,12 +155,12 @@ pipeline {
                 }
                 axes {
                     axis {
-                        name 'GRAPH'
-                        values 'batch', 'indy'
-                    }
-                    axis {
                         name 'LOSS'
                         values 'ctc', 'ctc2'
+                    }
+                    axis {
+                        name 'GRAPH'
+                        values 'batch', 'indy'
                     }
 
                 }
