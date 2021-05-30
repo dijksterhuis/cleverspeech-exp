@@ -37,7 +37,7 @@ pipeline {
         ALIGN_ARG="--align ${params.ALIGNMENT}"
         DECODER_ARG="--decoder ${params.DECODER}"
         WRITER_ARG="--writer ${params.WRITER}"
-        PY_EXP_ARGS="${WRITER_ARG} ${BATCH_ARG} ${BATCH_ARG} ${STEPS_ARG} ${ALIGN_ARG} ${DECODER_ARG} ${LOSS_ARG}"
+        PY_EXP_ARGS="${WRITER_ARG} ${BATCH_ARG} ${BATCH_ARG} ${STEPS_ARG} ${ALIGN_ARG} ${DECODER_ARG} ${ALIGNMENT}"
 
         PYTHON_CMD = "${PY_BASE_CMD} ${PY_EXP_ARGS} ${IN_DATA_ARG} ${TARGET_DATA_ARG} ${OUTDIR_ARG} ${params.ADDITIONAL_ARGS}"
 

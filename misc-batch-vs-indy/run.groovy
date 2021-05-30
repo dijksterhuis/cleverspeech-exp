@@ -21,7 +21,7 @@ pipeline {
         EXP_BASE_NAME = "conf-cumulativelogprobs"
         IMAGE = "dijksterhuis/cleverspeech:latest"
 
-        DOCKER_NAME="${EXP_BASE_NAME}-${params.EXP_SCRIPT}-${DATA}-${params.ALIGNMENT}-${params.DECODER}-${params.LOSS}-${params.JOB_TYPE}"
+        DOCKER_NAME="${EXP_BASE_NAME}-${params.EXP_SCRIPT}-${DATA}-${params.GRAPH}-${params.DECODER}-${params.LOSS}-${params.JOB_TYPE}"
         DOCKER_MOUNT="\$(pwd)/${BUILD_ID}:/home/cleverspeech/cleverSpeech/adv/"
         DOCKER_UID="LOCAL_UID=\$(id -u ${USER})"
         DOCKER_GID="LOCAL_GID=\$(id -g ${USER})"
@@ -34,11 +34,11 @@ pipeline {
         OUTDIR_ARG="--outdir ./adv/${BUILD_ID}/${params.JOB_TYPE}"
         STEPS_ARG="--nsteps ${params.N_STEPS}"
         BATCH_ARG="--batch_size ${params.BATCH_SIZE}"
-        ALIGN_ARG="--align ${params.ALIGNMENT}"
+        GRAPH_ARG="--graph ${params.GRAPH}"
         LOSS_ARG="--loss ${params.LOSS}"
         DECODER_ARG="--decoder ${params.DECODER}"
         WRITER_ARG="--writer ${params.WRITER}"
-        PY_EXP_ARGS="${WRITER_ARG} ${BATCH_ARG} ${BATCH_ARG} ${STEPS_ARG} ${ALIGN_ARG} ${DECODER_ARG} ${LOSS_ARG}"
+        PY_EXP_ARGS="${WRITER_ARG} ${BATCH_ARG} ${BATCH_ARG} ${STEPS_ARG} ${GRAPH_ARG} ${DECODER_ARG} ${LOSS_ARG}"
 
         PYTHON_CMD = "${PY_BASE_CMD} ${PY_EXP_ARGS} ${IN_DATA_ARG} ${TARGET_DATA_ARG} ${OUTDIR_ARG} ${params.ADDITIONAL_ARGS}"
 
