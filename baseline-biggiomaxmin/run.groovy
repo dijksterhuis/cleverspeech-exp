@@ -100,18 +100,9 @@ pipeline {
 
     stages {
         stage("Modify jenkins build information") {
-            when { equals expected: '', current: params.NAME }
             steps {
                 script {
                     buildName "#${BUILD_ID}: type:${params.JOB_TYPE} script:${params.EXP_SCRIPT} data:${params.DATA} steps:${params.N_STEPS}"
-                }
-            }
-        }
-        stage("Modify jenkins build information") {
-            when { not { equals expected: '', current: params.NAME } }
-            steps {
-                script {
-                    buildName "#${BUILD_ID}: ${params.NAME}"
                 }
             }
         }
