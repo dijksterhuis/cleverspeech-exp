@@ -84,7 +84,7 @@ pipeline {
             description: 'Filter experiments based on alignment hyper parameter. Default: sparse.'
 
         choice name: 'LOSS',
-            choices: ['fwd', 'back', 'fwplusback', 'fwdmultback'],
+            choices: ['softmax', 'logits'],
             description: 'Filter experiments based on loss hyper parameter. Default: softmax.'
 
         choice name: 'DECODER',
