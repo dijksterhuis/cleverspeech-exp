@@ -60,8 +60,8 @@ pipeline {
                                         ./experiments/tests/pytests/test_data.py \
                                         --audio_indir ./${DATA}/all/ \
                                         --etl ${ETL} \
-                                        --max_examples params.MAX_EXAMPLES \
-                                        --batch_size params.BATCH_SIZE
+                                        --max_examples "${params.MAX_EXAMPLES}" \
+                                        --batch_size "${params.BATCH_SIZE}"
                                 """
                         }
                     }
