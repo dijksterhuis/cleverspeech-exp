@@ -74,7 +74,7 @@ pipeline {
 
                 script {
 
-                    def py_params = "--graph \${GRAPH} --loss \${LOSS} --nbatch_max ${params.NBATCH_MAX} --nbatch_steps ${params.NBATCH_STEP}"
+                    def py_params = "--graph \${GRAPH} --loss \${LOSS} --nbatch_max ${params.NBATCH_MAX} --nbatch_step ${params.NBATCH_STEP}"
                     def container_params = "\${GRAPH}-\${LOSS}"
 
                     def py_cmd = """python3 ./experiments/${EXP_BASE_NAME}/${params.EXP_SCRIPT}.py \
