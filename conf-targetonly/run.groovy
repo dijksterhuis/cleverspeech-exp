@@ -53,7 +53,10 @@ pipeline {
             defaultValue: '',
             description: 'Additional arguments to pass to the attack script e.g. --decode_step 10. default: none.'
     }
-
+    environment {
+        EXP_BASE_NAME = "conf-targetonly"
+        IMAGE = "dijksterhuis/cleverspeech:latest"
+    }
     stages {
         stage("Modify jenkins build information") {
             steps {
@@ -62,10 +65,61 @@ pipeline {
                 }
             }
         }
-        stage("Locked SCM checkout") {
+        stage("Create run commands"){
             steps {
-                lock("dummy") {
-                    checkout scm
+
+                script {
+
+                    def py_params = "--align \${ALIGNMENT} --loss \${LOSS}"
+                    def container_params = "\${LOSS}-\${ALIGNMENT}"
+
+                    def py_cmd = """python3 ./experiments/${EXP_BASE_NAME}/${params.EXP_SCRIPT}.py \
+                            --audio_indir ./${params.DATA}/all/ \
+                            --targets_path ./${params.DATA}/cv-valid-test.csv \
+                            --outdir ./adv/${BUILD_ID}/${params.JOB_TYPE} \
+                            --nsteps ${params.N_STEPS} \
+                            --batch_size ${params.BATCH_SIZE} \
+                            --writer ${params.WRITER} \
+                            --decoder ${params.DECODER} \
+                            ${params.ADDITIONAL_ARGS} \
+                            ${py_params}"""
+
+                    def container_name = "${EXP_BASE_NAME}-${BUILD_ID}-${params.JOB_TYPE}-${container_params}"
+
+                    if (params.JOB_TYPE == "run") {
+                        def cmd = """
+                                docker run \
+                                    --pull=always \
+                                    --gpus device=\${GPU_N} \
+                                    -t \
+                                    --rm \
+                                    --shm-size=10g \
+                                    --pid=host \
+                                    --name ${container_name} \
+                                    -v \$(pwd)/${BUILD_ID}:/home/cleverspeech/cleverSpeech/adv/ \
+                                    -e LOCAL_UID=\$(id -u ${USER}) \
+                                    -e LOCAL_GID=\$(id -g ${USER}) \
+                                    -e AWS_ACCESS_KEY_ID=credentials('jenkins-aws-secret-key-id') \
+                                    -e AWS_ACCESS_KEY_ID=credentials('jenkins-aws-secret-access-key') \
+                                    ${IMAGE} ${py_cmd}
+                        """
+                        CMD = "${cmd}"
+                    }
+                    else if (params.JOB_TYPE == "test") {
+                        def cmd = """
+                                docker run \
+                                    --pull=always \
+                                    --gpus device=\${GPU_N} \
+                                    -t \
+                                    --rm \
+                                    --shm-size=10g \
+                                    --pid=host \
+                                    --name ${container_name} \
+                                    ${IMAGE} ${py_cmd}
+
+                        """
+                        CMD = "${cmd}"
+                    }
                 }
             }
         }
@@ -100,75 +154,18 @@ pipeline {
                         }
                     }
                 }
-                environment {
-
-                    EXP_BASE_NAME = "conf-targetonly"
-                    IMAGE = "dijksterhuis/cleverspeech:latest"
-
-                    DOCKER_NAME="${EXP_BASE_NAME}-${BUILD_ID}-\${ALIGNMENT}-\${LOSS}"
-                    DOCKER_MOUNT="\$(pwd)/${BUILD_ID}:/home/cleverspeech/cleverSpeech/adv/"
-                    DOCKER_UID="LOCAL_UID=\$(id -u ${USER})"
-                    DOCKER_GID="LOCAL_GID=\$(id -g ${USER})"
-
-                    PY_BASE_CMD="python3 ./experiments/${EXP_BASE_NAME}/${params.EXP_SCRIPT}.py"
-                    IN_DATA_ARG="--audio_indir ./${params.DATA}/all/"
-                    TARGET_DATA_ARG="--targets_path ./${params.DATA}/cv-valid-test.csv"
-                    OUTDIR_ARG="--outdir ./adv/${BUILD_ID}/${params.JOB_TYPE}"
-                    STEPS_ARG="--nsteps ${params.N_STEPS}"
-                    BATCH_ARG="--batch_size ${params.BATCH_SIZE}"
-                    ALIGN_ARG="--align \${ALIGNMENT}"
-                    LOSS_ARG="--loss \${LOSS}"
-                    WRITER_ARG="--writer ${params.WRITER}"
-                    DECODER_ARG="--decoder ${params.DECODER}"
-                    PY_EXP_ARGS="${WRITER_ARG} ${BATCH_ARG} ${STEPS_ARG} ${ALIGN_ARG} ${LOSS_ARG} ${DECODER_ARG}"
-
-                    PYTHON_CMD = "${PY_BASE_CMD} ${PY_EXP_ARGS} ${IN_DATA_ARG} ${TARGET_DATA_ARG} ${OUTDIR_ARG} ${params.ADDITIONAL_ARGS}"
-
-                }
                 stages {
-                    stage("Run experiment") {
+                    stage("exe") {
+                        steps {
+                            sh  "${CMD}"
+                        }
+                    }
+                    stage("res") {
                         when {
                             expression { params.JOB_TYPE == 'run' }
                         }
                         steps {
-                            /* Run the attacks! */
-                            sh  """
-                                docker run \
-                                    --pull=always \
-                                    --gpus device=\${GPU_N} \
-                                    -t \
-                                    --rm \
-                                    --shm-size=10g \
-                                    --pid=host \
-                                    --name ${DOCKER_NAME} \
-                                    -v ${DOCKER_MOUNT} \
-                                    -e ${DOCKER_UID} \
-                                    -e ${DOCKER_GID} \
-                                    -e AWS_ACCESS_KEY_ID=credentials('jenkins-aws-secret-key-id') \
-                                    -e AWS_ACCESS_KEY_ID=credentials('jenkins-aws-secret-access-key') \
-                                    ${IMAGE} \
-                                    ${PYTHON_CMD}
-                                """
                             archiveArtifacts "${BUILD_ID}/**"
-                        }
-                    }
-                    stage("Run test") {
-                        when {
-                            expression { params.JOB_TYPE == 'test' }
-                        }
-                        steps {
-                            sh  """
-                                docker run \
-                                    --pull=always \
-                                    --gpus device=\${GPU_N} \
-                                    -t \
-                                    --rm \
-                                    --shm-size=10g \
-                                    --pid=host \
-                                    --name ${DOCKER_NAME} \
-                                    ${IMAGE} \
-                                    ${PYTHON_CMD}
-                                """
                         }
                     }
                 }
