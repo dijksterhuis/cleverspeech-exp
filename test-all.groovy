@@ -20,20 +20,7 @@ pipeline {
             defaultValue: '10',
             description: 'How many iterations to run the attack for.'
 
-        /* choice name: 'EXP_SCRIPT',
-            choices: ['attacks', 'unbounded'],
-            description: 'Which attack python script to run. default: attacks.py.'
-        */
-
-            choice name: 'DATA',
-                choices: ['samples', 'silence'],
-                description: 'Which dataset to use. default: ./samples'
-
-            choice name: 'WRITER',
-                choices: ['local', 's3'],
-                description: 'How/where to write results data?. default: local.'
-
-            text   name: 'ADDITIONAL_ARGS',
+        text   name: 'ADDITIONAL_ARGS',
             defaultValue: '--decode_step 5 --max_examples 4',
             description: 'Additional arguments to pass to the attack script e.g. --decode_step 10. default: none.'
 
@@ -49,8 +36,8 @@ pipeline {
                         stringParam(name: 'EXP_SCRIPT', value: "attacks"),
                         stringParam(name: 'BATCH_SIZE', value: "${params.BATCH_SIZE}"),
                         stringParam(name: 'N_STEPS', value: "${params.N_STEPS}"),
-                        stringParam(name: 'WRITER', value: "${params.WRITER}"),
-                        stringParam(name: 'DATA', value: "${params.DATA}"),
+                        stringParam(name: 'WRITER', value: "local"),
+                        stringParam(name: 'DATA', value: "samples"),
                         stringParam(name: 'JOB_TYPE', value: "test"),
 
                     ]
@@ -73,6 +60,7 @@ pipeline {
                             'conf-cumulativelogprobs',
                             'conf-biggiomaxofmaxmin',
                             'conf-targetonly',
+                            'conf-weightedmaxmin',
                             'misc-batch-vs-indy' /*,
                              'percep-synthesis',
                              'percep-synthesisregularised',
@@ -108,8 +96,8 @@ pipeline {
                                     stringParam(name: 'EXP_SCRIPT', value: "${EXP_SCRIPT}"),
                                     stringParam(name: 'BATCH_SIZE', value: "${params.BATCH_SIZE}"),
                                     stringParam(name: 'N_STEPS', value: "${params.N_STEPS}"),
-                                    stringParam(name: 'WRITER', value: "${params.WRITER}"),
-                                    stringParam(name: 'DATA', value: "${params.DATA}"),
+                                    stringParam(name: 'WRITER', value: "local"),
+                                    stringParam(name: 'DATA', value: "samples"),
                                     stringParam(name: 'JOB_TYPE', value: "test"),
                                 ]
                         }
