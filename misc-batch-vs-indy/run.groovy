@@ -135,8 +135,8 @@ pipeline {
                         values 'batch', 'indy'
                     }
                     axis {
-                        name 'ALIGNMENT'
-                        values 'sparse', 'ctcalign', 'dense'
+                        name 'LOSS'
+                        values 'ctc', 'ctc2'
                     }
 
                 }
