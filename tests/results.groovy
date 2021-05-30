@@ -41,7 +41,7 @@ pipeline {
                     axis {
                         name 'SCRIPT'
                         values 'attacks', 'unbounded'
-                    },
+                    }
                     axis {
                         name 'DATA'
                         values 'silence', 'samples'
