@@ -1,7 +1,7 @@
 #!/usr/bin/env groovy
 
 pipeline {
-    agent { label 'build' }
+    agent { label 'cpu' }
     options {
         timestamps()
         disableResume()
@@ -29,6 +29,9 @@ pipeline {
         stage("Tests"){
             failFast false
             matrix {
+                agent {
+                    label 'cpu'
+                }
                 axes {
                     axis {
                         name 'ETL'
