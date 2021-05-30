@@ -25,8 +25,6 @@ pipeline {
         DOCKER_MOUNT="\$(pwd)/${BUILD_ID}:/home/cleverspeech/cleverSpeech/adv/"
         DOCKER_UID="LOCAL_UID=\$(id -u ${USER})"
         DOCKER_GID="LOCAL_GID=\$(id -g ${USER})"
-        AWS_ACCESS_KEY_ID = credentials('jenkins-aws-secret-key-id')
-        AWS_SECRET_ACCESS_KEY = credentials('jenkins-aws-secret-access-key')
 
         PY_BASE_CMD="python3 ./experiments/${EXP_BASE_NAME}/${params.EXP_SCRIPT}.py"
         IN_DATA_ARG="--audio_indir ./${params.DATA}/all/"
@@ -125,8 +123,8 @@ pipeline {
                         -v ${DOCKER_MOUNT} \
                         -e ${DOCKER_UID} \
                         -e ${DOCKER_GID} \
-                        -e AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} \
-                        -e AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY} \
+                        -e AWS_ACCESS_KEY_ID=credentials('jenkins-aws-secret-key-id') \
+                        -e AWS_ACCESS_KEY_ID=credentials('jenkins-aws-secret-access-key') \
                         ${IMAGE} \
                         ${PYTHON_CMD}
                     """

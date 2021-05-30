@@ -25,8 +25,6 @@ pipeline {
         DOCKER_MOUNT="\$(pwd)/${BUILD_ID}:/home/cleverspeech/cleverSpeech/adv/"
         DOCKER_UID="LOCAL_UID=\$(id -u ${USER})"
         DOCKER_GID="LOCAL_GID=\$(id -g ${USER})"
-        AWS_ACCESS_KEY_ID = credentials('jenkins-aws-secret-key-id')
-        AWS_SECRET_ACCESS_KEY = credentials('jenkins-aws-secret-access-key')
 
         PY_BASE_CMD="python3 ./experiments/${EXP_BASE_NAME}/${params.EXP_SCRIPT}.py"
         IN_DATA_ARG="--audio_indir ./${params.DATA}/all/"
@@ -94,13 +92,26 @@ pipeline {
         text   name: 'ADDITIONAL_ARGS',
             defaultValue: '',
             description: 'Additional arguments to pass to the attack script e.g. --decode_step 10. default: none.'
+
+        text   name: 'NAME',
+            defaultValue: '',
+            description: 'A name for this run default: none'
     }
 
     stages {
         stage("Modify jenkins build information") {
+            when { equals expected: '', current: params.NAME }
             steps {
                 script {
                     buildName "#${BUILD_ID}: type:${params.JOB_TYPE} script:${params.EXP_SCRIPT} data:${params.DATA} steps:${params.N_STEPS}"
+                }
+            }
+        }
+        stage("Modify jenkins build information") {
+            when { not { equals expected: '', current: params.NAME } }
+            steps {
+                script {
+                    buildName "#${BUILD_ID}: ${params.NAME}"
                 }
             }
         }
@@ -130,8 +141,8 @@ pipeline {
                         -v ${DOCKER_MOUNT} \
                         -e ${DOCKER_UID} \
                         -e ${DOCKER_GID} \
-                        -e AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} \
-                        -e AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY} \
+                        -e AWS_ACCESS_KEY_ID=credentials('jenkins-aws-secret-key-id') \
+                        -e AWS_ACCESS_KEY_ID=credentials('jenkins-aws-secret-access-key') \
                         ${IMAGE} \
                         ${PYTHON_CMD}
                     """
