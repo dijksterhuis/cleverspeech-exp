@@ -61,6 +61,7 @@ pipeline {
                             'conf-biggiomaxofmaxmin',
                             'conf-targetonly',
                             'conf-weightedmaxmin',
+                            'conf-maxadctc-mintruectc',
                             'misc-batch-vs-indy' /*,
                              'percep-synthesis',
                              'percep-synthesisregularised',
