@@ -21,7 +21,7 @@ DATA_CHOICES = {
 
 def attack_run(master_settings):
 
-    batch_gen = DATA_CHOICES[master_settings["data"]](master_settings)
+    batch_gen = DATA_CHOICES[master_settings["etl"]](master_settings)
     manager(batch_gen)
 
 
