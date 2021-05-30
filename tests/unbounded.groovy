@@ -6,6 +6,7 @@ pipeline {
         timestamps()
         disableResume()
         disableConcurrentBuilds()
+        skipDefaultCheckout()
     }
     triggers {
         upstream(upstreamProjects: './data_ingress', threshold: hudson.model.Result.SUCCESS)
@@ -25,6 +26,13 @@ pipeline {
             description: 'Additional arguments to pass to the attack script e.g. --decode_step 10. default: none.'
     }
     stages {
+        stage("SCM") {
+            steps {
+                lock("dummy") {
+                    checkout scm
+                }
+            }
+        }
         stage("Test one."){
             steps{
                 echo "Starting baseline-ctc build job as an initial test..."
@@ -35,7 +43,7 @@ pipeline {
                         stringParam(name: 'EXP_SCRIPT', value: "unbounded"),
                         stringParam(name: 'BATCH_SIZE', value: "${params.BATCH_SIZE}"),
                         stringParam(name: 'N_STEPS', value: "${params.N_STEPS}"),
-                        stringParam(name: 'WRITER', value: "local"),
+                        stringParam(name: 'WRITER', value: "local_latest"),
                         stringParam(name: 'DATA', value: "samples"),
                         stringParam(name: 'JOB_TYPE', value: "test"),
                     ]
@@ -77,7 +85,7 @@ pipeline {
                                     stringParam(name: 'EXP_SCRIPT', value: "unbounded"),
                                     stringParam(name: 'BATCH_SIZE', value: "${params.BATCH_SIZE}"),
                                     stringParam(name: 'N_STEPS', value: "${params.N_STEPS}"),
-                                    stringParam(name: 'WRITER', value: "local"),
+                                    stringParam(name: 'WRITER', value: "local_latest"),
                                     stringParam(name: 'DATA', value: "samples"),
                                     stringParam(name: 'JOB_TYPE', value: "test"),
                                 ]

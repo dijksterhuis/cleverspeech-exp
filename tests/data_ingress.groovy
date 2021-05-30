@@ -6,6 +6,7 @@ pipeline {
         timestamps()
         disableResume()
         disableConcurrentBuilds()
+        skipDefaultCheckout()
     }
     triggers {
         upstream(upstreamProjects: '../0-build/latest', threshold: hudson.model.Result.SUCCESS)
@@ -26,6 +27,13 @@ pipeline {
 
     }
     stages {
+        stage("SCM") {
+            steps {
+                lock("dummy") {
+                    checkout scm
+                }
+            }
+        }
         stage("Tests"){
             failFast false
             matrix {

@@ -6,6 +6,7 @@ pipeline {
         timestamps()
         disableResume()
         disableConcurrentBuilds()
+        skipDefaultCheckout()
     }
     triggers {
         upstream(upstreamProjects: './unbounded', threshold: hudson.model.Result.SUCCESS)
@@ -26,6 +27,13 @@ pipeline {
 
     }
     stages {
+        stage("SCM") {
+            steps {
+                lock("dummy") {
+                    checkout scm
+                }
+            }
+        }
         stage("Test one."){
             steps{
                 echo "Starting baseline-ctc build job as an initial test..."
@@ -36,7 +44,7 @@ pipeline {
                         stringParam(name: 'EXP_SCRIPT', value: "attacks"),
                         stringParam(name: 'BATCH_SIZE', value: "${params.BATCH_SIZE}"),
                         stringParam(name: 'N_STEPS', value: "${params.N_STEPS}"),
-                        stringParam(name: 'WRITER', value: "local"),
+                        stringParam(name: 'WRITER', value: "local_latest"),
                         stringParam(name: 'DATA', value: "samples"),
                         stringParam(name: 'JOB_TYPE', value: "test"),
 
@@ -93,7 +101,7 @@ pipeline {
                                     stringParam(name: 'EXP_SCRIPT', value: "attacks"),
                                     stringParam(name: 'BATCH_SIZE', value: "${params.BATCH_SIZE}"),
                                     stringParam(name: 'N_STEPS', value: "${params.N_STEPS}"),
-                                    stringParam(name: 'WRITER', value: "local"),
+                                    stringParam(name: 'WRITER', value: "local_latest"),
                                     stringParam(name: 'DATA', value: "samples"),
                                     stringParam(name: 'JOB_TYPE', value: "test"),
                                 ]
