@@ -29,17 +29,16 @@ pipeline {
         stage("Test one."){
             steps{
                 echo "Starting baseline-ctc build job as an initial test..."
-                build job: "baseline-ctc",
+                build job: "./matrixruns/baseline-ctc",
                     wait: true,
                     parameters: [
                         stringParam(name: 'ADDITIONAL_ARGS', value: "${params.ADDITIONAL_ARGS}"),
-                        stringParam(name: 'EXP_SCRIPT', value: "attacks"),
+                        stringParam(name: 'EXP_SCRIPT', value: "unbounded"),
                         stringParam(name: 'BATCH_SIZE', value: "${params.BATCH_SIZE}"),
                         stringParam(name: 'N_STEPS', value: "${params.N_STEPS}"),
                         stringParam(name: 'WRITER', value: "local"),
                         stringParam(name: 'DATA', value: "samples"),
                         stringParam(name: 'JOB_TYPE', value: "test"),
-
                     ]
             }
         }
@@ -68,10 +67,6 @@ pipeline {
                              'percep-spectralloss'
                              */
                     }
-                    axis {
-                        name 'EXP_SCRIPT'
-                        values 'attacks', 'unbounded'
-                    }
                 }
                 /* exclude the baseline-ctc that already ran */
                 excludes {
@@ -79,10 +74,6 @@ pipeline {
                         axis {
                             name 'DIR'
                             values 'baseline-ctc'
-                        }
-                        axis {
-                            name 'EXP_SCRIPT'
-                            values 'attacks'
                         }
                     }
                 }
@@ -94,7 +85,7 @@ pipeline {
                                 wait: true,
                                 parameters: [
                                     stringParam(name: 'ADDITIONAL_ARGS', value: "${params.ADDITIONAL_ARGS}"),
-                                    stringParam(name: 'EXP_SCRIPT', value: "${EXP_SCRIPT}"),
+                                    stringParam(name: 'EXP_SCRIPT', value: "unbounded"),
                                     stringParam(name: 'BATCH_SIZE', value: "${params.BATCH_SIZE}"),
                                     stringParam(name: 'N_STEPS', value: "${params.N_STEPS}"),
                                     stringParam(name: 'WRITER', value: "local"),
