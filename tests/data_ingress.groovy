@@ -32,6 +32,9 @@ pipeline {
                 agent {
                     label 'cpu'
                 }
+                environment {
+                    IMAGE = "dijksterhuis/cleverspeech:latest"
+                }
                 axes {
                     axis {
                         name 'ETL'
