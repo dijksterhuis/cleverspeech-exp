@@ -35,10 +35,9 @@ pipeline {
         STEPS_ARG="--nsteps ${params.N_STEPS}"
         BATCH_ARG="--batch_size ${params.BATCH_SIZE}"
         ALIGN_ARG="--align ${params.ALIGNMENT}"
-        LOSS_ARG="--loss ${params.LOSS}"
         DECODER_ARG="--decoder ${params.DECODER}"
         WRITER_ARG="--writer ${params.WRITER}"
-        PY_EXP_ARGS="${WRITER_ARG} ${BATCH_ARG} ${BATCH_ARG} ${STEPS_ARG} ${ALIGN_ARG} ${DECODER_ARG} ${LOSS_ARG}"
+        PY_EXP_ARGS="${WRITER_ARG} ${BATCH_ARG} ${BATCH_ARG} ${STEPS_ARG} ${ALIGN_ARG} ${DECODER_ARG}"
 
         PYTHON_CMD = "${PY_BASE_CMD} ${PY_EXP_ARGS} ${IN_DATA_ARG} ${TARGET_DATA_ARG} ${OUTDIR_ARG} ${params.ADDITIONAL_ARGS}"
 
