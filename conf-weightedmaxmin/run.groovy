@@ -160,7 +160,7 @@ pipeline {
                     }*/
                     axis {
                         name 'ALIGNMENT'
-                        values 'sparse', 'ctcalign', 'dense'
+                        values 'sparse', 'dense', /*'ctcalign',*/
                     }
 
                 }
