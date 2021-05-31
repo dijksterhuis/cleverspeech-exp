@@ -94,7 +94,7 @@ def create_attack_graph(sess, batch, settings):
 
 
 def custom_extract_results(attack):
-    results = data.egress.extract.get_evasion_attack_state(attack)
+    results = data.egress.extract.get_unbounded_attack_state(attack)
     results["loss_weightings"] = attack.procedure.tf_run(
         attack.loss[0].c
     )
