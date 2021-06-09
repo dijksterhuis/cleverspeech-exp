@@ -31,11 +31,10 @@ class CustomLoss(graph.Losses.BaseLogitDiffLoss):
             weight_settings=weight_settings,
         )
 
-        self.c = c = 2 - self.target_logit
-        diff = c * (- self.target_logit + self.max_other_logit)
+        self.c = c = 1 - self.target_logit
+        self.weighted_diff = c * tf.maximum(- self.target_logit + self.max_other_logit, 0)
 
-        self.loss_fn = tf.reduce_sum(diff, axis=1)
-        self.loss_fn += attack.batch.audios["max_feats"]  # loss = 0 when min'd
+        self.loss_fn = tf.reduce_sum(self.weighted_diff, axis=1)
         self.loss_fn *= self.weights
 
 
