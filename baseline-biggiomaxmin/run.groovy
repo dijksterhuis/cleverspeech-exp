@@ -66,6 +66,10 @@ pipeline {
             }
         }
         stage("Create run commands"){
+            environment {
+                AWS_ID = credentials('jenkins-aws-secret-key-id')
+                AWS_SECRET = credentials('jenkins-aws-secret-access-key')
+            }
             steps {
 
                 script {
@@ -89,9 +93,6 @@ pipeline {
                     if (params.JOB_TYPE == "run") {
                         if (params.WRITER == "s3_latest" || params.WRITER == "s3_all") {
 
-                            def aws_key_id = credentials('jenkins-aws-secret-key-id')
-                            def aws_key_secret = credentials('jenkins-aws-secret-access-key')
-
                             def cmd = """
                                     docker run \
                                         --pull=always \
@@ -104,8 +105,8 @@ pipeline {
                                         -v \$(pwd)/${BUILD_ID}:/home/cleverspeech/cleverSpeech/adv/ \
                                         -e LOCAL_UID=\$(id -u ${USER}) \
                                         -e LOCAL_GID=\$(id -g ${USER}) \
-                                        -e AWS_ACCESS_KEY_ID=${aws_key_id} \
-                                        -e AWS_ACCESS_KEY_ID=${aws_key_secret} \
+                                        -e AWS_ACCESS_KEY_ID=${AWS_ID} \
+                                        -e AWS_ACCESS_KEY_ID=${AWS_SECRET} \
                                         ${IMAGE} ${py_cmd}
                             """
                             CMD = "${cmd}"
