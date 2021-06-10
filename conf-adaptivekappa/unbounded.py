@@ -121,7 +121,7 @@ def attack_run(master_settings):
 if __name__ == '__main__':
 
     extra_args = {
-        'align': [str, "sparse", False, ["sparse", "dense", "ctcalign"]],
+        'align': [str, "sparse", False, ALIGNMENT_CHOICES.keys()],
         "kappa": [float, 0.25, False, None],
     }
 
