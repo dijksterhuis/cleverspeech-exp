@@ -42,7 +42,7 @@ pipeline {
             description: 'Filter experiments based on decoder hyper parameter. Default: batch.'
 
         choice name: 'DECODER',
-            choices: ['batch', 'greedy', 'batch_no_lm', 'greedy_no_lm'],
+            choices: ['batch', 'greedy', 'batch_no_lm', 'greedy_no_lm', 'tf_greedy', 'tf'],
             description: 'Filter experiments based on decoder hyper parameter. Default: batch.'
 
         text   name: 'ADDITIONAL_ARGS',

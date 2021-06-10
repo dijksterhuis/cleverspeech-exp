@@ -46,7 +46,7 @@ pipeline {
             description: 'Filter experiments based on loss hyper parameter. Default: batch.'*/
 
         choice name: 'DECODER',
-            choices: ['batch', 'greedy', 'batch_no_lm', 'greedy_no_lm'],
+            choices: ['batch', 'greedy', 'batch_no_lm', 'greedy_no_lm', 'tf_greedy', 'tf'],
             description: 'decoder hyper parameter. Default: batch.'
 
         text   name: 'ADDITIONAL_ARGS',
