@@ -119,17 +119,7 @@ def attack_run(master_settings):
 
     master_settings["outdir"] = outdir
 
-    if align == "ctcalign":
-        batch_gen = data.ingress.etl.batch_generators.standard(master_settings)
-
-    elif align == "dense":
-        batch_gen = data.ingress.etl.batch_generators.dense(master_settings)
-
-    elif align == "sparse":
-        batch_gen = data.ingress.etl.batch_generators.sparse(master_settings)
-
-    else:
-        raise NotImplementedError
+    batch_gen = ALIGNMENT_CHOICES[align](master_settings)
 
     manager(
         master_settings,
