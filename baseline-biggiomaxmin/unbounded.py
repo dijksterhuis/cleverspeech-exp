@@ -14,7 +14,7 @@ from SecEval import VictimAPI as DeepSpeech
 
 ALIGNMENT_CHOICES = {
     "sparse": data.ingress.etl.batch_generators.sparse,
-    "ctcalign": data.ingress.etl.batch_generators.standard,
+    "mid": data.ingress.etl.batch_generators.midish,
     "dense": data.ingress.etl.batch_generators.dense,
 }
 
