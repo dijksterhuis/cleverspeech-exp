@@ -46,10 +46,7 @@ pipeline {
             }
         }
         stage("Create run commands"){
-            environment {
-                AWS_ID = credentials('jenkins-aws-secret-key-id')
-                AWS_SECRET = credentials('jenkins-aws-secret-access-key')
-            }
+
             steps {
 
                 script {
@@ -112,6 +109,10 @@ pipeline {
                 }
                 stages {
                     stage("exe") {
+                        environment {
+                            AWS_ID = credentials('jenkins-aws-secret-key-id')
+                            AWS_SECRET = credentials('jenkins-aws-secret-access-key')
+                        }
                         steps {
                             sh  "${CMD}"
                         }

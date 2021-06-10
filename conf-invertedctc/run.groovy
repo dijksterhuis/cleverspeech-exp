@@ -62,10 +62,7 @@ pipeline {
             }
         }
         stage("Create run commands"){
-            environment {
-                AWS_ID = credentials('jenkins-aws-secret-key-id')
-                AWS_SECRET = credentials('jenkins-aws-secret-access-key')
-            }
+
             steps {
 
                 script {
@@ -101,8 +98,8 @@ pipeline {
                                         -v \$(pwd)/${BUILD_ID}:/home/cleverspeech/cleverSpeech/adv/ \
                                         -e LOCAL_UID=\$(id -u ${USER}) \
                                         -e LOCAL_GID=\$(id -g ${USER}) \
-                                        -e AWS_ACCESS_KEY_ID=${AWS_ID} \
-                                        -e AWS_ACCESS_KEY_ID=${AWS_SECRET} \
+                                        -e AWS_ACCESS_KEY_ID=\${AWS_ID} \
+                                        -e AWS_ACCESS_KEY_ID=\${AWS_SECRET} \
                                         ${IMAGE} ${py_cmd}
                             """
                             CMD = "${cmd}"
@@ -171,6 +168,10 @@ pipeline {
                 }
                 stages {
                     stage("exe") {
+                        environment {
+                            AWS_ID = credentials('jenkins-aws-secret-key-id')
+                            AWS_SECRET = credentials('jenkins-aws-secret-access-key')
+                        }
                         steps {
                             sh  "${CMD}"
                         }
