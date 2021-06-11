@@ -6,18 +6,12 @@ from cleverspeech import graph
 from cleverspeech.utils.Utils import log
 from cleverspeech.utils.runtime.ExperimentArguments import args
 from cleverspeech.utils.runtime.Execution import default_unbounded_manager
-from cleverspeech.graph.CTCAlignmentSearch import create_tf_ctc_alignment_search_graph
+from cleverspeech.data.ingress.etl.batch_generators import PATH_GENERATORS
+
 
 # victim model
 from SecEval import VictimAPI as DeepSpeech
 
-
-ALIGNMENT_CHOICES = {
-    "sparse": data.ingress.etl.batch_generators.sparse,
-    "mid": data.ingress.etl.batch_generators.midish,
-    "dense": data.ingress.etl.batch_generators.dense,
-    "ctcalign": data.ingress.etl.batch_generators.standard,
-}
 
 LOSS_CHOICES = {
     "softmax": graph.Losses.BiggioMaxMinSoftmax,
@@ -40,41 +34,20 @@ def create_attack_graph(sess, batch, settings):
         beam_width=settings["beam_width"]
     )
 
-    if settings["align"] == "ctcalign":
-
-        alignment = create_tf_ctc_alignment_search_graph(sess, batch)
-
-        attack.add_loss(
-            LOSS_CHOICES[settings["loss"]],
-            alignment.graph.target_alignments,
-        )
-        attack.create_loss_fn()
-        attack.add_optimiser(
-            graph.Optimisers.AdamIndependentOptimiser,
-            learning_rate=settings["learning_rate"]
-        )
-        attack.add_procedure(
-            graph.Procedures.CTCAlignUnbounded,
-            alignment_graph=alignment,
-            steps=settings["nsteps"],
-            update_step=settings["decode_step"]
-        )
-
-    else:
-        attack.add_loss(
-            LOSS_CHOICES[settings["loss"]],
-            attack.placeholders.targets,
-        )
-        attack.create_loss_fn()
-        attack.add_optimiser(
-            graph.Optimisers.AdamIndependentOptimiser,
-            learning_rate=settings["learning_rate"]
-        )
-        attack.add_procedure(
-            graph.Procedures.Unbounded,
-            steps=settings["nsteps"],
-            update_step=settings["decode_step"]
-        )
+    attack.add_loss(
+        LOSS_CHOICES[settings["loss"]],
+        attack.placeholders.targets,
+    )
+    attack.create_loss_fn()
+    attack.add_optimiser(
+        graph.Optimisers.AdamIndependentOptimiser,
+        learning_rate=settings["learning_rate"]
+    )
+    attack.add_procedure(
+        graph.Procedures.Unbounded,
+        steps=settings["nsteps"],
+        update_step=settings["decode_step"]
+    )
 
     return attack
 
@@ -95,7 +68,7 @@ def attack_run(master_settings):
 
     master_settings["outdir"] = outdir
 
-    batch_gen = ALIGNMENT_CHOICES[align](master_settings)
+    batch_gen = data.ingress.etl.batch_generators.PATH_GENERATORS[align](master_settings)
 
     default_unbounded_manager(
         master_settings,
@@ -109,7 +82,6 @@ if __name__ == '__main__':
     log("", wrap=True)
 
     extra_args = {
-        'align': [str, "sparse", False, ALIGNMENT_CHOICES.keys()],
         'loss': [str, "logits", False, LOSS_CHOICES.keys()],
     }
 

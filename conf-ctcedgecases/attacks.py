@@ -6,19 +6,11 @@ from cleverspeech import graph
 from cleverspeech.utils.Utils import log
 from cleverspeech.utils.runtime.Execution import default_evasion_manager
 from cleverspeech.utils.runtime.ExperimentArguments import args
-from cleverspeech.graph.CTCAlignmentSearch import create_tf_ctc_alignment_search_graph
+
 
 
 # victim model
 from SecEval import VictimAPI as DeepSpeech
-
-
-ALIGNMENT_CHOICES = {
-    "sparse": data.ingress.etl.batch_generators.sparse,
-    "mid": data.ingress.etl.batch_generators.midish,
-    "dense": data.ingress.etl.batch_generators.dense,
-    "ctcalign": data.ingress.etl.batch_generators.standard,
-}
 
 
 def create_attack_graph(sess, batch, settings):
@@ -41,48 +33,7 @@ def create_attack_graph(sess, batch, settings):
         beam_width=settings["beam_width"]
     )
 
-    if settings["align"] == "ctcalign" and settings["procedure"] == "std":
-
-        alignment = create_tf_ctc_alignment_search_graph(sess, batch)
-
-        attack.add_loss(
-            graph.Losses.AlignmentsCTCLoss,
-            alignment=alignment.graph.target_alignments,
-        )
-        attack.create_loss_fn()
-        attack.add_optimiser(
-            graph.Optimisers.AdamIndependentOptimiser,
-            learning_rate=settings["learning_rate"]
-        )
-        attack.add_procedure(
-            graph.Procedures.StandardCTCAlignProcedure,
-            alignment_graph=alignment,
-            steps=settings["nsteps"],
-            update_step=settings["decode_step"],
-        )
-
-    elif settings["align"] == "ctcalign" and settings["procedure"] == "extreme":
-
-        alignment = create_tf_ctc_alignment_search_graph(sess, batch)
-
-        attack.add_loss(
-            graph.Losses.AlignmentsCTCLoss,
-            alignment=alignment.graph.target_alignments,
-        )
-        attack.create_loss_fn()
-        attack.add_optimiser(
-            graph.Optimisers.AdamIndependentOptimiser,
-            learning_rate=settings["learning_rate"]
-        )
-        attack.add_procedure(
-            graph.Procedures.CTCAlignUpdateOnLoss,
-            alignment_graph=alignment,
-            steps=settings["nsteps"],
-            update_step=settings["decode_step"],
-            loss_lower_bound=settings["loss_threshold"],
-        )
-
-    elif settings["procedure"] == "std":
+    if settings["procedure"] == "std":
 
         attack.add_loss(
             graph.Losses.AlignmentsCTCLoss
@@ -142,7 +93,7 @@ def attack_run(master_settings):
 
     master_settings["outdir"] = outdir
 
-    batch_gen = ALIGNMENT_CHOICES[align](master_settings)
+    batch_gen = data.ingress.etl.batch_generators.PATH_GENERATORS[align](master_settings)
 
     default_evasion_manager(
         master_settings,
@@ -155,7 +106,6 @@ def attack_run(master_settings):
 if __name__ == '__main__':
 
     extra_args = {
-        'align': [str, "sparse", False, ALIGNMENT_CHOICES.keys()],
         "procedure": [str, "std", False, ["std", "extreme"]],
         "loss_threshold": [float, 20.0, False, None],
     }
