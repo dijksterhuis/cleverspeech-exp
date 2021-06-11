@@ -17,6 +17,7 @@ ALIGNMENT_CHOICES = {
     "mid": data.ingress.etl.batch_generators.midish,
     "mid": data.ingress.etl.batch_generators.midish,
     "dense": data.ingress.etl.batch_generators.dense,
+    "ctcalign": data.ingress.etl.batch_generators.standard,
 }
 
 LOSS_CHOICES = {

@@ -16,6 +16,7 @@ DATA_CHOICES = {
     "standard": data.ingress.etl.batch_generators.standard,
     "sparse": data.ingress.etl.batch_generators.sparse,
     "dense": data.ingress.etl.batch_generators.dense,
+    "ctcalign": data.ingress.etl.batch_generators.standard,
 }
 
 
