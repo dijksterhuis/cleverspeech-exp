@@ -42,7 +42,7 @@ pipeline {
             description: 'Filter experiments based on alignment hyper parameter. Default: batch.'
 
         choice name: 'DECODER',
-            choices: ['batch', 'greedy', 'batch_no_lm', 'greedy_no_lm', 'tf_greedy', 'tf'],
+            choices: ['batch', 'greedy', 'batch_no_lm', 'greedy_no_lm', 'tf_greedy', 'tf_beam'],
             description: 'decoder hyper parameter. Default: batch.'
 
         text   name: 'ADDITIONAL_ARGS',
