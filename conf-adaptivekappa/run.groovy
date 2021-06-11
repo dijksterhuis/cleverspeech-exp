@@ -38,7 +38,7 @@ pipeline {
             description: 'How/where to write results data?. default: local.'
 
         choice name: 'ALIGNMENT_FILTER',
-            choices: ['all', 'sparse', 'mid', 'dense', 'ctcalign'],
+            choices: ['all', 'sparse', 'mid', 'dense', 'ctc'],
             description: 'Filter experiments based on alignment hyper parameter. Default: batch.'
 
         /*choice name: 'LOSS_FILTER',
@@ -158,7 +158,7 @@ pipeline {
                     }*/
                     axis {
                         name 'ALIGNMENT'
-                        values 'sparse', 'mid', 'dense', 'ctcalign'
+                        values 'sparse', 'mid', 'dense', 'ctc'
                     }
 
                 }
