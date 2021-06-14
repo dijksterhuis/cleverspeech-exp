@@ -10,6 +10,7 @@ pipeline {
     }
     triggers {
         upstream(upstreamProjects: '../0-build/latest', threshold: hudson.model.Result.SUCCESS)
+        upstream(upstreamProjects: './0-build/base', threshold: hudson.model.Result.SUCCESS)
     }
     parameters {
 
