@@ -34,7 +34,7 @@ pipeline {
             description: 'Which attack python script to run. default: attacks.py.'
 
         choice name: 'DATA',
-            choices: ['samples', 'silence'],
+            choices: ['samples', 'silence', 'reference-signals/sines/sine', 'reference-signals/sines/am', 'reference-signals/sines/fm', 'reference-signals/sines/additive', 'reference-signals/noise/uniform'],
             description: 'Which dataset to use. default: ./samples'
 
         choice name: 'WRITER',
