@@ -22,7 +22,7 @@ pipeline {
             description: 'How many iterations to run the attack for.'
 
         choice name: 'EXP_SCRIPT',
-            choices: ['attacks', 'unbounded'],
+            choices: ['evasion_pgd', 'unbounded'],
             description: 'Which attack python script to run. default: attacks.py.'
 
             choice name: 'DATA',

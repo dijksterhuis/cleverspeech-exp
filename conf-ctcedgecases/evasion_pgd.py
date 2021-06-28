@@ -8,7 +8,8 @@ from cleverspeech.utils.runtime.Execution import default_evasion_manager
 from cleverspeech.utils.runtime.ExperimentArguments import args
 
 
-# Victim model import
+
+# victim model
 from SecEval import VictimAPI as DeepSpeech
 
 
@@ -31,43 +32,67 @@ def create_attack_graph(sess, batch, settings):
         decoder=settings["decoder"],
         beam_width=settings["beam_width"]
     )
-    attack.add_loss(
-        graph.Losses.GreedyOtherAlignmentsCTCLoss,
-        alignment=attack.placeholders.targets,
-        weight_settings=(1 / 100, 1 / 100)
-    )
-    attack.add_loss(
-        graph.Losses.CWMaxDiff,
-        attack.placeholders.targets,
-        k=settings["kappa"]
-    )
-    attack.create_loss_fn()
-    attack.add_optimiser(
-        graph.Optimisers.AdamIndependentOptimiser,
-        learning_rate=settings["learning_rate"]
-    )
-    attack.add_procedure(
-        graph.Procedures.EvasionPGD,
-        steps=settings["nsteps"],
-        update_step=settings["decode_step"]
-    )
+
+    if settings["procedure"] == "std":
+
+        attack.add_loss(
+            graph.Losses.AlignmentsCTCLoss
+        )
+        attack.create_loss_fn()
+        attack.add_optimiser(
+            graph.Optimisers.AdamIndependentOptimiser,
+            learning_rate=settings["learning_rate"]
+        )
+        attack.add_procedure(
+            graph.Procedures.EvasionPGD,
+            steps=settings["nsteps"],
+            update_step=settings["decode_step"],
+        )
+
+    elif settings["procedure"] == "extreme":
+
+        attack.add_loss(
+            graph.Losses.AlignmentsCTCLoss
+        )
+        attack.create_loss_fn()
+        attack.add_optimiser(
+            graph.Optimisers.AdamIndependentOptimiser,
+            learning_rate=settings["learning_rate"]
+        )
+        attack.add_procedure(
+            graph.Procedures.LossPGD,
+            steps=settings["nsteps"],
+            update_step=settings["decode_step"],
+            loss_lower_bound=settings["loss_threshold"],
+        )
+
+    else:
+        raise NotImplementedError
 
     return attack
 
 
 def attack_run(master_settings):
     """
+
     """
 
     align = master_settings["align"]
     decoder = master_settings["decoder"]
-    kappa = master_settings["kappa"]
+    procedure = master_settings["procedure"]
+    loss_threshold = master_settings["loss_threshold"]
     outdir = master_settings["outdir"]
 
-    outdir = os.path.join(outdir, "evasion/confidence/invertedctc-cwmaxdiff/")
+    attack_type = os.path.basename(__file__).replace(".py", "")
+
+    outdir = os.path.join(outdir, attack_type)
+    outdir = os.path.join(outdir, "confidence/ctc-edge-case/")
     outdir = os.path.join(outdir, "{}/".format(align))
     outdir = os.path.join(outdir, "{}/".format(decoder))
-    outdir = os.path.join(outdir, "{}/".format(kappa))
+    outdir = os.path.join(outdir, "{}/".format(procedure))
+
+    if procedure == "extreme":
+        outdir = os.path.join(outdir, "{}/".format(loss_threshold))
 
     master_settings["outdir"] = outdir
 
@@ -84,7 +109,8 @@ def attack_run(master_settings):
 if __name__ == '__main__':
 
     extra_args = {
-        "kappa": [float, 5.0, False, None],
+        "procedure": [str, "std", False, ["std", "extreme"]],
+        "loss_threshold": [float, 20.0, False, None],
     }
 
     args(attack_run, additional_args=extra_args)

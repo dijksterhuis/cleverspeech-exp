@@ -83,7 +83,10 @@ def attack_run(master_settings):
     loss = master_settings["loss"]
     outdir = master_settings["outdir"]
 
-    outdir = os.path.join(outdir, "unbounded/confidence/cumulative_logprobs/")
+    attack_type = os.path.basename(__file__).replace(".py", "")
+
+    outdir = os.path.join(outdir, attack_type)
+    outdir = os.path.join(outdir, "confidence/cumulative_logprobs/")
     outdir = os.path.join(outdir, "{}/".format(align))
     outdir = os.path.join(outdir, "{}/".format(decoder))
     outdir = os.path.join(outdir, "{}/".format(loss))

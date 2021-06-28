@@ -70,7 +70,10 @@ def attack_run(master_settings):
     loss = master_settings["loss"]
     outdir = master_settings["outdir"]
 
-    outdir = os.path.join(outdir, "unbounded/confidence/maxctc-mintruectc/")
+    attack_type = os.path.basename(__file__).replace(".py", "")
+
+    outdir = os.path.join(outdir, attack_type)
+    outdir = os.path.join(outdir, "confidence/maxctc-mintruectc/")
     outdir = os.path.join(outdir, "{}/".format(loss))
 
     master_settings["outdir"] = outdir

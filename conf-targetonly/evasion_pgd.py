@@ -7,10 +7,17 @@ from cleverspeech.utils.Utils import log
 from cleverspeech.utils.runtime.Execution import default_evasion_manager
 from cleverspeech.utils.runtime.ExperimentArguments import args
 
+# attack def imports
 
 
 # victim model
 from SecEval import VictimAPI as DeepSpeech
+
+
+LOSS_CHOICES = {
+    "logits": graph.Losses.MaximiseTargetFramewiseActivations,
+    "softmax": graph.Losses.MaximiseTargetFramewiseSoftmax,
+}
 
 
 def create_attack_graph(sess, batch, settings):
@@ -32,64 +39,38 @@ def create_attack_graph(sess, batch, settings):
         decoder=settings["decoder"],
         beam_width=settings["beam_width"]
     )
-
-    if settings["procedure"] == "std":
-
-        attack.add_loss(
-            graph.Losses.AlignmentsCTCLoss
-        )
-        attack.create_loss_fn()
-        attack.add_optimiser(
-            graph.Optimisers.AdamIndependentOptimiser,
-            learning_rate=settings["learning_rate"]
-        )
-        attack.add_procedure(
-            graph.Procedures.EvasionPGD,
-            steps=settings["nsteps"],
-            update_step=settings["decode_step"],
-        )
-
-    elif settings["procedure"] == "extreme":
-
-        attack.add_loss(
-            graph.Losses.AlignmentsCTCLoss
-        )
-        attack.create_loss_fn()
-        attack.add_optimiser(
-            graph.Optimisers.AdamIndependentOptimiser,
-            learning_rate=settings["learning_rate"]
-        )
-        attack.add_procedure(
-            graph.Procedures.LossPGD,
-            steps=settings["nsteps"],
-            update_step=settings["decode_step"],
-            loss_lower_bound=settings["loss_threshold"],
-        )
-
-    else:
-        raise NotImplementedError
+    attack.add_loss(
+        LOSS_CHOICES[settings["loss"]],
+        attack.placeholders.targets,
+    )
+    attack.create_loss_fn()
+    attack.add_optimiser(
+        graph.Optimisers.AdamIndependentOptimiser,
+        learning_rate=settings["learning_rate"]
+    )
+    attack.add_procedure(
+        graph.Procedures.EvasionPGD,
+        steps=settings["nsteps"],
+        update_step=settings["decode_step"]
+    )
 
     return attack
 
 
 def attack_run(master_settings):
-    """
-
-    """
 
     align = master_settings["align"]
+    loss = master_settings["loss"]
     decoder = master_settings["decoder"]
-    procedure = master_settings["procedure"]
-    loss_threshold = master_settings["loss_threshold"]
     outdir = master_settings["outdir"]
 
-    outdir = os.path.join(outdir, "evasion/confidence/ctc-edge-case/")
-    outdir = os.path.join(outdir, "{}/".format(align))
-    outdir = os.path.join(outdir, "{}/".format(decoder))
-    outdir = os.path.join(outdir, "{}/".format(procedure))
+    attack_type = os.path.basename(__file__).replace(".py", "")
 
-    if procedure == "extreme":
-        outdir = os.path.join(outdir, "{}/".format(loss_threshold))
+    outdir = os.path.join(outdir, attack_type)
+    outdir = os.path.join(outdir, "confidence/targetonly/")
+    outdir = os.path.join(outdir, "{}/".format(align))
+    outdir = os.path.join(outdir, "{}/".format(loss))
+    outdir = os.path.join(outdir, "{}/".format(decoder))
 
     master_settings["outdir"] = outdir
 
@@ -105,9 +86,10 @@ def attack_run(master_settings):
 
 if __name__ == '__main__':
 
+    log("", wrap=True)
+
     extra_args = {
-        "procedure": [str, "std", False, ["std", "extreme"]],
-        "loss_threshold": [float, 20.0, False, None],
+        'loss': [str, "logits", False, LOSS_CHOICES.keys()],
     }
 
     args(attack_run, additional_args=extra_args)

@@ -4,22 +4,23 @@ import os
 from cleverspeech import data
 from cleverspeech import graph
 from cleverspeech.utils.Utils import log
+from cleverspeech.utils.runtime.Execution import manager
 from cleverspeech.utils.runtime.ExperimentArguments import args
-from cleverspeech.utils.runtime.Execution import default_evasion_manager
-
-# attack def imports
 
 
-# victim model
+# victim model import
 from SecEval import VictimAPI as DeepSpeech
 
-# set up the directory we'll use for local results data
+# local attack classes
+import custom_defs
+
 
 LOSS_CHOICES = {
-    "softmax": graph.Losses.BiggioMaxMinSoftmax,
-    "logits": graph.Losses.BiggioMaxMin,
+    "fwd": custom_defs.FwdOnlyLogProbsLoss,
+    "back": custom_defs.BackOnlyLogProbsLoss,
+    "fwdplusback": custom_defs.FwdPlusBackLogProbsLoss,
+    "fwdmultback": custom_defs.FwdMultBackLogProbsLoss,
 }
-
 
 def create_attack_graph(sess, batch, settings):
 
@@ -40,7 +41,6 @@ def create_attack_graph(sess, batch, settings):
         decoder=settings["decoder"],
         beam_width=settings["beam_width"]
     )
-
     attack.add_loss(
         LOSS_CHOICES[settings["loss"]],
         attack.placeholders.targets,
@@ -59,37 +59,60 @@ def create_attack_graph(sess, batch, settings):
     return attack
 
 
+def custom_extract_results(attack):
+
+    results = data.egress.extract.get_evasion_attack_state(attack)
+
+    target_alpha = attack.loss[0].fwd_target_log_probs
+    target_beta = attack.loss[0].back_target_log_probs
+
+    alpha, beta = attack.procedure.tf_run(
+        [target_alpha, target_beta]
+    )
+
+    results.update(
+        {
+            "alpha": alpha,
+            "beta": beta,
+        }
+    )
+
+    return results
+
+
 def attack_run(master_settings):
 
     align = master_settings["align"]
-    loss = master_settings["loss"]
     decoder = master_settings["decoder"]
+    loss = master_settings["loss"]
     outdir = master_settings["outdir"]
 
-    outdir = os.path.join(outdir, "evasion/baselines/biggio/")
+    attack_type = os.path.basename(__file__).replace(".py", "")
+
+    outdir = os.path.join(outdir, attack_type)
+    outdir = os.path.join(outdir, "confidence/sumlogprobs/")
     outdir = os.path.join(outdir, "{}/".format(align))
-    outdir = os.path.join(outdir, "{}/".format(loss))
     outdir = os.path.join(outdir, "{}/".format(decoder))
+    outdir = os.path.join(outdir, "{}/".format(loss))
 
     master_settings["outdir"] = outdir
 
     batch_gen = data.ingress.etl.batch_generators.PATH_GENERATORS[align](master_settings)
 
-    default_evasion_manager(
+    manager(
         master_settings,
         create_attack_graph,
         batch_gen,
+        results_extract_fn=custom_extract_results,
+        results_transform_fn=data.egress.transform.evasion_gen,
     )
     log("Finished run.")
 
 
 if __name__ == '__main__':
 
-    log("", wrap=True)
-
     extra_args = {
-        'loss': [str, "logits", False, LOSS_CHOICES.keys()],
+        "loss": [str, "fwd", False, LOSS_CHOICES.keys()],
     }
 
     args(attack_run, additional_args=extra_args)
-

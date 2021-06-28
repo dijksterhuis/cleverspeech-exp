@@ -57,7 +57,10 @@ def attack_run(master_settings):
     decoder = master_settings["decoder"]
     outdir = master_settings["outdir"]
 
-    outdir = os.path.join(outdir, "unbounded/baselines/ctc/")
+    attack_type = os.path.basename(__file__).replace(".py", "")
+
+    outdir = os.path.join(outdir, attack_type)
+    outdir = os.path.join(outdir, "baselines/ctc/")
     outdir = os.path.join(outdir, "{}/".format(loss))
     outdir = os.path.join(outdir, "{}/".format(decoder))
 

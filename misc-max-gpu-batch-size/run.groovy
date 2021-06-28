@@ -14,7 +14,7 @@ pipeline {
     parameters {
 
         choice name: 'EXP_SCRIPT',
-            choices: ['attacks', 'unbounded'],
+            choices: ['evasion_pgd', 'unbounded'],
             description: 'Which attack python script to run. default: attacks.py.'
 
         choice name: 'GRAPH_FILTER',
@@ -22,7 +22,7 @@ pipeline {
             description: 'Filter experiments based on graph hyper parameter. Default: all.'
 
         choice name: 'EXP_SCRIPT',
-            choices: ['attacks', 'unbounded'],
+            choices: ['evasion_pgd', 'unbounded'],
             description: 'Which attack python script to run. default: attacks.py.'
 
         choice name: 'SERVER_FILTER',

@@ -1,18 +1,21 @@
 #!/usr/bin/env python3
 import os
+
 from cleverspeech import data
 from cleverspeech import graph
-from cleverspeech.utils.runtime.ExperimentArguments import args
-from cleverspeech.utils.runtime.Execution import default_evasion_manager
 from cleverspeech.utils.Utils import log
+from cleverspeech.utils.runtime.Execution import default_evasion_manager
+from cleverspeech.utils.runtime.ExperimentArguments import args
+
+
 
 # victim model
 from SecEval import VictimAPI as DeepSpeech
 
 
 LOSS_CHOICES = {
-    "ctc": graph.Losses.CTCLoss,
-    "ctc2": graph.Losses.CTCLossV2,
+    "softmax": graph.Losses.MaxOfBiggioMaxMinSoftmax,
+    "logits": graph.Losses.MaxOfBiggioMaxMinLogits,
 }
 
 
@@ -35,8 +38,10 @@ def create_attack_graph(sess, batch, settings):
         decoder=settings["decoder"],
         beam_width=settings["beam_width"]
     )
+
     attack.add_loss(
-        LOSS_CHOICES[settings["loss"]]
+        LOSS_CHOICES[settings["loss"]],
+        attack.placeholders.targets,
     )
     attack.create_loss_fn()
     attack.add_optimiser(
@@ -53,27 +58,29 @@ def create_attack_graph(sess, batch, settings):
 
 
 def attack_run(master_settings):
-    """
-    CTC Loss attack modified from the original Carlini & Wagner work.
-    """
 
+    align = master_settings["align"]
     loss = master_settings["loss"]
     decoder = master_settings["decoder"]
     outdir = master_settings["outdir"]
 
-    outdir = os.path.join(outdir, "evasion/baselines/ctc/")
+    attack_type = os.path.basename(__file__).replace(".py", "")
+
+    outdir = os.path.join(outdir, attack_type)
+    outdir = os.path.join(outdir, "confidence/biggio-maxof-maxmin/")
+    outdir = os.path.join(outdir, "{}/".format(align))
     outdir = os.path.join(outdir, "{}/".format(loss))
     outdir = os.path.join(outdir, "{}/".format(decoder))
 
     master_settings["outdir"] = outdir
 
-    batch_gen = data.ingress.etl.batch_generators.standard(master_settings)
+    batch_gen = data.ingress.etl.batch_generators.PATH_GENERATORS[align](master_settings)
+
     default_evasion_manager(
         master_settings,
         create_attack_graph,
         batch_gen,
     )
-
     log("Finished run.")
 
 
@@ -82,7 +89,7 @@ if __name__ == '__main__':
     log("", wrap=True)
 
     extra_args = {
-        "loss": [str, "ctc", False, LOSS_CHOICES.keys()],
+        'loss': [str, "logits", False, LOSS_CHOICES.keys()],
     }
 
     args(attack_run, additional_args=extra_args)

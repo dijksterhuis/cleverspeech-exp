@@ -30,7 +30,7 @@ pipeline {
             description: 'Whether this is an experiment run or if we are just testing that everything works. default: run.'
 
         choice name: 'EXP_SCRIPT',
-            choices: ['attacks', 'unbounded'],
+            choices: ['evasion_pgd', 'unbounded'],
             description: 'Which attack python script to run. default: attacks.py.'
 
         choice name: 'DATA',

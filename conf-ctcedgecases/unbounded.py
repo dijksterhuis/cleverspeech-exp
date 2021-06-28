@@ -55,7 +55,10 @@ def attack_run(master_settings):
     loss_threshold = master_settings["loss_threshold"]
     outdir = master_settings["outdir"]
 
-    outdir = os.path.join(outdir, "unbounded/confidence/ctc-edge-case/")
+    attack_type = os.path.basename(__file__).replace(".py", "")
+
+    outdir = os.path.join(outdir, attack_type)
+    outdir = os.path.join(outdir, "confidence/ctc-edge-case/")
     outdir = os.path.join(outdir, "{}/".format(align))
     outdir = os.path.join(outdir, "{}/".format(decoder))
     outdir = os.path.join(outdir, "{}/".format(procedure))

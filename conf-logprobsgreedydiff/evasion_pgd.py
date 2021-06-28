@@ -90,7 +90,10 @@ def attack_run(master_settings):
     kappa = master_settings["kappa"]
     outdir = master_settings["outdir"]
 
-    outdir = os.path.join(outdir, "evasion/confidence/logprobs-greedydiff/")
+    attack_type = os.path.basename(__file__).replace(".py", "")
+
+    outdir = os.path.join(outdir, attack_type)
+    outdir = os.path.join(outdir, "confidence/logprobs-greedydiff/")
     outdir = os.path.join(outdir, "{}/".format(align))
     outdir = os.path.join(outdir, "{}/".format(decoder))
     outdir = os.path.join(outdir, "{}/".format(loss))

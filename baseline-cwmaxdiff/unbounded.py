@@ -15,7 +15,6 @@ from SecEval import VictimAPI as DeepSpeech
 ALIGNMENT_CHOICES = {
     "sparse": data.ingress.etl.batch_generators.sparse,
     "mid": data.ingress.etl.batch_generators.midish,
-    "mid": data.ingress.etl.batch_generators.midish,
     "dense": data.ingress.etl.batch_generators.dense,
     "ctcalign": data.ingress.etl.batch_generators.standard,
 }
@@ -79,7 +78,10 @@ def attack_run(master_settings):
     kappa = master_settings["kappa"]
     outdir = master_settings["outdir"]
 
-    outdir = os.path.join(outdir, "unbounded/baselines/cwmaxdiff/")
+    attack_type = os.path.basename(__file__).replace(".py", "")
+
+    outdir = os.path.join(outdir, attack_type)
+    outdir = os.path.join(outdir, "baselines/cwmaxdiff/")
     outdir = os.path.join(outdir, "{}/".format(align))
     outdir = os.path.join(outdir, "{}/".format(loss))
     outdir = os.path.join(outdir, "{}/".format(decoder))

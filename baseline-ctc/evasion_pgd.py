@@ -1,18 +1,13 @@
 #!/usr/bin/env python3
 import os
-
 from cleverspeech import data
 from cleverspeech import graph
-from cleverspeech.utils.Utils import log
-from cleverspeech.utils.runtime.Execution import default_evasion_manager
 from cleverspeech.utils.runtime.ExperimentArguments import args
-
+from cleverspeech.utils.runtime.Execution import default_evasion_manager
+from cleverspeech.utils.Utils import log
 
 # victim model
 from SecEval import VictimAPI as DeepSpeech
-
-# custom defs
-from custom_defs import OtherTranscriptionCTCLoss, TruePlaceholders, TrueFeeds
 
 
 LOSS_CHOICES = {
@@ -23,12 +18,10 @@ LOSS_CHOICES = {
 
 def create_attack_graph(sess, batch, settings):
 
-    feeds = TrueFeeds(batch)
+    feeds = data.ingress.Feeds.Attack(batch)
 
     attack = graph.AttackConstructors.EvasionAttackConstructor(sess, batch, feeds)
-    attack.add_placeholders(
-        TruePlaceholders
-    )
+    attack.add_placeholders(graph.Placeholders.Placeholders)
     attack.add_hard_constraint(
         graph.Constraints.L2,
         r_constant=settings["rescale"],
@@ -44,10 +37,6 @@ def create_attack_graph(sess, batch, settings):
     )
     attack.add_loss(
         LOSS_CHOICES[settings["loss"]]
-    )
-    attack.add_loss(
-        OtherTranscriptionCTCLoss,
-        weight_settings=(-0.1, -1.0)
     )
     attack.create_loss_fn()
     attack.add_optimiser(
@@ -65,13 +54,19 @@ def create_attack_graph(sess, batch, settings):
 
 def attack_run(master_settings):
     """
+    CTC Loss attack modified from the original Carlini & Wagner work.
     """
 
     loss = master_settings["loss"]
+    decoder = master_settings["decoder"]
     outdir = master_settings["outdir"]
 
-    outdir = os.path.join(outdir, "evasion/confidence/maxctc-mintruectc/")
+    attack_type = os.path.basename(__file__).replace(".py", "")
+
+    outdir = os.path.join(outdir, attack_type)
+    outdir = os.path.join(outdir, "baselines/ctc/")
     outdir = os.path.join(outdir, "{}/".format(loss))
+    outdir = os.path.join(outdir, "{}/".format(decoder))
 
     master_settings["outdir"] = outdir
 
@@ -82,7 +77,7 @@ def attack_run(master_settings):
         batch_gen,
     )
 
-    log("Finished run.")  # {}.".format(run))
+    log("Finished run.")
 
 
 if __name__ == '__main__':
@@ -94,6 +89,4 @@ if __name__ == '__main__':
     }
 
     args(attack_run, additional_args=extra_args)
-
-
 
