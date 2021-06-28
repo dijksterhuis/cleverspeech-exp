@@ -61,7 +61,7 @@ def create_attack_graph(sess, batch, settings):
         learning_rate=settings["learning_rate"]
     )
     attack.add_procedure(
-        graph.Procedures.StandardPGD,
+        graph.Procedures.EvasionPGD,
         steps=settings["nsteps"],
         update_step=settings["decode_step"]
     )
