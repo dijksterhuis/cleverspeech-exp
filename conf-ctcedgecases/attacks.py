@@ -44,7 +44,7 @@ def create_attack_graph(sess, batch, settings):
             learning_rate=settings["learning_rate"]
         )
         attack.add_procedure(
-            graph.Procedures.StandardProcedure,
+            graph.Procedures.StandardPGD,
             steps=settings["nsteps"],
             update_step=settings["decode_step"],
         )
@@ -60,7 +60,7 @@ def create_attack_graph(sess, batch, settings):
             learning_rate=settings["learning_rate"]
         )
         attack.add_procedure(
-            graph.Procedures.UpdateOnLoss,
+            graph.Procedures.LossPGD,
             steps=settings["nsteps"],
             update_step=settings["decode_step"],
             loss_lower_bound=settings["loss_threshold"],
