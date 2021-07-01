@@ -87,6 +87,7 @@ def attack_run(master_settings):
     outdir = os.path.join(outdir, "{}/".format(kappa))
 
     master_settings["outdir"] = outdir
+    master_settings["attack type"] = attack_type
 
     batch_gen = data.ingress.etl.batch_generators.PATH_GENERATORS[align](master_settings)
 
