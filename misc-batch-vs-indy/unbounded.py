@@ -4,7 +4,7 @@ import os
 from cleverspeech import data
 from cleverspeech import graph
 from cleverspeech.utils.Utils import log
-from cleverspeech.utils.runtime.Execution import default_unbounded_manager
+from cleverspeech.utils.runtime.Execution import default_manager
 from cleverspeech.utils.runtime.ExperimentArguments import args
 
 # victim model
@@ -90,7 +90,7 @@ def attack_run(master_settings):
         master_settings["max_examples"] = batch_size
 
         batch_gen = data.ingress.etl.batch_generators.standard(master_settings)
-        default_unbounded_manager(
+        default_manager(
             master_settings,
             create_attack_graph,
             batch_gen,
