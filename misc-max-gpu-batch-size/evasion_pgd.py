@@ -100,7 +100,7 @@ def create_ctc_attack_graph(sess, batch, settings):
         learning_rate=settings["learning_rate"]
     )
     attack.add_procedure(
-        graph.Procedures.EvasionPGD,
+        graph.Procedures.EvasionCGD,
         steps=settings["nsteps"],
         update_step=settings["decode_step"]
     )
@@ -138,7 +138,7 @@ def create_cw_attack_graph(sess, batch, settings):
         learning_rate=settings["learning_rate"]
     )
     attack.add_procedure(
-        graph.Procedures.EvasionPGD,
+        graph.Procedures.EvasionCGD,
         steps=settings["nsteps"],
         update_step=settings["decode_step"]
     )
