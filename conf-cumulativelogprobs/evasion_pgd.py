@@ -64,7 +64,7 @@ def create_attack_graph(sess, batch, settings):
 
 def custom_extract_results(attack):
 
-    results = data.egress.extract.get_evasion_attack_state(attack)
+    results = data.egress.extract.get_attack_state(attack)
 
     target_alpha = attack.loss[0].fwd_target_log_probs
     target_beta = attack.loss[0].back_target_log_probs
@@ -107,7 +107,7 @@ def attack_run(master_settings):
         create_attack_graph,
         batch_gen,
         results_extract_fn=custom_extract_results,
-        results_transform_fn=data.egress.transform.evasion_gen,
+        results_transform_fn=data.egress.transform.transforms_gen,
     )
     log("Finished run.")
 
