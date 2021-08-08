@@ -12,13 +12,6 @@ from cleverspeech.utils.runtime.ExperimentArguments import args
 from SecEval import VictimAPI as DeepSpeech
 
 
-ALIGNMENT_CHOICES = {
-    "sparse": data.ingress.etl.batch_generators.sparse,
-    "mid": data.ingress.etl.batch_generators.midish,
-    "dense": data.ingress.etl.batch_generators.dense,
-    "ctcalign": data.ingress.etl.batch_generators.standard,
-}
-
 LOSS_CHOICES = {
     "softmax": graph.Losses.CWMaxDiffSoftmax,
     "logits": graph.Losses.CWMaxDiff,
