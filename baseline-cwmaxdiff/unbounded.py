@@ -104,7 +104,7 @@ if __name__ == '__main__':
     log("", wrap=True)
 
     extra_args = {
-        "kappa": [float, 0.5, False, None],
+        "kappa": [float, 0.0, False, None],
         'loss': [str, "logits", False, LOSS_CHOICES.keys()],
     }
 
