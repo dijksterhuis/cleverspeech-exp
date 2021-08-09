@@ -4,7 +4,7 @@ import traceback
 import tensorflow as tf
 import multiprocessing as mp
 
-from cleverspeech import data
+from cleverspeech import data, graph
 from cleverspeech.utils.Utils import log
 from cleverspeech.utils.runtime.TensorflowRuntime import TFRuntime
 from cleverspeech.utils.runtime.ExperimentArguments import args
@@ -80,12 +80,19 @@ def custom_manager(settings, attack_fn, batch_gen):
 
 def create_validation_graph(sess, batch, settings):
 
-    feeds = data.ingress.Feeds.Validation(batch)
+    feeds = graph.AttackConstructors.Feeds()
 
-    audios_ph = tf.placeholder(tf.float32, [batch.size, batch.audios["max_samples"]], name="new_input")
-    audio_lengths_ph = tf.placeholder(tf.int32, [batch.size], name='qq_featlens')
+    audios_ph = tf.placeholder(
+        tf.float32, [batch.size, batch.audios["max_samples"]], name="new_input"
+    )
+    audio_lengths_ph = tf.placeholder(
+        tf.int32, [batch.size], name='qq_featlens'
+    )
 
-    feeds.create_feeds(audios_ph, audio_lengths_ph)
+    feeds.examples = {
+        audios_ph: batch.audios["padded_audio"],
+        audio_lengths_ph: batch.audios["ds_feats"],
+    }
 
     model = DeepSpeech.Model(
         sess, audios_ph, batch,
@@ -101,7 +108,7 @@ def create_validation_graph(sess, batch, settings):
 
 def attack_run(master_settings):
 
-    batch_gen = data.ingress.etl.batch_generators.standard(master_settings)
+    batch_gen = data.ingress.mcv_v1.BatchIterator(master_settings)
 
     custom_manager(
         master_settings,

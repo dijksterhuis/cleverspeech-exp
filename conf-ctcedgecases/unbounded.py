@@ -14,10 +14,15 @@ from SecEval import VictimAPI as DeepSpeech
 
 def create_attack_graph(sess, batch, settings):
 
-    feeds = data.ingress.Feeds.Attack(batch)
-
-    attack = graph.AttackConstructors.UnboundedAttackConstructor(sess, batch, feeds)
-    attack.add_placeholders(graph.Placeholders.Placeholders)
+    attack = graph.AttackConstructors.UnboundedAttackConstructor(
+        sess, batch
+    )
+    attack.add_path_search(
+        graph.Paths.ALL_PATHS[settings["align"]]
+    )
+    attack.add_placeholders(
+        graph.Placeholders.Placeholders
+    )
     attack.add_perturbation_subgraph(
         graph.PerturbationSubGraphs.Independent
     )
@@ -26,11 +31,9 @@ def create_attack_graph(sess, batch, settings):
         decoder=settings["decoder"],
         beam_width=settings["beam_width"]
     )
-
     attack.add_loss(
         graph.Losses.AlignmentsCTCLoss
     )
-    attack.create_loss_fn()
     attack.add_optimiser(
         graph.Optimisers.AdamIndependentOptimiser,
         learning_rate=settings["learning_rate"]
@@ -51,8 +54,6 @@ def attack_run(master_settings):
 
     align = master_settings["align"]
     decoder = master_settings["decoder"]
-    procedure = master_settings["procedure"]
-    loss_threshold = master_settings["loss_threshold"]
     outdir = master_settings["outdir"]
 
     attack_type = os.path.basename(__file__).replace(".py", "")
@@ -61,14 +62,10 @@ def attack_run(master_settings):
     outdir = os.path.join(outdir, "confidence/ctc-edge-case/")
     outdir = os.path.join(outdir, "{}/".format(align))
     outdir = os.path.join(outdir, "{}/".format(decoder))
-    outdir = os.path.join(outdir, "{}/".format(procedure))
-
-    if procedure == "extreme":
-        outdir = os.path.join(outdir, "{}/".format(loss_threshold))
 
     master_settings["outdir"] = outdir
 
-    batch_gen = data.ingress.etl.batch_generators.PATH_GENERATORS[align](master_settings)
+    batch_gen = data.ingress.mcv_v1.BatchIterator(master_settings)
 
     default_manager(
         master_settings,

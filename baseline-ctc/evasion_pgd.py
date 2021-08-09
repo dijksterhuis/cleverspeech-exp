@@ -18,10 +18,12 @@ LOSS_CHOICES = {
 
 def create_attack_graph(sess, batch, settings):
 
-    feeds = data.ingress.Feeds.Attack(batch)
-
-    attack = graph.AttackConstructors.EvasionAttackConstructor(sess, batch, feeds)
-    attack.add_placeholders(graph.Placeholders.Placeholders)
+    attack = graph.AttackConstructors.EvasionAttackConstructor(
+        sess, batch
+    )
+    attack.add_placeholders(
+        graph.Placeholders.Placeholders
+    )
     attack.add_hard_constraint(
         graph.Constraints.L2,
         r_constant=settings["rescale"],
@@ -70,7 +72,7 @@ def attack_run(master_settings):
 
     master_settings["outdir"] = outdir
 
-    batch_gen = data.ingress.etl.batch_generators.standard(master_settings)
+    batch_gen = data.ingress.mcv_v1.BatchIterator(master_settings)
     default_manager(
         master_settings,
         create_attack_graph,

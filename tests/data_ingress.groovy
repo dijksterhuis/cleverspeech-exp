@@ -46,7 +46,7 @@ pipeline {
                 axes {
                     axis {
                         name 'ETL'
-                        values 'standard', 'sparse', 'dense'
+                        values 'mcv_v1' /*, 'sparse', 'dense'*/
                     }
                     axis {
                         name 'DATA'

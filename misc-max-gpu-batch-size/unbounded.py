@@ -74,10 +74,12 @@ def custom_manager(settings, attack_fn, batch_gen):
 
 def create_ctc_attack_graph(sess, batch, settings):
 
-    feeds = data.ingress.Feeds.Attack(batch)
-
-    attack = graph.AttackConstructors.UnboundedAttackConstructor(sess, batch, feeds)
-    attack.add_placeholders(graph.Placeholders.Placeholders)
+    attack = graph.AttackConstructors.UnboundedAttackConstructor(
+        sess, batch
+    )
+    attack.add_placeholders(
+        graph.Placeholders.Placeholders
+    )
     attack.add_perturbation_subgraph(
         graph.PerturbationSubGraphs.Independent,
     )
@@ -89,7 +91,6 @@ def create_ctc_attack_graph(sess, batch, settings):
     attack.add_loss(
         graph.Losses.CTCLoss,
     )
-    attack.create_loss_fn()
     attack.add_optimiser(
         graph.Optimisers.AdamIndependentOptimiser,
         learning_rate=settings["learning_rate"]
@@ -105,10 +106,15 @@ def create_ctc_attack_graph(sess, batch, settings):
 
 def create_cw_attack_graph(sess, batch, settings):
 
-    feeds = data.ingress.Feeds.Attack(batch)
-
-    attack = graph.AttackConstructors.UnboundedAttackConstructor(sess, batch, feeds)
-    attack.add_placeholders(graph.Placeholders.Placeholders)
+    attack = graph.AttackConstructors.UnboundedAttackConstructor(
+        sess, batch
+    )
+    attack.add_path_search(
+        graph.Paths.ALL_PATHS[settings["align"]]
+    )
+    attack.add_placeholders(
+        graph.Placeholders.Placeholders
+    )
     attack.add_perturbation_subgraph(
         graph.PerturbationSubGraphs.Independent
     )
@@ -117,10 +123,8 @@ def create_cw_attack_graph(sess, batch, settings):
         decoder=settings["decoder"],
         beam_width=settings["beam_width"]
     )
-
     attack.add_loss(
         graph.Losses.CWMaxDiffSoftmax,
-        attack.placeholders.targets,
         k=settings["kappa"]
     )
     attack.add_optimiser(
@@ -136,6 +140,12 @@ def create_cw_attack_graph(sess, batch, settings):
     return attack
 
 
+ATTACK_GRAPHS = {
+    "ctc": create_ctc_attack_graph,
+    "cw": create_cw_attack_graph,
+}
+
+
 def attack_run(master_settings):
 
     everything_is_okay = True
@@ -149,14 +159,9 @@ def attack_run(master_settings):
         master_settings["nsteps"] = 10
         master_settings["decode_step"] = 5
 
-        if master_settings["graph"] == "ctc":
-            batch_gen = data.ingress.etl.batch_generators.standard(master_settings)
-            attack_graph = create_ctc_attack_graph
-        elif master_settings["graph"] == "cw":
-            batch_gen = data.ingress.etl.batch_generators.sparse(master_settings)
-            attack_graph = create_cw_attack_graph
-        else:
-            raise NotImplementedError
+        batch_gen = data.ingress.mcv_v1.BatchIterator(master_settings)
+
+        attack_graph = ATTACK_GRAPHS[master_settings["graph"]]
 
         if batch_size >= 1024:
             batch_size = 1024
@@ -191,7 +196,7 @@ if __name__ == '__main__':
     log("", wrap=True)
 
     extra_args = {
-        'graph': [str, "ctc", False, ["ctc", "cw"]],
+        'graph': [str, "ctc", False, ATTACK_GRAPHS.keys()],
     }
 
     args(attack_run, additional_args=extra_args)

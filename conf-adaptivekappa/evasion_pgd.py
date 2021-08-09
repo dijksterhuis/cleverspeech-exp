@@ -14,9 +14,12 @@ from SecEval import VictimAPI as DeepSpeech
 
 def create_attack_graph(sess, batch, settings):
 
-    feeds = data.ingress.Feeds.Attack(batch)
-
-    attack = graph.AttackConstructors.EvasionAttackConstructor(sess, batch, feeds)
+    attack = graph.AttackConstructors.EvasionAttackConstructor(
+        sess, batch
+    )
+    attack.add_path_search(
+        graph.Paths.ALL_PATHS[settings["align"]]
+    )
     attack.add_placeholders(
         graph.Placeholders.Placeholders
     )
@@ -35,10 +38,8 @@ def create_attack_graph(sess, batch, settings):
     )
     attack.add_loss(
         graph.Losses.AdaptiveKappaMaxDiff,
-        attack.placeholders.targets,
         k=settings["kappa"]
     )
-    attack.create_loss_fn()
     attack.add_optimiser(
         graph.Optimisers.AdamIndependentOptimiser,
         learning_rate=settings["learning_rate"]
@@ -81,7 +82,7 @@ def attack_run(master_settings):
 
     master_settings["outdir"] = outdir
 
-    batch_gen = data.ingress.etl.batch_generators.PATH_GENERATORS[align](master_settings)
+    batch_gen = data.ingress.mcv_v1.BatchIterator(master_settings)
 
     default_manager(
         master_settings,

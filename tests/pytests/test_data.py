@@ -13,10 +13,7 @@ def manager(batch_gen):
 
 
 DATA_CHOICES = {
-    "standard": data.ingress.etl.batch_generators.standard,
-    "sparse": data.ingress.etl.batch_generators.sparse,
-    "dense": data.ingress.etl.batch_generators.dense,
-    "ctcalign": data.ingress.etl.batch_generators.standard,
+    "mcv_v1": data.ingress.mcv_v1.BatchIterator,
 }
 
 
@@ -31,7 +28,7 @@ if __name__ == '__main__':
     log("", wrap=True)
 
     extra_args = {
-        "etl": [str, "base", False, DATA_CHOICES.keys()],
+        "etl": [str, "mcv_v1", False, DATA_CHOICES.keys()],
     }
 
     args(attack_run, additional_args=extra_args)

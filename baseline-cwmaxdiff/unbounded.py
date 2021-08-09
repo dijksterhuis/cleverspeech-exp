@@ -20,10 +20,15 @@ LOSS_CHOICES = {
 
 def create_attack_graph(sess, batch, settings):
 
-    feeds = data.ingress.Feeds.Attack(batch)
-
-    attack = graph.AttackConstructors.UnboundedAttackConstructor(sess, batch, feeds)
-    attack.add_placeholders(graph.Placeholders.Placeholders)
+    attack = graph.AttackConstructors.UnboundedAttackConstructor(
+        sess, batch
+    )
+    attack.add_path_search(
+        graph.Paths.ALL_PATHS[settings["align"]]
+    )
+    attack.add_placeholders(
+        graph.Placeholders.Placeholders
+    )
     attack.add_perturbation_subgraph(
         graph.PerturbationSubGraphs.Independent
     )
@@ -32,10 +37,8 @@ def create_attack_graph(sess, batch, settings):
         decoder=settings["decoder"],
         beam_width=settings["beam_width"]
     )
-
     attack.add_loss(
         LOSS_CHOICES[settings["loss"]],
-        attack.placeholders.targets,
         k=settings["kappa"]
     )
     attack.add_optimiser(
@@ -82,7 +85,7 @@ def attack_run(master_settings):
 
     master_settings["outdir"] = outdir
 
-    batch_gen = data.ingress.etl.batch_generators.PATH_GENERATORS[align](master_settings)
+    batch_gen = data.ingress.mcv_v1.BatchIterator(master_settings)
 
     default_manager(
         master_settings,

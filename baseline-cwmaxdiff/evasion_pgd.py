@@ -21,10 +21,15 @@ LOSS_CHOICES = {
 
 def create_attack_graph(sess, batch, settings):
 
-    feeds = data.ingress.Feeds.Attack(batch)
-
-    attack = graph.AttackConstructors.EvasionAttackConstructor(sess, batch, feeds)
-    attack.add_placeholders(graph.Placeholders.Placeholders)
+    attack = graph.AttackConstructors.EvasionAttackConstructor(
+        sess, batch
+    )
+    attack.add_path_search(
+        graph.Paths.ALL_PATHS[settings["align"]]
+    )
+    attack.add_placeholders(
+        graph.Placeholders.Placeholders
+    )
     attack.add_hard_constraint(
         graph.Constraints.L2,
         r_constant=settings["rescale"],
@@ -38,10 +43,8 @@ def create_attack_graph(sess, batch, settings):
         decoder=settings["decoder"],
         beam_width=settings["beam_width"]
     )
-
     attack.add_loss(
         LOSS_CHOICES[settings["loss"]],
-        attack.placeholders.targets,
         k=settings["kappa"]
     )
     attack.add_optimiser(
@@ -89,7 +92,7 @@ def attack_run(master_settings):
     master_settings["outdir"] = outdir
     master_settings["attack type"] = attack_type
 
-    batch_gen = data.ingress.etl.batch_generators.PATH_GENERATORS[align](master_settings)
+    batch_gen = data.ingress.mcv_v1.BatchIterator(master_settings)
 
     default_manager(
         master_settings,
@@ -104,7 +107,7 @@ if __name__ == '__main__':
     log("", wrap=True)
 
     extra_args = {
-        "kappa": [float, 0.5, False, None],
+        "kappa": [float, 0.0, False, None],
         'loss': [str, "logits", False, LOSS_CHOICES.keys()],
     }
 
